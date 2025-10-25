@@ -1,0 +1,579 @@
+/* Global base */
+:root {
+  --bg: #000;
+  --gold1: #c59b24;
+  --gold2: #d4af37;
+  --gold3: #f1d27a;
+  --duration: 5s;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: #fff;
+  overflow: hidden; /* во время загрузки */
+}
+
+.app-root,
+.app-main {
+  height: 100%;
+}
+
+/* Overlay for loading */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: #000;
+  transition: opacity 300ms ease;
+  will-change: opacity;
+}
+.overlay--fade-out {
+  opacity: 0;
+  pointer-events: none; /* не блокируем клики, даже если оверлей ещё в DOM */
+}
+
+/* Loading Screen */
+.loader-root {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000; /* полностью черный фон */
+}
+
+.dust-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.center-wrap {
+  position: relative;
+  width: min(42vmin, 340px);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+}
+
+/* GG logo with neon outline */
+.gg-logo {
+  display: block;
+  max-width: 62%;
+  height: auto;
+  filter: drop-shadow(0 0 0.6px rgba(255, 255, 255, 0.6))
+    drop-shadow(0 0 4px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 9px rgba(255, 255, 255, 0.45));
+  animation: glowPulse 3.2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0.6px rgba(255, 255, 255, 0.55))
+      drop-shadow(0 0 4px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 9px rgba(255, 255, 255, 0.45));
+  }
+  50% {
+    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.72))
+      drop-shadow(0 0 6px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 13px rgba(255, 255, 255, 0.65));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gg-logo {
+    animation: none;
+    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.45))
+      drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
+  }
+}
+
+/* Circular neon progress ring */
+.progress-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: scale(0.84);
+}
+
+.ring-fg {
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: ringProgress var(--duration) linear forwards;
+}
+
+@keyframes ringProgress {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Main area after loading */
+.app-main {
+  position: relative;
+  height: 100%;
+  background: #000; /* по ТЗ — полностью чёрный */
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 260ms ease,
+    transform 260ms ease;
+}
+
+.app-main--visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Главное меню */
+.main-screen {
+  height: 100%;
+  background: #000;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: calc(118px + env(safe-area-inset-bottom));
+}
+
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(8, 8, 8, 0.58), rgba(8, 8, 8, 0));
+  backdrop-filter: saturate(140%) blur(18px);
+}
+
+.mining-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(10px, 3vw, 18px);
+  padding: clamp(10px, 2.2vh, 16px) clamp(16px, 4vw, 32px);
+}
+
+.mining-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+
+.mining-title {
+  color: #ddd;
+}
+
+.mining-status {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 0 rgba(0, 255, 128, 0);
+  transition:
+    background 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.indicator--on {
+  background: #00d68f;
+  box-shadow: 0 0 8px 2px rgba(0, 214, 143, 0.6);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 6px 1px rgba(0, 214, 143, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 12px 3px rgba(0, 214, 143, 0.8);
+  }
+}
+
+.btn-mine {
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  background: linear-gradient(180deg, #141414, #0c0c0c);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  letter-spacing: 0.3px;
+  transition:
+    transform 120ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    background 200ms ease;
+}
+
+.btn-mine:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05) inset;
+}
+
+.btn-mine:active {
+  transform: translateY(1px);
+}
+
+.btn-mine--active {
+  border-color: rgba(0, 214, 143, 0.6);
+  box-shadow:
+    0 0 0 1px rgba(0, 214, 143, 0.5),
+    0 0 16px rgba(0, 214, 143, 0.15) inset;
+}
+
+.nav-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + clamp(14px, 4vh, 26px));
+  transform: translateX(-50%);
+  z-index: 9; /* ниже overlay (10), чтобы во время fade-out не перекрывать лоадер */
+  width: min(520px, calc(100% - 28px));
+  padding: clamp(10px, 2vh, 16px) clamp(12px, 5vw, 22px);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.38), rgba(12, 12, 12, 0.18));
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+  backdrop-filter: saturate(160%) blur(22px);
+}
+
+.nav-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: center;
+  gap: clamp(8px, 2.6vw, 18px);
+}
+
+.nav-item {
+  display: flex;
+  justify-content: center;
+}
+
+.nav-btn {
+  appearance: none;
+  border: none;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  letter-spacing: 0.38px;
+  text-transform: uppercase;
+  transition: color 180ms ease;
+  min-width: 0;
+}
+
+.nav-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 4px;
+}
+
+.nav-btn__bubble {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(52px, 13vw, 64px);
+  height: clamp(52px, 13vw, 64px);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(28, 28, 28, 0.95), rgba(10, 10, 10, 0.98));
+  box-shadow:
+    0 12px 20px rgba(0, 0, 0, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    background 220ms ease;
+}
+
+.nav-btn__icon svg {
+  width: clamp(20px, 4.6vw, 26px);
+  height: clamp(20px, 4.6vw, 26px);
+}
+
+.nav-btn__label {
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.nav-btn:hover,
+.nav-btn:focus-visible {
+  color: #fff;
+}
+
+.nav-btn:hover .nav-btn__bubble {
+  box-shadow:
+    0 16px 32px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.nav-btn--active {
+  color: #fff;
+}
+
+.nav-btn--active .nav-btn__bubble {
+  transform: translateY(-8px);
+  background: linear-gradient(180deg, rgba(54, 54, 54, 0.98), rgba(8, 8, 8, 0.98));
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1.2px rgba(255, 255, 255, 0.18),
+    0 0 0 10px rgba(200, 160, 64, 0.12);
+}
+
+.main-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  padding: clamp(18px, 4vh, 38px) clamp(14px, 5vw, 40px) 0;
+}
+
+.main-body--home {
+  overflow: visible;
+  padding: clamp(14px, 3.2vh, 28px) clamp(12px, 4vw, 28px) 0;
+}
+
+.screens-viewport {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  border-radius: clamp(20px, 6vw, 32px);
+  background: none;
+  box-shadow: none;
+}
+
+.screens-viewport--home {
+  overflow: visible;
+  border-radius: 0;
+}
+
+.screen-wrapper {
+  position: absolute;
+  inset: 0;
+  will-change: transform, opacity;
+  opacity: 0;
+}
+
+.screen-wrapper--active {
+  opacity: 1;
+}
+
+.screen {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Home screen with sun sphere */
+.screen.home {
+  position: relative;
+  overflow: visible;
+  border-radius: 0;
+  padding: 0;
+  min-height: 400px;
+}
+
+/* Sun sphere canvas */
+.maining-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.maining-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Адаптивность для маленьких экранов */
+@media (max-width: 540px) {
+  .screen.home {
+    min-height: 350px;
+  }
+
+  .maining-canvas {
+    min-height: 350px;
+  }
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  .screen.home {
+    min-height: 300px;
+  }
+
+  .maining-canvas {
+    min-height: 300px;
+  }
+}
+
+.screen-content {
+  width: min(92%, 560px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vh, 28px);
+  text-align: center;
+  margin: 0 auto;
+}
+
+.screen-title {
+  margin: 0;
+  font-size: clamp(28px, 6vw, 40px);
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.screen-subtitle {
+  margin: 0;
+  font-size: clamp(15px, 4.4vw, 18px);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* Slide animations */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-18%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes slideInRight {
+  from {
+    transform: translateX(18%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-18%);
+    opacity: 0;
+  }
+}
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(18%);
+    opacity: 0;
+  }
+}
+
+.slide-in-left {
+  animation: slideInLeft 320ms ease forwards;
+}
+.slide-in-right {
+  animation: slideInRight 320ms ease forwards;
+}
+.slide-out-left {
+  animation: slideOutLeft 320ms ease forwards;
+}
+.slide-out-right {
+  animation: slideOutRight 320ms ease forwards;
+}
+
+@media (max-width: 540px) {
+  .main-screen {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+
+  .nav-bar {
+    width: min(440px, calc(100% - 18px));
+  }
+
+  .nav-list {
+    gap: clamp(6px, 2vw, 12px);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .main-screen {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .nav-bar {
+    padding: 8px clamp(12px, 4vw, 20px);
+    width: min(560px, calc(100% - 20px));
+  }
+
+  .nav-btn__label {
+    display: none;
+  }
+
+  .nav-btn__bubble {
+    width: clamp(46px, 12vw, 54px);
+    height: clamp(46px, 12vw, 54px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .main-body {
+    padding: clamp(24px, 5vh, 48px) clamp(40px, 7vw, 96px) 0;
+  }
+
+  .screens-viewport {
+    max-width: 1024px;
+    margin: 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-btn__bubble {
+    transition: none;
+  }
+
+  .nav-btn--active .nav-btn__bubble {
+    transform: none;
+  }
+
+  .slide-in-left,
+  .slide-in-right,
+  .slide-out-left,
+  .slide-out-right {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}
