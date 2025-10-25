@@ -357,13 +357,13 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
     });
     const ggMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
     const loader = new THREE.TextureLoader();
-    loader.load("/GRAM.png", (t) => {
+    loader.load("./GRAM.png", (t) => {
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = 8;
       gramMat.map = t;
       gramMat.needsUpdate = true;
     });
-    loader.load("/GG.png", (t) => {
+    loader.load("./GG.png", (t) => {
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = 8;
       ggMat.map = t;

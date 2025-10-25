@@ -6,7 +6,7 @@ type LoadingScreenProps = {
 };
 
 const GOLD_COLORS = ["#c7971d", "#d9b140", "#f3d56d", "#f7e29a"];
-const IMAGE_SRC = "/GG.png";
+const IMAGE_SRC = "./GG.png";
 
 // Fast sine lookup to avoid Math.sin per particle per frame
 const LUT_SIZE = 256;
