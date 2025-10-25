@@ -73,7 +73,6 @@ type NavBarProps = {
 };
 
 function NavBarComponent({ current, onNavigate }: NavBarProps) {
-  // Buttons render in a responsive grid; highlight the primary "main" action
   return (
     <nav className="nav-bar" aria-label="Основная навигация">
       <ul className="nav-bar__surface">
@@ -92,7 +91,6 @@ function NavBarComponent({ current, onNavigate }: NavBarProps) {
                 onClick={() => onNavigate(screen)}
                 aria-current={isActive ? "page" : undefined}
                 aria-label={LABELS[screen]}
-                title={LABELS[screen]}
               >
                 <span className="nav-bar__icon" aria-hidden="true">
                   {ICONS[screen]}
