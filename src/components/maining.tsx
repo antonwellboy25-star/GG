@@ -13,6 +13,14 @@ const ease = {
   clamp: (v: number) => Math.min(Math.max(v, 0), 1),
 };
 
+type EnergyMaterial = THREE.ShaderMaterial & {
+  uniforms: {
+    uTime: { value: number };
+    uIntensity: { value: number };
+    uPulse: { value: number };
+  };
+};
+
 export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -27,6 +35,7 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
   const coronaRef = useRef<THREE.Mesh | null>(null);
   const glowRef = useRef<THREE.Sprite | null>(null);
   const flareRef = useRef<THREE.Sprite | null>(null);
+  const ringGroupRef = useRef<THREE.Group | null>(null);
   const gramRef = useRef<THREE.Mesh | null>(null);
   const ggRef = useRef<THREE.Mesh | null>(null);
   const particlesRef = useRef<THREE.Points | null>(null);
@@ -43,48 +52,56 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
     const sun = sunRef.current;
     const corona = coronaRef.current;
     const glow = glowRef.current;
+    const ringGroup = ringGroupRef.current;
     if (!sun || !corona || !glow) return;
 
-    // Вращение сферы и короны
-    sun.rotation.y += dt * 0.08;
-    sun.rotation.x = Math.sin(now * 0.0003) * 0.15;
-    corona.rotation.y -= dt * 0.05;
-    corona.rotation.z += dt * 0.02;
+    sun.rotation.y += dt * 0.12;
+    sun.rotation.x = Math.sin(now * 0.00018) * 0.12;
 
-    // Пульсация свечения
-    const pulse = 1 + 0.06 * Math.sin(now * 0.004) + 0.04 * Math.sin(now * 0.0027);
-    glow.scale.set(3.8 * pulse, 3.8 * pulse, 1);
-
-    const glowMat = glow.material as THREE.SpriteMaterial;
-    glowMat.opacity = THREE.MathUtils.damp(
-      glowMat.opacity,
-      activeRef.current ? 0.85 : 0.5,
-      3.5,
-      dt,
-    );
-
-    // Интенсивность эмиссии
-    const sunMat = sun.material as THREE.MeshStandardMaterial;
-    sunMat.emissiveIntensity = THREE.MathUtils.damp(
-      sunMat.emissiveIntensity,
-      activeRef.current ? 1.6 : 1.0,
-      4,
-      dt,
-    );
-
-    // Анимация текстуры
-    if (sunMat.map) {
-      sunMat.map.offset.x = (now * 0.00012) % 1;
-      sunMat.map.offset.y = (now * 0.00008) % 1;
+    const mat = sun.material as EnergyMaterial;
+    if (mat?.uniforms) {
+      mat.uniforms.uTime.value += dt;
+      const targetIntensity = activeRef.current ? 1.0 : 0.65;
+      mat.uniforms.uIntensity.value = THREE.MathUtils.damp(
+        mat.uniforms.uIntensity.value,
+        targetIntensity,
+        3.4,
+        dt,
+      );
+      mat.uniforms.uPulse.value = THREE.MathUtils.damp(
+        mat.uniforms.uPulse.value,
+        activeRef.current ? 1.2 : 0.7,
+        2.8,
+        dt,
+      );
     }
 
+    const glowMat = glow.material as THREE.SpriteMaterial;
+    const targetGlow = activeRef.current ? 0.62 : 0.44;
+    glowMat.opacity = THREE.MathUtils.damp(glowMat.opacity, targetGlow, 3.2, dt);
+    const pulse = 1 + 0.05 * Math.sin(now * 0.0022) + 0.03 * Math.sin(now * 0.0014);
+    glow.scale.set(3.15 * pulse, 3.15 * pulse, 1);
+
     const coronaMat = corona.material as THREE.MeshBasicMaterial;
+    corona.rotation.y += dt * 0.06;
+    corona.rotation.z += dt * 0.015;
     coronaMat.opacity = THREE.MathUtils.damp(
       coronaMat.opacity,
-      activeRef.current ? 0.75 : 0.45,
-      3.8,
+      activeRef.current ? 0.55 : 0.35,
+      3.1,
       dt,
     );
+
+    if (ringGroup) {
+      ringGroup.rotation.y += dt * 0.22;
+      ringGroup.rotation.x = Math.sin(now * 0.0006) * 0.08;
+      const target = activeRef.current ? 0.32 : 0.18;
+      for (const child of ringGroup.children) {
+        const mesh = child as THREE.Mesh;
+        const mat = mesh.material as THREE.MeshBasicMaterial;
+        mat.opacity = THREE.MathUtils.damp(mat.opacity, target, 2.6, dt);
+      }
+    }
   }, []);
 
   const updateIdle = useCallback((dt: number) => {
@@ -212,18 +229,18 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
 
         // Сброс улетевших частиц
         const dist = Math.sqrt(arr[k] ** 2 + arr[k + 1] ** 2 + arr[k + 2] ** 2);
-        if (dist > 3.5) {
+        if (dist > 3.1) {
           resetParticle(i, arr, speeds);
         }
       }
 
       const mat = particles.material as THREE.PointsMaterial;
-      mat.opacity = THREE.MathUtils.clamp(mat.opacity + dt * 1.5, 0, 0.8);
+      mat.opacity = THREE.MathUtils.clamp(mat.opacity + dt * 1.2, 0, 0.55);
       particles.visible = true;
       positions.needsUpdate = true;
     } else {
       const mat = particles.material as THREE.PointsMaterial;
-      mat.opacity = Math.max(0, mat.opacity - dt * 1.2);
+      mat.opacity = Math.max(0, mat.opacity - dt * 1.05);
       if (mat.opacity <= 0.02) particles.visible = false;
     }
   }, []);
@@ -242,7 +259,7 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
     });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 0.95;
     renderer.setClearAlpha(0);
     rendererRef.current = renderer;
     container.appendChild(renderer.domElement);
@@ -256,19 +273,11 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
     const ambient = new THREE.AmbientLight(0x2a2a2a, 0.8);
     scene.add(ambient);
 
-    // Центральная огненная сфера (солнце)
-    const sunGeo = new THREE.SphereGeometry(1.3, 96, 96);
-    const sunTex = createFireTexture(512);
-    const sunMat = new THREE.MeshStandardMaterial({
-      map: sunTex,
-      emissive: 0xffaa00,
-      emissiveIntensity: 1.2,
-      emissiveMap: sunTex,
-      roughness: 0.85,
-      metalness: 0.05,
-      flatShading: false,
-    });
+    // Центральное энергетическое ядро
+    const sunGeo = new THREE.SphereGeometry(1.22, 160, 160);
+    const sunMat = createEnergyMaterial();
     const sun = new THREE.Mesh(sunGeo, sunMat);
+    sun.renderOrder = 3;
     scene.add(sun);
     sunRef.current = sun;
 
@@ -302,6 +311,38 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
     scene.add(glow);
     glowRef.current = glow;
 
+    // Обводящие кольца
+    const ringGroup = new THREE.Group();
+    ringGroupRef.current = ringGroup;
+    scene.add(ringGroup);
+
+    const ringTex = createRingTexture(512);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      map: ringTex,
+      transparent: true,
+      opacity: 0.32,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+
+    const outerRing = new THREE.Mesh(new THREE.RingGeometry(1.55, 2.05, 128), ringMaterial.clone());
+    outerRing.rotation.x = Math.PI / 2.35;
+    outerRing.rotation.y = Math.PI / 12;
+    ringGroup.add(outerRing);
+
+    const innerRing = new THREE.Mesh(new THREE.RingGeometry(1.35, 1.85, 128), ringMaterial.clone());
+    innerRing.rotation.x = Math.PI / 2.05;
+    innerRing.rotation.y = -Math.PI / 18;
+    ringGroup.add(innerRing);
+
+    const ribbon = new THREE.Mesh(
+      new THREE.TorusGeometry(1.7, 0.02, 16, 220),
+      ringMaterial.clone(),
+    );
+    ribbon.rotation.x = Math.PI / 2.6;
+    ringGroup.add(ribbon);
+
     // Вспышка (активируется при переплавке)
     const flareTex = createFlareTexture(256);
     const flareMat = new THREE.SpriteMaterial({
@@ -331,8 +372,8 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
     }
     const particleMat = new THREE.PointsMaterial({
       map: particleTextureRef.current ?? undefined,
-      color: 0xffd27a,
-      size: 0.08,
+      color: 0xfff0cc,
+      size: 0.07,
       transparent: true,
       opacity: 0,
       depthWrite: false,
@@ -465,85 +506,205 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
 function resetParticle(i: number, arr: Float32Array, speeds: Float32Array) {
   const theta = Math.random() * Math.PI * 2;
   const phi = Math.acos(2 * Math.random() - 1);
-  const r = 1.5 + Math.random() * 0.25;
+  const r = 1.32 + Math.random() * 0.32;
 
   const k = i * 3;
   arr[k] = r * Math.sin(phi) * Math.cos(theta);
   arr[k + 1] = r * Math.sin(phi) * Math.sin(theta);
   arr[k + 2] = r * Math.cos(phi);
 
-  speeds[i] = 0.8 + Math.random() * 1.2;
+  speeds[i] = 0.6 + Math.random() * 0.9;
 }
 
-// Процедурная текстура огня с мягкими переходами и детализацией
-function createFireTexture(size: number): THREE.CanvasTexture {
+function createEnergyMaterial(): EnergyMaterial {
+  const uniforms = {
+    uTime: { value: 0 },
+    uIntensity: { value: 0.82 },
+    uPulse: { value: 1 },
+  } satisfies EnergyMaterial["uniforms"];
+
+  const vertexShader = /* glsl */ `
+    varying vec3 vNormal;
+    varying vec3 vWorldPosition;
+    varying vec3 vViewDir;
+
+    void main() {
+      vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+      vWorldPosition = worldPosition.xyz;
+      vNormal = normalize(normalMatrix * normal);
+      vec4 mvPosition = viewMatrix * worldPosition;
+      vViewDir = normalize(-mvPosition.xyz);
+      gl_Position = projectionMatrix * mvPosition;
+    }
+  `;
+
+  const fragmentShader = /* glsl */ `
+    precision highp float;
+
+    varying vec3 vNormal;
+    varying vec3 vWorldPosition;
+    varying vec3 vViewDir;
+
+    uniform float uTime;
+    uniform float uIntensity;
+    uniform float uPulse;
+
+    vec4 permute(vec4 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+    vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+    float snoise(vec3 v) {
+      const vec2  C = vec2(1.0/6.0, 1.0/3.0);
+      const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+
+      vec3 i  = floor(v + dot(v, C.yyy));
+      vec3 x0 =   v - i + dot(i, C.xxx);
+
+      vec3 g = step(x0.yzx, x0.xyz);
+      vec3 l = 1.0 - g;
+      vec3 i1 = min( g.xyz, l.zxy );
+      vec3 i2 = max( g.xyz, l.zxy );
+
+      vec3 x1 = x0 - i1 + C.xxx;
+      vec3 x2 = x0 - i2 + C.yyy;
+      vec3 x3 = x0 - D.yyy;
+
+      i = mod(i, 289.0);
+      vec4 p = permute( permute( permute(
+                  i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+                + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
+                + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+
+      float n_ = 0.142857142857;
+      vec3  ns = n_ * D.wyz - D.xzx;
+
+      vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+
+      vec4 x_ = floor(j * ns.z);
+      vec4 y_ = floor(j - 7.0 * x_ );
+
+      vec4 x = x_ * ns.x + ns.yyyy;
+      vec4 y = y_ * ns.x + ns.yyyy;
+      vec4 h = 1.0 - abs(x) - abs(y);
+
+      vec4 b0 = vec4( x.xy, y.xy );
+      vec4 b1 = vec4( x.zw, y.zw );
+
+      vec4 s0 = floor(b0) * 2.0 + 1.0;
+      vec4 s1 = floor(b1) * 2.0 + 1.0;
+      vec4 sh = -step(h, vec4(0.0));
+
+      vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+      vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+
+      vec3 p0 = vec3(a0.xy, h.x);
+      vec3 p1 = vec3(a0.zw, h.y);
+      vec3 p2 = vec3(a1.xy, h.z);
+      vec3 p3 = vec3(a1.zw, h.w);
+
+      vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+      p0 *= norm.x;
+      p1 *= norm.y;
+      p2 *= norm.z;
+      p3 *= norm.w;
+
+      vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+      m = m * m;
+      return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
+    }
+
+    float fbm(vec3 p) {
+      float value = 0.0;
+      float amplitude = 0.5;
+      for (int i = 0; i < 4; i++) {
+        value += amplitude * snoise(p);
+        p = p * 2.13 + 1.37;
+        amplitude *= 0.45;
+      }
+      return value;
+    }
+
+    void main() {
+      vec3 normal = normalize(vNormal);
+      vec3 viewDir = normalize(vViewDir);
+      float fresnel = pow(1.0 - clamp(dot(normal, viewDir), 0.0, 1.0), 3.0);
+
+      float t = uTime * 0.45;
+      float baseNoise = fbm(normal * 2.2 + t);
+      float flowNoise = fbm(vWorldPosition * 0.9 - t * 0.6);
+      float pulse = sin(t * 1.4) * 0.5 + 0.5;
+      float energy = clamp(0.55 * baseNoise + 0.45 * flowNoise + pulse * 0.12, 0.0, 1.0);
+      energy = pow(energy, 1.25);
+
+      vec3 deepColor = vec3(0.08, 0.1, 0.17);
+      vec3 midColor = vec3(0.32, 0.26, 0.22);
+      vec3 lightColor = vec3(0.98, 0.78, 0.48);
+      vec3 rimColor = vec3(0.98, 0.92, 0.74);
+
+      vec3 color = mix(deepColor, midColor, energy);
+      color = mix(color, lightColor, smoothstep(0.35, 1.0, energy));
+      color += rimColor * (fresnel * (0.3 + uIntensity * 0.38));
+      color = mix(color, rimColor, fresnel * 0.25);
+      color *= (0.82 + uIntensity * 0.28);
+      color += rimColor * (uPulse - 0.9) * 0.12;
+
+      float alpha = 0.72 + fresnel * 0.12;
+      gl_FragColor = vec4(color, alpha);
+    }
+  `;
+
+  const material = new THREE.ShaderMaterial({
+    uniforms,
+    vertexShader,
+    fragmentShader,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.NormalBlending,
+  }) as EnergyMaterial;
+
+  return material;
+}
+
+function createRingTexture(size: number): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d");
   if (!ctx) {
-    // Возвращаем пустую текстуру, если 2D контекст недоступен
     return new THREE.CanvasTexture(canvas);
   }
 
   const cx = size / 2;
   const cy = size / 2;
-  const radius = size / 2;
-
-  const baseGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-  baseGrad.addColorStop(0.0, "#fffaf2");
-  baseGrad.addColorStop(0.2, "#ffe0b4");
-  baseGrad.addColorStop(0.4, "#ffc074");
-  baseGrad.addColorStop(0.6, "#ff944e");
-  baseGrad.addColorStop(0.78, "#ff6233");
-  baseGrad.addColorStop(0.9, "#d43a24");
-  baseGrad.addColorStop(1.0, "#2b0c0a");
-  ctx.fillStyle = baseGrad;
+  const inner = size * 0.36;
+  const outer = size * 0.5;
+  const grad = ctx.createRadialGradient(cx, cy, inner, cx, cy, outer);
+  grad.addColorStop(0.0, "rgba(255, 242, 214, 0)");
+  grad.addColorStop(0.2, "rgba(255, 242, 214, 0.14)");
+  grad.addColorStop(0.5, "rgba(255, 220, 180, 0.32)");
+  grad.addColorStop(0.75, "rgba(245, 192, 140, 0.24)");
+  grad.addColorStop(1.0, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
-
-  const img = ctx.getImageData(0, 0, size, size);
-  const data = img.data;
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const nx = x / size - 0.5;
-      const ny = y / size - 0.5;
-      const r = Math.sqrt(nx * nx + ny * ny);
-      if (r > 0.5) continue;
-      const angle = Math.atan2(ny, nx);
-      const swirl = Math.sin(angle * 4 + r * 14);
-      const bands = Math.sin((nx + ny) * 24) * 0.5 + Math.cos((nx - ny) * 28) * 0.5;
-      const falloff = Math.max(0, 1 - r * 2) ** 2.2;
-      const delta = (swirl * 0.35 + bands * 0.25) * 48 * falloff;
-      const idx = (y * size + x) * 4;
-      data[idx] = clamp255(data[idx] + delta);
-      data[idx + 1] = clamp255(data[idx + 1] + delta * 0.8);
-      data[idx + 2] = clamp255(data[idx + 2] + delta * 0.65);
-    }
-  }
-  ctx.putImageData(img, 0, 0);
 
   const blurCanvas = document.createElement("canvas");
   blurCanvas.width = size;
   blurCanvas.height = size;
   const blurCtx = blurCanvas.getContext("2d");
   if (blurCtx) {
-    blurCtx.filter = "blur(3px)";
+    blurCtx.filter = "blur(4px)";
     blurCtx.drawImage(canvas, 0, 0);
     ctx.clearRect(0, 0, size, size);
-    ctx.filter = "blur(1.2px)";
+    ctx.filter = "blur(1.5px)";
     ctx.drawImage(blurCanvas, 0, 0);
     ctx.filter = "none";
   }
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.center.set(0.5, 0.5);
-  tex.minFilter = THREE.LinearMipMapLinearFilter;
+  tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
-  tex.anisotropy = 8;
-  tex.generateMipmaps = true;
+  tex.anisotropy = 4;
+  tex.generateMipmaps = false;
   return tex;
 }
 
@@ -561,10 +722,10 @@ function createCoronaTexture(size: number): THREE.CanvasTexture {
   const cy = size / 2;
   const radius = size / 2;
   const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-  grad.addColorStop(0.0, "rgba(255, 220, 160, 0.95)");
-  grad.addColorStop(0.25, "rgba(255, 190, 120, 0.75)");
-  grad.addColorStop(0.5, "rgba(255, 150, 80, 0.5)");
-  grad.addColorStop(0.75, "rgba(255, 110, 50, 0.2)");
+  grad.addColorStop(0.0, "rgba(255, 236, 205, 0.92)");
+  grad.addColorStop(0.28, "rgba(250, 210, 162, 0.6)");
+  grad.addColorStop(0.55, "rgba(242, 182, 126, 0.32)");
+  grad.addColorStop(0.8, "rgba(204, 162, 150, 0.16)");
   grad.addColorStop(1.0, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
@@ -574,10 +735,10 @@ function createCoronaTexture(size: number): THREE.CanvasTexture {
   blurCanvas.height = size;
   const blurCtx = blurCanvas.getContext("2d");
   if (blurCtx) {
-    blurCtx.filter = "blur(5px)";
+    blurCtx.filter = "blur(4px)";
     blurCtx.drawImage(canvas, 0, 0);
     ctx.clearRect(0, 0, size, size);
-    ctx.filter = "blur(2px)";
+    ctx.filter = "blur(1.8px)";
     ctx.drawImage(blurCanvas, 0, 0);
     ctx.filter = "none";
   }
@@ -602,11 +763,11 @@ function createGlowTexture(size: number): THREE.CanvasTexture {
   }
 
   const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  grad.addColorStop(0, "rgba(255, 248, 224, 1)");
-  grad.addColorStop(0.25, "rgba(255, 228, 180, 0.96)");
-  grad.addColorStop(0.5, "rgba(255, 198, 120, 0.82)");
-  grad.addColorStop(0.7, "rgba(255, 164, 72, 0.5)");
-  grad.addColorStop(0.9, "rgba(255, 120, 40, 0.18)");
+  grad.addColorStop(0, "rgba(255, 246, 226, 1)");
+  grad.addColorStop(0.28, "rgba(255, 222, 182, 0.9)");
+  grad.addColorStop(0.55, "rgba(252, 194, 136, 0.64)");
+  grad.addColorStop(0.78, "rgba(224, 166, 128, 0.32)");
+  grad.addColorStop(0.92, "rgba(170, 140, 134, 0.12)");
   grad.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
@@ -645,10 +806,10 @@ function createFlareTexture(size: number): THREE.CanvasTexture {
 
   const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
   grad.addColorStop(0, "rgba(255, 255, 255, 1)");
-  grad.addColorStop(0.18, "rgba(255, 248, 214, 0.96)");
-  grad.addColorStop(0.38, "rgba(255, 224, 160, 0.78)");
-  grad.addColorStop(0.58, "rgba(255, 188, 104, 0.52)");
-  grad.addColorStop(0.78, "rgba(255, 140, 64, 0.24)");
+  grad.addColorStop(0.22, "rgba(255, 240, 210, 0.94)");
+  grad.addColorStop(0.45, "rgba(255, 214, 170, 0.7)");
+  grad.addColorStop(0.68, "rgba(226, 178, 146, 0.34)");
+  grad.addColorStop(0.85, "rgba(170, 140, 138, 0.16)");
   grad.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
@@ -685,9 +846,9 @@ function createParticleTexture(size: number): THREE.Texture {
     return new THREE.CanvasTexture(canvas);
   }
   const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  grad.addColorStop(0, "rgba(255, 244, 210, 1)");
-  grad.addColorStop(0.4, "rgba(255, 210, 120, 0.85)");
-  grad.addColorStop(0.7, "rgba(255, 150, 60, 0.4)");
+  grad.addColorStop(0, "rgba(255, 246, 224, 1)");
+  grad.addColorStop(0.45, "rgba(255, 218, 176, 0.82)");
+  grad.addColorStop(0.75, "rgba(232, 184, 142, 0.36)");
   grad.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
@@ -699,8 +860,4 @@ function createParticleTexture(size: number): THREE.Texture {
   tex.anisotropy = 2;
   tex.generateMipmaps = false;
   return tex;
-}
-
-function clamp255(v: number) {
-  return Math.min(255, Math.max(0, v));
 }

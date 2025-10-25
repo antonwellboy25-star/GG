@@ -4,7 +4,6 @@
   --gold1: #c59b24;
   --gold2: #d4af37;
   --gold3: #f1d27a;
-  --duration: 5s;
 }
 
 * {
@@ -50,71 +49,14 @@ body {
   background: #000; /* полностью черный фон */
 }
 
-.dust-canvas {
+.particle-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-}
-
-.center-wrap {
-  position: relative;
-  width: min(42vmin, 340px);
-  aspect-ratio: 1 / 1;
-  display: grid;
-  place-items: center;
-}
-
-/* GG logo with neon outline */
-.gg-logo {
-  display: block;
-  max-width: 62%;
-  height: auto;
-  filter: drop-shadow(0 0 0.6px rgba(255, 255, 255, 0.6))
-    drop-shadow(0 0 4px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 9px rgba(255, 255, 255, 0.45));
-  animation: glowPulse 3.2s ease-in-out infinite;
-}
-
-@keyframes glowPulse {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 0.6px rgba(255, 255, 255, 0.55))
-      drop-shadow(0 0 4px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 9px rgba(255, 255, 255, 0.45));
-  }
-  50% {
-    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.72))
-      drop-shadow(0 0 6px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 13px rgba(255, 255, 255, 0.65));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .gg-logo {
-    animation: none;
-    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.45))
-      drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
-  }
-}
-
-/* Circular neon progress ring */
-.progress-ring {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  transform: scale(0.84);
-}
-
-.ring-fg {
-  stroke-linecap: round;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: ringProgress var(--duration) linear forwards;
-}
-
-@keyframes ringProgress {
-  to {
-    stroke-dashoffset: 0;
-  }
+  background: transparent;
+  filter: saturate(130%);
+  will-change: transform;
 }
 
 /* Main area after loading */
@@ -244,9 +186,10 @@ body {
   bottom: calc(env(safe-area-inset-bottom) + clamp(14px, 4vh, 26px));
   transform: translateX(-50%);
   z-index: 9; /* ниже overlay (10), чтобы во время fade-out не перекрывать лоадер */
-  width: min(520px, calc(100% - 28px));
-  padding: clamp(10px, 2vh, 16px) clamp(12px, 5vw, 22px);
-  border-radius: 28px;
+  width: min(520px, calc(100% - 16px));
+  max-width: 100%;
+  padding: clamp(10px, 2vh, 16px) clamp(12px, 5vw, 24px);
+  border-radius: 26px;
   background: linear-gradient(180deg, rgba(20, 20, 20, 0.38), rgba(12, 12, 12, 0.18));
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
   backdrop-filter: saturate(160%) blur(22px);
@@ -257,10 +200,10 @@ body {
   padding: 0;
   list-style: none;
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: center;
-  gap: clamp(8px, 2.6vw, 18px);
+  justify-items: center;
+  gap: clamp(8px, 2.4vw, 18px);
 }
 
 .nav-item {
@@ -279,7 +222,7 @@ body {
   padding: 0;
   cursor: pointer;
   color: rgba(255, 255, 255, 0.72);
-  font-size: 11px;
+  font-size: clamp(10px, 2.6vw, 11px);
   letter-spacing: 0.38px;
   text-transform: uppercase;
   transition: color 180ms ease;
@@ -295,8 +238,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: clamp(52px, 13vw, 64px);
-  height: clamp(52px, 13vw, 64px);
+  width: clamp(44px, 12vw, 60px);
+  height: clamp(44px, 12vw, 60px);
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(28, 28, 28, 0.95), rgba(10, 10, 10, 0.98));
   box-shadow:
@@ -309,8 +252,8 @@ body {
 }
 
 .nav-btn__icon svg {
-  width: clamp(20px, 4.6vw, 26px);
-  height: clamp(20px, 4.6vw, 26px);
+  width: clamp(18px, 4.4vw, 24px);
+  height: clamp(18px, 4.4vw, 24px);
 }
 
 .nav-btn__label {
@@ -340,6 +283,54 @@ body {
     0 20px 40px rgba(0, 0, 0, 0.55),
     inset 0 0 0 1.2px rgba(255, 255, 255, 0.18),
     0 0 0 10px rgba(200, 160, 64, 0.12);
+}
+
+@media (max-width: 560px) {
+  .nav-bar {
+    padding: clamp(8px, 1.8vh, 14px) clamp(12px, 6vw, 18px);
+    border-radius: 22px;
+  }
+
+  .nav-btn {
+    gap: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  .nav-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(6px, 2.6vw, 14px);
+  }
+}
+
+@media (max-width: 420px) {
+  .nav-bar {
+    padding: clamp(8px, 2.6vh, 12px) clamp(10px, 8vw, 16px);
+    border-radius: 20px;
+  }
+
+  .nav-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .nav-btn__bubble {
+    width: clamp(40px, 18vw, 52px);
+    height: clamp(40px, 18vw, 52px);
+  }
+
+  .nav-btn__icon svg {
+    width: clamp(18px, 6vw, 22px);
+    height: clamp(18px, 6vw, 22px);
+  }
+}
+
+@media (max-width: 340px) {
+  .nav-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nav-btn__label {
+    font-size: 10px;
+  }
 }
 
 .main-body {
