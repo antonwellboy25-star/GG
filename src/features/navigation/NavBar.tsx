@@ -2,11 +2,10 @@ import { memo, type JSX } from "react";
 
 export type Screen = "main" | "tasks" | "shop" | "statistics" | "referrals" | "settings";
 
-const CENTER_SCREEN: Screen = "main";
-const LEFT_SCREENS: Screen[] = ["tasks", "shop"];
-const RIGHT_SCREENS: Screen[] = ["statistics", "referrals", "settings"];
+const MAIN_SCREEN: Screen = "main";
+const NAV_ITEMS: Screen[] = ["tasks", "shop", "main", "statistics", "referrals", "settings"];
 
-export const SCREEN_ORDER: Screen[] = [...LEFT_SCREENS, CENTER_SCREEN, ...RIGHT_SCREENS];
+export const SCREEN_ORDER: Screen[] = [...NAV_ITEMS];
 
 const LABELS: Record<Screen, string> = {
   main: "Главная",
@@ -74,50 +73,36 @@ type NavBarProps = {
 };
 
 function NavBarComponent({ current, onNavigate }: NavBarProps) {
-  const renderButton = (screen: Screen) => {
-    const isActive = current === screen;
-    const isCenter = screen === CENTER_SCREEN;
-    const classNames = ["nav-btn"];
-    if (isCenter) classNames.push("nav-btn--main");
-    if (isActive) classNames.push("nav-btn--active");
-
-    return (
-      <button
-        type="button"
-        className={classNames.join(" ")}
-        onClick={() => onNavigate(screen)}
-        aria-current={isActive ? "page" : undefined}
-        aria-label={LABELS[screen]}
-      >
-        <span className="nav-btn__bubble" aria-hidden="true">
-          <span className="nav-btn__icon">{ICONS[screen]}</span>
-        </span>
-        <span className="nav-btn__label">{LABELS[screen]}</span>
-      </button>
-    );
-  };
-
+  // Buttons render in a responsive grid; highlight the primary "main" action
   return (
     <nav className="nav-bar" aria-label="Основная навигация">
-      <div className="nav-track">
-        <ul className="nav-cluster nav-cluster--left">
-          {LEFT_SCREENS.map((screen) => (
-            <li key={screen} className="nav-item">
-              {renderButton(screen)}
-            </li>
-          ))}
-        </ul>
+      <ul className="nav-bar__surface">
+        {NAV_ITEMS.map((screen) => {
+          const isActive = current === screen;
+          const isMain = screen === MAIN_SCREEN;
+          const classNames = ["nav-bar__button"];
+          if (isMain) classNames.push("nav-bar__button--main");
+          if (isActive) classNames.push("is-active");
 
-        <div className="nav-center">{renderButton(CENTER_SCREEN)}</div>
-
-        <ul className="nav-cluster nav-cluster--right">
-          {RIGHT_SCREENS.map((screen) => (
-            <li key={screen} className="nav-item">
-              {renderButton(screen)}
+          return (
+            <li key={screen} className="nav-bar__item">
+              <button
+                type="button"
+                className={classNames.join(" ")}
+                onClick={() => onNavigate(screen)}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={LABELS[screen]}
+                title={LABELS[screen]}
+              >
+                <span className="nav-bar__icon" aria-hidden="true">
+                  {ICONS[screen]}
+                </span>
+                <span className="nav-bar__label">{LABELS[screen]}</span>
+              </button>
             </li>
-          ))}
-        </ul>
-      </div>
+          );
+        })}
+      </ul>
     </nav>
   );
 }

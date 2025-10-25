@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import ggTextureUrl from "@/assets/images/GG.png";
 import gramTextureUrl from "@/assets/images/GRAM.png";
@@ -27,6 +27,19 @@ const easeInSine = (t: number) => 1 - Math.cos((t * Math.PI) / 2);
 
 const initialNow = typeof performance !== "undefined" ? performance.now() : Date.now();
 
+const isWebGLAvailable = () => {
+  if (typeof window === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    return (
+      !!window.WebGLRenderingContext &&
+      !!(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+    );
+  } catch {
+    return false;
+  }
+};
+
 type ParticleField = {
   points: THREE.Points;
   attribute: THREE.BufferAttribute;
@@ -42,6 +55,8 @@ type StreamField = {
   offsets: Float32Array;
   seeds: Float32Array;
   material: THREE.PointsMaterial;
+  sizes: THREE.BufferAttribute;
+  shader: THREE.ShaderMaterial;
 };
 
 type CoinMeshes = {
@@ -81,6 +96,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
   const coinStartRef = useRef(initialNow);
   const viewportRef = useRef<ViewportMetrics | null>(null);
   const baseCoinScaleRef = useRef(1);
+  const [fallback, setFallback] = useState(false);
 
   useEffect(() => {
     activeRef.current = active;
@@ -104,7 +120,10 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       const stream = streamFieldRef.current;
       if (stream) {
         stream.material.opacity = 0;
+        stream.shader.uniforms.uOpacity.value = 0;
         stream.points.visible = false;
+        (stream.sizes.array as Float32Array).fill(0);
+        stream.sizes.needsUpdate = true;
       }
     }
   }, [active]);
@@ -176,65 +195,139 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
     const viewport = viewportRef.current;
     if (!field || !viewport) return;
 
-    const { attribute, offsets, seeds, material, points } = field;
-    const arr = attribute.array as Float32Array;
+    const { attribute, offsets, seeds, material, points, sizes, shader } = field;
+    const positions = attribute.array as Float32Array;
+    const sizeArr = sizes.array as Float32Array;
 
-    if (!mode || progress <= 0) {
-      material.opacity = THREE.MathUtils.damp(material.opacity, 0, 7.8, 0.016);
-      if (material.opacity < 0.03) {
+    const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.0013;
+
+    if (!mode) {
+      const current = shader.uniforms.uOpacity.value as number;
+      const next = THREE.MathUtils.damp(current, 0, 7.8, 0.016);
+      shader.uniforms.uOpacity.value = next;
+      material.opacity = next;
+      sizeArr.fill(0);
+      sizes.needsUpdate = true;
+      if (next < 0.03) {
         points.visible = false;
       }
       return;
     }
 
-    points.visible = true;
-    const eased = clamp(progress);
-    const jitterPhase = eased * 6.2;
-    material.color.setHex(mode === "entry" ? 0xf0b45a : 0xf8f1d0);
-    const targetOpacity = mode === "entry" ? 0.55 + eased * 0.35 : 0.62 + eased * 0.38;
-    material.opacity = THREE.MathUtils.damp(material.opacity, targetOpacity, 5.4, 0.016);
-    material.size = THREE.MathUtils.damp(
-      material.size,
-      mode === "entry" ? 0.046 : 0.052,
-      6.1,
+    const head = clamp(progress);
+    const headBalanced = clamp(4 * head * (1 - head));
+    const minTail = mode === "entry" ? 0.05 : 0.07;
+    const maxTail = mode === "entry" ? 0.18 : 0.24;
+    const tailSpan = THREE.MathUtils.lerp(minTail, maxTail, headBalanced);
+    const jitterBase = mode === "entry" ? 0.016 : 0.02;
+
+    shader.uniforms.uColor.value.setHex(mode === "entry" ? 0xf0b45a : 0xfdf4d2);
+    const targetOpacity = mode === "entry" ? 0.6 + head * 0.34 : 0.66 + head * 0.38;
+    const currentOpacity = shader.uniforms.uOpacity.value as number;
+    const nextOpacity = THREE.MathUtils.damp(
+      currentOpacity,
+      Math.min(targetOpacity, 1),
+      6.6,
       0.016,
     );
+    shader.uniforms.uOpacity.value = nextOpacity;
+    material.opacity = nextOpacity;
+
+    if (nextOpacity < 0.02 && head < 0.01) {
+      points.visible = false;
+      return;
+    }
+
+    points.visible = true;
+
+    let anyVisible = false;
+    const widthScale = viewport.width * jitterBase;
+    const heightScale = viewport.height * jitterBase * 0.82;
+    const baseHead =
+      mode === "entry"
+        ? getEntryBasePosition(head, viewport)
+        : getReleaseBasePosition(head, viewport);
+    const headPoint = baseHead;
+    const tangent = getStreamTangent(mode, head, viewport);
+    const tangentMag = Math.hypot(tangent.x, tangent.y, tangent.z) || 1;
+    const dirX = tangent.x / tangentMag;
+    const dirY = tangent.y / tangentMag;
+    const dirZ = tangent.z / tangentMag;
+    const lateralX = -dirY;
+    const lateralY = dirX;
+    const headGap = Math.max(0.01, tailSpan * 0.12);
+    const minSample = mode === "release" ? 0.055 : 0;
 
     for (let i = 0; i < STREAM_COUNT; i += 1) {
       const idx = i * 3;
       const offset = offsets[i];
-      const local = clamp((eased * 1.22 - offset) / 1.06);
       const nX = seeds[idx];
       const nY = seeds[idx + 1];
       const nZ = seeds[idx + 2];
 
-      if (local <= 0) {
-        const start =
-          mode === "entry"
-            ? sampleEntryPath(0, viewport, nX, nY)
-            : sampleReleasePath(0, viewport, nX, nY);
-        arr[idx] = start.x;
-        arr[idx + 1] = start.y;
-        arr[idx + 2] = start.z;
+      if (head <= 0.0001) {
+        sizeArr[i] = 0;
         continue;
       }
 
-      const sample =
+      const sampleProgress = clamp(Math.max(minSample, head - headGap - offset * tailSpan));
+      if (sampleProgress >= head) {
+        sizeArr[i] = 0;
+        continue;
+      }
+
+      const pathPoint =
         mode === "entry"
-          ? sampleEntryPath(local, viewport, nX, nY)
-          : sampleReleasePath(local, viewport, nX, nY);
+          ? sampleEntryPath(sampleProgress, viewport, nX, nY)
+          : sampleReleasePath(sampleProgress, viewport, nX, nY);
 
-      const jitter = mode === "entry" ? (1 - local) * 0.35 : Math.min(local * 0.8, 0.6);
-      const sinJ = Math.sin(jitterPhase + nX * 8.3) * jitter * viewport.width * 0.02;
-      const cosJ = Math.cos(jitterPhase + nY * 9.1) * jitter * viewport.height * 0.018;
-      const depthJ = Math.sin(jitterPhase * 1.2 + nZ * 12.7) * jitter * 0.14;
+      const alongTail = clamp((head - sampleProgress) / Math.max(tailSpan, 0.001));
+      const jitterStrength = (1 - alongTail * 0.85) * (mode === "entry" ? 0.2 : 0.24);
+      const sinJ = Math.sin(time * 3.6 + nX * 9.7) * jitterStrength * widthScale;
+      const cosJ = Math.cos(time * 3.2 + nY * 8.9) * jitterStrength * heightScale;
+      const depthJ = Math.sin(time * 4.1 + nZ * 11.3) * jitterStrength * 0.08;
 
-      arr[idx] = sample.x + sinJ;
-      arr[idx + 1] = sample.y + cosJ;
-      arr[idx + 2] = sample.z + depthJ;
+      let posX = pathPoint.x + sinJ + lateralX * jitterStrength * 0.12;
+      let posY = pathPoint.y + cosJ + lateralY * jitterStrength * 0.12;
+      let posZ = pathPoint.z + depthJ;
+
+      const relX = posX - headPoint.x;
+      const relY = posY - headPoint.y;
+      const relZ = posZ - headPoint.z;
+      const forward = relX * dirX + relY * dirY + relZ * dirZ;
+      const desiredBack = headGap + alongTail * tailSpan * 0.72;
+      if (forward > -desiredBack) {
+        const adjust = forward + desiredBack;
+        posX -= dirX * adjust;
+        posY -= dirY * adjust;
+        posZ -= dirZ * adjust;
+      }
+
+      positions[idx] = posX;
+      positions[idx + 1] = posY;
+      positions[idx + 2] = posZ;
+
+      const fadeStart = 0.45;
+      const fadeProgress = alongTail <= fadeStart ? 0 : (alongTail - fadeStart) / (1 - fadeStart);
+      const sizeFactor = THREE.MathUtils.clamp(1 - fadeProgress * 0.9, 0.02, 1);
+      sizeArr[i] = sizeFactor;
+
+      if (sizeFactor > 0.02) {
+        anyVisible = true;
+      }
     }
 
     attribute.needsUpdate = true;
+    sizes.needsUpdate = true;
+
+    if (!anyVisible) {
+      const faded = THREE.MathUtils.damp(shader.uniforms.uOpacity.value as number, 0, 7.2, 0.016);
+      shader.uniforms.uOpacity.value = faded;
+      material.opacity = faded;
+      if (faded < 0.02) {
+        points.visible = false;
+      }
+    }
   }, []);
 
   const updateCoins = useCallback(
@@ -307,8 +400,13 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         gram.rotation.z = Math.sin(arc * TWO_PI) * 0.24;
         gram.rotation.y = Math.sin(arc * Math.PI * 0.8) * 0.2;
         gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, 1, 16, 0.016);
-        streamMode = "entry";
-        streamProgress = entryPhase;
+        if (entryPhase < 0.6) {
+          streamMode = "entry";
+          streamProgress = entryPhase;
+        } else {
+          streamMode = null;
+          streamProgress = 0;
+        }
         haloTargetOpacity = Math.max(haloTargetOpacity, 0.24 + arc * 0.38);
         haloTargetScale = Math.max(haloTargetScale, 1.18 + arc * 0.35);
       } else {
@@ -328,6 +426,8 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         gramMat.opacity = 1 - blend;
         haloTargetOpacity = Math.max(haloTargetOpacity, 0.36 + blend * 0.48);
         haloTargetScale = Math.max(haloTargetScale, 1.36 + blend * 1.1);
+        streamMode = null;
+        streamProgress = 0;
       }
 
       const pulsePhase = phaseWindow(progress, 0.4, 0.18);
@@ -335,9 +435,14 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         const wave = Math.sin(pulsePhase * Math.PI);
         haloTargetOpacity = Math.max(haloTargetOpacity, 0.52 + wave * 0.42);
         haloTargetScale = Math.max(haloTargetScale, 1.5 + wave * 0.68);
+        // Без шлейфа во время пульса
+        streamMode = null;
+        streamProgress = 0;
       }
 
       const releasePhase = phaseWindow(progress, 0.58, 0.16);
+      const exitPhase = phaseWindow(progress, 0.74, 0.18);
+
       if (releasePhase !== null) {
         const arc = easeInOutCubic(releasePhase);
         const ease = easeOutExpo(releasePhase);
@@ -351,31 +456,39 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         gg.rotation.z = Math.sin(arc * TWO_PI) * 0.18;
         gg.rotation.y = Math.sin(arc * Math.PI * 0.7) * 0.16;
         ggMat.opacity = ease;
-        streamMode = "release";
-        streamProgress = Math.max(streamProgress, releasePhase);
+        const releaseTrailStart = 0.22;
+        if (releasePhase > releaseTrailStart) {
+          streamMode = "release";
+          // Прогресс вдоль пути выпуска (0 -> ~0.65)
+          streamProgress = releasePhase * 0.65;
+        } else {
+          streamMode = null;
+          streamProgress = 0;
+        }
         haloTargetOpacity = Math.max(haloTargetOpacity, 0.48 + ease * 0.5);
         haloTargetScale = Math.max(haloTargetScale, 1.48 + ease * 1.32);
-      } else {
+      } else if (exitPhase === null) {
         ggMat.opacity = THREE.MathUtils.damp(ggMat.opacity, 0, 8, 0.016);
-        if (ggMat.opacity < 0.05 && releasePhase === null) {
+        if (ggMat.opacity < 0.05) {
           gg.visible = false;
         }
       }
 
-      const exitPhase = phaseWindow(progress, 0.74, 0.18);
       if (exitPhase !== null) {
         const arc = easeInOutCubic(exitPhase);
         const overshoot = easeOutBack(exitPhase);
         gg.visible = true;
         gg.position.set(
-          THREE.MathUtils.lerp(0, viewport.exitX, arc) + overshoot * 0.32,
+          THREE.MathUtils.lerp(0, viewport.exitX, arc) + overshoot * 1.2,
           Math.sin((1 - arc) * Math.PI) * viewport.height * 0.12 - arc * 0.16,
           0.08 + arc * 0.22,
         );
         gg.scale.setScalar(baseScale * (1.02 + arc * 0.26));
         gg.rotation.z = -Math.sin(arc * TWO_PI) * 0.22;
+        ggMat.opacity = 1;
         streamMode = "release";
-        streamProgress = Math.max(streamProgress, exitPhase);
+        // Продолжаем путь до выхода (0.65 -> 1)
+        streamProgress = 0.65 + exitPhase * 0.35;
         haloTargetOpacity = Math.max(haloTargetOpacity, 0.38 + arc * 0.32);
         haloTargetScale = Math.max(haloTargetScale, 1.26 + arc * 0.42);
       }
@@ -385,6 +498,9 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         const delay = easeInSine(settlePhase);
         haloTargetOpacity = Math.max(haloTargetOpacity, 0.22 * (1 - delay));
         haloTargetScale = Math.max(haloTargetScale, 1.1 + delay * 0.2);
+        // Затухающий след от release
+        streamMode = "release";
+        streamProgress = 1;
       }
 
       animateStream(streamMode, streamProgress);
@@ -409,148 +525,201 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || fallback) return;
 
-    const scene = new THREE.Scene();
-    sceneRef.current = scene;
-
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      powerPreference: "high-performance",
-    });
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.setClearColor(0x000000, 0);
-    rendererRef.current = renderer;
-    container.appendChild(renderer.domElement);
-
-    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 60);
-    camera.position.set(0, 0.2, 6.4);
-    camera.lookAt(0, 0, 0);
-    cameraRef.current = camera;
-
-    const ambient = new THREE.AmbientLight(0x141009, 0.72);
-    scene.add(ambient);
-    const key = new THREE.DirectionalLight(0x624019, 0.68);
-    key.position.set(2.6, 2.4, 2.2);
-    scene.add(key);
-    const rim = new THREE.DirectionalLight(0x1b0f07, 0.42);
-    rim.position.set(-2.3, -1.7, -2.4);
-    scene.add(rim);
-
-    if (!particleTextureRef.current) {
-      particleTextureRef.current = createParticleTexture(160);
+    if (!isWebGLAvailable()) {
+      setFallback(true);
+      return;
     }
 
-    let particleTexture = particleTextureRef.current;
-    if (!particleTexture) {
-      particleTexture = createParticleTexture(160);
-      particleTextureRef.current = particleTexture;
-    }
+    let renderer: THREE.WebGLRenderer | null = null;
+    let scene: THREE.Scene | null = null;
+    let observer: ResizeObserver | null = null;
+    let resizeListenerAttached = false;
 
-    const particleField = createParticleField(particleTexture);
-    scene.add(particleField.points);
-    particleFieldRef.current = particleField;
+    try {
+      scene = new THREE.Scene();
+      sceneRef.current = scene;
 
-    const streamField = createStreamField(particleTexture);
-    scene.add(streamField.points);
-    streamFieldRef.current = streamField;
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        powerPreference: "high-performance",
+      });
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.setClearColor(0x000000, 0);
+      rendererRef.current = renderer;
+      container.appendChild(renderer.domElement);
 
-    const coins = createCoinMeshes();
-    scene.add(coins.gram);
-    scene.add(coins.gg);
-    coinMeshesRef.current = coins;
+      const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 60);
+      camera.position.set(0, 0.2, 6.4);
+      camera.lookAt(0, 0, 0);
+      cameraRef.current = camera;
 
-    const halo = createHaloSprite(createHaloTexture(256));
-    scene.add(halo.sprite);
-    haloRef.current = halo;
+      const ambient = new THREE.AmbientLight(0x141009, 0.72);
+      scene.add(ambient);
+      const key = new THREE.DirectionalLight(0x624019, 0.68);
+      key.position.set(2.6, 2.4, 2.2);
+      scene.add(key);
+      const rim = new THREE.DirectionalLight(0x1b0f07, 0.42);
+      rim.position.set(-2.3, -1.7, -2.4);
+      scene.add(rim);
 
-    const resize = () => {
-      const width = container.clientWidth || window.innerWidth;
-      const height = container.clientHeight || window.innerHeight;
-      if (width <= 0 || height <= 0) return;
-
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      renderer.setPixelRatio(dpr);
-      renderer.setSize(width, height, false);
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-
-      const distance = camera.position.z;
-      const halfFovRad = THREE.MathUtils.degToRad(camera.fov * 0.5);
-      const worldHeight = 2 * Math.tan(halfFovRad) * distance;
-      const worldWidth = worldHeight * camera.aspect;
-      const entryX = -worldWidth * 0.58;
-      const exitX = worldWidth * 0.58;
-      viewportRef.current = { width: worldWidth, height: worldHeight, entryX, exitX };
-
-      const sphereRadius = Math.min(1.42, Math.max(0.88, worldHeight * 0.18));
-      const baseCoinScale = Math.min(1.32, Math.max(0.78, worldHeight / 5.6));
-      baseCoinScaleRef.current = baseCoinScale;
-
-      if (particleFieldRef.current) {
-        particleFieldRef.current.radius = sphereRadius;
-        particleFieldRef.current.material.size =
-          0.05 * Math.min(1.8, Math.max(0.85, worldHeight / 4.8));
+      if (!particleTextureRef.current) {
+        particleTextureRef.current = createParticleTexture(160);
       }
 
-      if (streamFieldRef.current) {
-        streamFieldRef.current.material.size =
-          0.048 * Math.min(1.6, Math.max(0.9, worldHeight / 5.6));
+      let particleTexture = particleTextureRef.current;
+      if (!particleTexture) {
+        particleTexture = createParticleTexture(160);
+        particleTextureRef.current = particleTexture;
       }
 
-      if (haloRef.current) {
-        haloRef.current.sprite.scale.setScalar(Math.max(1.2, sphereRadius * 1.4));
+      const particleField = createParticleField(particleTexture);
+      scene.add(particleField.points);
+      particleFieldRef.current = particleField;
+
+      const streamField = createStreamField(particleTexture);
+      scene.add(streamField.points);
+      streamFieldRef.current = streamField;
+
+      const coins = createCoinMeshes();
+      scene.add(coins.gram);
+      scene.add(coins.gg);
+      coinMeshesRef.current = coins;
+
+      const halo = createHaloSprite(createHaloTexture(256));
+      scene.add(halo.sprite);
+      haloRef.current = halo;
+
+      const resize = () => {
+        const width = container.clientWidth || window.innerWidth;
+        const height = container.clientHeight || window.innerHeight;
+        if (width <= 0 || height <= 0) return;
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        renderer?.setPixelRatio(dpr);
+        renderer?.setSize(width, height, false);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+
+        const distance = camera.position.z;
+        const halfFovRad = THREE.MathUtils.degToRad(camera.fov * 0.5);
+        const worldHeight = 2 * Math.tan(halfFovRad) * distance;
+        const worldWidth = worldHeight * camera.aspect;
+
+        // Адаптивный коэффициент: чем шире экран, тем дальше улетают монеты
+        const exitCoeff = Math.min(1.2, 0.72 + camera.aspect * 0.15);
+        const entryX = -worldWidth * exitCoeff;
+        const exitX = worldWidth * exitCoeff;
+        viewportRef.current = { width: worldWidth, height: worldHeight, entryX, exitX };
+
+        const sphereRadius = Math.min(1.42, Math.max(0.88, worldHeight * 0.18));
+        const baseCoinScale = Math.min(1.32, Math.max(0.78, worldHeight / 5.6));
+        baseCoinScaleRef.current = baseCoinScale;
+
+        if (particleFieldRef.current) {
+          particleFieldRef.current.radius = sphereRadius;
+          particleFieldRef.current.material.size =
+            0.05 * Math.min(1.8, Math.max(0.85, worldHeight / 4.8));
+        }
+
+        if (streamFieldRef.current) {
+          const newSize = 0.072 * Math.min(1.7, Math.max(0.95, worldHeight / 4.6));
+          streamFieldRef.current.material.size = newSize;
+          streamFieldRef.current.shader.uniforms.uBaseSize.value = newSize;
+        }
+
+        if (haloRef.current) {
+          haloRef.current.sprite.scale.setScalar(Math.max(1.2, sphereRadius * 1.4));
+        }
+      };
+
+      if (typeof ResizeObserver !== "undefined") {
+        observer = new ResizeObserver(resize);
+        observer.observe(container);
+      } else {
+        window.addEventListener("resize", resize);
+        resizeListenerAttached = true;
       }
-    };
+      resize();
 
-    const observer = new ResizeObserver(resize);
-    observer.observe(container);
-    resize();
+      const animate = () => {
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        const dt = Math.min((now - lastTimeRef.current) / 1000, 0.05);
+        lastTimeRef.current = now;
 
-    const animate = () => {
-      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-      const dt = Math.min((now - lastTimeRef.current) / 1000, 0.05);
-      lastTimeRef.current = now;
+        updateCohesion(dt);
+        updateParticles(now, dt);
+        updateCoins(now, cycleMs);
 
-      updateCohesion(dt);
-      updateParticles(now, dt);
-      updateCoins(now, cycleMs);
+        renderer?.render(scene as THREE.Scene, camera);
+      };
 
-      renderer.render(scene, camera);
-    };
+      renderer.setAnimationLoop(animate);
 
-    renderer.setAnimationLoop(animate);
-
-    return () => {
+      return () => {
+        particleFieldRef.current = null;
+        streamFieldRef.current = null;
+        coinMeshesRef.current = null;
+        haloRef.current = null;
+        rendererRef.current = null;
+        sceneRef.current = null;
+        renderer?.setAnimationLoop(null);
+        if (observer) {
+          observer.disconnect();
+        } else if (resizeListenerAttached) {
+          window.removeEventListener("resize", resize);
+        }
+        if (renderer && renderer.domElement.parentElement === container) {
+          container.removeChild(renderer.domElement);
+        }
+        renderer?.dispose();
+        scene?.traverse((obj) => {
+          if (
+            obj instanceof THREE.Mesh ||
+            obj instanceof THREE.Points ||
+            obj instanceof THREE.Sprite
+          ) {
+            obj.geometry?.dispose();
+            if (Array.isArray(obj.material)) {
+              for (const mat of obj.material) {
+                mat.dispose();
+              }
+            } else {
+              (obj.material as THREE.Material | undefined)?.dispose?.();
+            }
+          }
+        });
+      };
+    } catch (error) {
+      console.error("MinerScene: unable to initialise WebGL scene", error);
+      rendererRef.current = null;
+      sceneRef.current = null;
       particleFieldRef.current = null;
       streamFieldRef.current = null;
       coinMeshesRef.current = null;
       haloRef.current = null;
-      renderer.setAnimationLoop(null);
-      observer.disconnect();
-      if (renderer.domElement.parentElement === container) {
-        container.removeChild(renderer.domElement);
-      }
-      renderer.dispose();
-      scene.traverse((obj) => {
-        if (
-          obj instanceof THREE.Mesh ||
-          obj instanceof THREE.Points ||
-          obj instanceof THREE.Sprite
-        ) {
-          obj.geometry?.dispose();
-          if (Array.isArray(obj.material)) {
-            for (const mat of obj.material) {
-              mat.dispose();
-            }
-          } else {
-            (obj.material as THREE.Material | undefined)?.dispose?.();
-          }
+      if (renderer) {
+        renderer.setAnimationLoop(null);
+        if (renderer.domElement.parentElement === container) {
+          container.removeChild(renderer.domElement);
         }
-      });
-    };
-  }, [cycleMs, updateCohesion, updateCoins, updateParticles]);
+        renderer.dispose();
+      }
+      setFallback(true);
+    }
+  }, [cycleMs, fallback, updateCohesion, updateCoins, updateParticles]);
+
+  if (fallback) {
+    return (
+      <div className="maining-fallback" role="img" aria-label="Статичное изображение монеты">
+        <span className="maining-fallback__halo" aria-hidden />
+        <img src={ggTextureUrl} alt="" className="maining-fallback__logo" draggable={false} />
+        <p className="maining-fallback__text">Ваше устройство не поддерживает 3D-анимацию.</p>
+      </div>
+    );
+  }
 
   return <div ref={containerRef} className="maining-canvas" role="presentation" />;
 }
@@ -586,12 +755,14 @@ function createParticleField(texture: THREE.Texture): ParticleField {
   const material = new THREE.PointsMaterial({
     map: texture,
     color: new THREE.Color(0xf4c87d),
-    size: 0.052,
+    size: 0.068,
     transparent: true,
-    opacity: 0.78,
+    opacity: 0,
     depthWrite: false,
+    depthTest: false,
     blending: THREE.AdditiveBlending,
     sizeAttenuation: true,
+    toneMapped: false,
   });
   if (material.map) {
     material.map.anisotropy = 8;
@@ -609,6 +780,14 @@ function createStreamField(texture: THREE.Texture): StreamField {
   const attribute = new THREE.BufferAttribute(positions, 3);
   geometry.setAttribute("position", attribute);
 
+  // Добавляем атрибут размера для каждой частицы
+  const sizes = new Float32Array(STREAM_COUNT);
+  for (let i = 0; i < STREAM_COUNT; i += 1) {
+    sizes[i] = 1.0; // изначально все частицы полного размера
+  }
+  const sizeAttribute = new THREE.BufferAttribute(sizes, 1);
+  geometry.setAttribute("size", sizeAttribute);
+
   const offsets = new Float32Array(STREAM_COUNT);
   const seeds = new Float32Array(STREAM_COUNT * 3);
   for (let i = 0; i < STREAM_COUNT; i += 1) {
@@ -619,25 +798,96 @@ function createStreamField(texture: THREE.Texture): StreamField {
     seeds[idx + 2] = Math.random() * 2 - 1;
   }
 
-  const material = new THREE.PointsMaterial({
-    map: texture,
-    color: new THREE.Color(0xf3d291),
-    size: 0.045,
+  // Используем ShaderMaterial для поддержки индивидуальных размеров частиц
+  const shader = new THREE.ShaderMaterial({
+    uniforms: {
+      uTexture: { value: texture },
+      uColor: { value: new THREE.Color(0xf3d291) },
+      uOpacity: { value: 0 },
+      uBaseSize: { value: 0.078 },
+    },
+    vertexShader: `
+      attribute float size;
+      uniform float uBaseSize;
+      varying float vAlpha;
+      
+      void main() {
+        vAlpha = size;
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = uBaseSize * size * (300.0 / -mvPosition.z);
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D uTexture;
+      uniform vec3 uColor;
+      uniform float uOpacity;
+      varying float vAlpha;
+      
+      void main() {
+        vec4 texColor = texture2D(uTexture, gl_PointCoord);
+        gl_FragColor = vec4(uColor, texColor.a * uOpacity * vAlpha);
+      }
+    `,
     transparent: true,
-    opacity: 0,
     depthWrite: false,
+    depthTest: false,
     blending: THREE.AdditiveBlending,
-    sizeAttenuation: true,
+    toneMapped: false,
   });
-  if (material.map) {
-    material.map.anisotropy = 8;
+
+  if (texture) {
+    texture.anisotropy = 8;
   }
 
-  const points = new THREE.Points(geometry, material);
+  const points = new THREE.Points(geometry, shader);
   points.visible = false;
-  points.renderOrder = 6;
+  points.frustumCulled = false;
+  points.renderOrder = 11;
 
-  return { points, attribute, offsets, seeds, material };
+  // Создаём обёртку для совместимости с существующим кодом
+  const materialBridge = {} as THREE.PointsMaterial;
+  Object.defineProperties(materialBridge, {
+    color: {
+      value: shader.uniforms.uColor.value as THREE.Color,
+      writable: false,
+      configurable: false,
+    },
+    opacity: {
+      get() {
+        return shader.uniforms.uOpacity.value as number;
+      },
+      set(value: number) {
+        shader.uniforms.uOpacity.value = value;
+      },
+    },
+    size: {
+      get() {
+        return shader.uniforms.uBaseSize.value as number;
+      },
+      set(value: number) {
+        shader.uniforms.uBaseSize.value = value;
+      },
+    },
+    map: {
+      get() {
+        return shader.uniforms.uTexture.value as THREE.Texture | null;
+      },
+      set(value: THREE.Texture | null) {
+        shader.uniforms.uTexture.value = value;
+      },
+    },
+  });
+
+  return {
+    points,
+    attribute,
+    offsets,
+    seeds,
+    material: materialBridge,
+    sizes: sizeAttribute,
+    shader,
+  };
 }
 
 function createCoinMeshes(): CoinMeshes {
@@ -768,26 +1018,72 @@ function createHaloTexture(size: number): THREE.CanvasTexture {
 }
 
 function sampleEntryPath(t: number, viewport: ViewportMetrics, jitterX: number, jitterY: number) {
-  const eased = easeInOutCubic(clamp(t));
-  const x =
-    THREE.MathUtils.lerp(viewport.entryX, 0, eased) +
-    jitterX * viewport.width * 0.04 * (1 - eased * 0.6);
-  const y =
-    Math.sin(eased * Math.PI) * viewport.height * 0.22 +
-    jitterY * viewport.height * 0.05 * (1 - eased * 0.3);
-  const z = -0.12 + Math.cos(eased * Math.PI) * 0.08;
-  return { x, y, z };
+  const eased = clamp(t);
+  const base = getEntryBasePosition(eased, viewport);
+  const attenuation = 1 - easeInOutCubic(eased) * 0.55;
+  return {
+    x: base.x + jitterX * viewport.width * 0.032 * attenuation,
+    y: base.y + jitterY * viewport.height * 0.046 * attenuation,
+    z: base.z,
+  };
 }
 
 function sampleReleasePath(t: number, viewport: ViewportMetrics, jitterX: number, jitterY: number) {
+  const eased = clamp(t);
+  const base = getReleaseBasePosition(eased, viewport);
+  const releasePhase = eased < 0.65 ? eased / 0.65 : 1;
+  const attenuation = 1 - easeInOutCubic(releasePhase) * 0.6;
+  return {
+    x: base.x + jitterX * viewport.width * 0.05 * attenuation,
+    y: base.y + jitterY * viewport.height * 0.04 * attenuation,
+    z: base.z,
+  };
+}
+
+function getEntryBasePosition(t: number, viewport: ViewportMetrics) {
   const eased = easeInOutCubic(clamp(t));
-  const x =
-    THREE.MathUtils.lerp(0, viewport.exitX, eased) +
-    jitterX * viewport.width * 0.045 * (1 - eased * 0.4);
-  const y =
-    Math.sin((1 - eased) * Math.PI * 0.8) * viewport.height * 0.18 +
-    jitterY * viewport.height * 0.04 * (1 - eased * 0.2) -
-    eased * viewport.height * 0.05;
-  const z = -0.04 + eased * 0.26;
+  const x = THREE.MathUtils.lerp(viewport.entryX, 0, eased);
+  const y = Math.sin(eased * Math.PI) * viewport.height * 0.18 - eased * 0.12;
+  const z = -0.08 + Math.cos(eased * Math.PI) * 0.06;
   return { x, y, z };
+}
+
+function getReleaseBasePosition(t: number, viewport: ViewportMetrics) {
+  const clamped = clamp(t);
+  if (clamped <= 0.65) {
+    const releaseT = clamped / 0.65;
+    const arc = easeInOutCubic(releaseT);
+    return {
+      x: Math.sin(arc * Math.PI * 0.65) * viewport.width * 0.06,
+      y: Math.sin(arc * Math.PI) * viewport.height * 0.14 - arc * 0.1,
+      z: -0.04,
+    };
+  }
+
+  const exitT = (clamped - 0.65) / 0.35;
+  const arc = easeInOutCubic(exitT);
+  const overshoot = easeOutBack(exitT);
+  return {
+    x: THREE.MathUtils.lerp(0, viewport.exitX, arc) + overshoot * 1.2,
+    y: Math.sin((1 - arc) * Math.PI) * viewport.height * 0.12 - arc * 0.16,
+    z: 0.08 + arc * 0.22,
+  };
+}
+
+function getStreamTangent(mode: "entry" | "release", t: number, viewport: ViewportMetrics) {
+  const delta = 0.003;
+  const start = clamp(Math.max(0, t - delta));
+  const end = clamp(Math.min(1, t + delta));
+  if (Math.abs(end - start) < 1e-4) {
+    return { x: 0, y: 0, z: -1 };
+  }
+
+  const p0 =
+    mode === "entry"
+      ? getEntryBasePosition(start, viewport)
+      : getReleaseBasePosition(start, viewport);
+  const p1 =
+    mode === "entry" ? getEntryBasePosition(end, viewport) : getReleaseBasePosition(end, viewport);
+
+  return { x: p1.x - p0.x, y: p1.y - p0.y, z: p1.z - p0.z };
 }
