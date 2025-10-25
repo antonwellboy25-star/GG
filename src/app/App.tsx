@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import LoadingScreen from "./components/LoadingScreen";
-import MainScreen from "./components/MainScreen";
+import LoadingScreen from "@/features/loading/components/LoadingScreen";
+import MainScreen from "@/features/main/components/MainScreen";
 
 export default function App() {
   const [loading, setLoading] = useState(true);

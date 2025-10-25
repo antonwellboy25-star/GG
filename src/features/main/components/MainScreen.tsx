@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import NavBar, { SCREEN_ORDER, type Screen } from "./NavBar";
-import SettingsScreen from "./screens/SettingsScreen";
-import StatisticsScreen from "./screens/StatisticsScreen";
-import ReferralsScreen from "./screens/ReferralsScreen";
-import ShopScreen from "./screens/ShopScreen";
-import TasksScreen from "./screens/TasksScreen";
-import Maining from "./maining";
+import NavBar, { SCREEN_ORDER, type Screen } from "@/features/navigation/NavBar";
+import HomeScreen from "@/features/main/components/HomeScreen";
+import SettingsScreen from "@/features/main/screens/SettingsScreen";
+import StatisticsScreen from "@/features/main/screens/StatisticsScreen";
+import ReferralsScreen from "@/features/main/screens/ReferralsScreen";
+import ShopScreen from "@/features/main/screens/ShopScreen";
+import TasksScreen from "@/features/main/screens/TasksScreen";
 
 const ANIM_MS = 320;
 
@@ -109,13 +109,5 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
 
       {(showNav || !loading) && <NavBar current={screen} onNavigate={navigate} />}
     </main>
-  );
-}
-
-function HomeScreen({ miningActive }: { miningActive: boolean }) {
-  return (
-    <div className="screen home">
-      <Maining active={miningActive} />
-    </div>
   );
 }

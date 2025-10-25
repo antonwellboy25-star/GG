@@ -2,14 +2,11 @@ import { memo, type JSX } from "react";
 
 export type Screen = "main" | "tasks" | "shop" | "statistics" | "referrals" | "settings";
 
-export const SCREEN_ORDER: Screen[] = [
-  "main",
-  "tasks",
-  "shop",
-  "statistics",
-  "referrals",
-  "settings",
-];
+const CENTER_SCREEN: Screen = "main";
+const LEFT_SCREENS: Screen[] = ["tasks", "shop"];
+const RIGHT_SCREENS: Screen[] = ["statistics", "referrals", "settings"];
+
+export const SCREEN_ORDER: Screen[] = [...LEFT_SCREENS, CENTER_SCREEN, ...RIGHT_SCREENS];
 
 const LABELS: Record<Screen, string> = {
   main: "Главная",
@@ -77,29 +74,50 @@ type NavBarProps = {
 };
 
 function NavBarComponent({ current, onNavigate }: NavBarProps) {
+  const renderButton = (screen: Screen) => {
+    const isActive = current === screen;
+    const isCenter = screen === CENTER_SCREEN;
+    const classNames = ["nav-btn"];
+    if (isCenter) classNames.push("nav-btn--main");
+    if (isActive) classNames.push("nav-btn--active");
+
+    return (
+      <button
+        type="button"
+        className={classNames.join(" ")}
+        onClick={() => onNavigate(screen)}
+        aria-current={isActive ? "page" : undefined}
+        aria-label={LABELS[screen]}
+      >
+        <span className="nav-btn__bubble" aria-hidden="true">
+          <span className="nav-btn__icon">{ICONS[screen]}</span>
+        </span>
+        <span className="nav-btn__label">{LABELS[screen]}</span>
+      </button>
+    );
+  };
+
   return (
     <nav className="nav-bar" aria-label="Основная навигация">
-      <ul className="nav-list">
-        {SCREEN_ORDER.map((screen) => {
-          const isActive = current === screen;
-          return (
+      <div className="nav-track">
+        <ul className="nav-cluster nav-cluster--left">
+          {LEFT_SCREENS.map((screen) => (
             <li key={screen} className="nav-item">
-              <button
-                type="button"
-                className={`nav-btn ${isActive ? "nav-btn--active" : ""}`}
-                onClick={() => onNavigate(screen)}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={LABELS[screen]}
-              >
-                <span className="nav-btn__bubble" aria-hidden="true">
-                  <span className="nav-btn__icon">{ICONS[screen]}</span>
-                </span>
-                <span className="nav-btn__label">{LABELS[screen]}</span>
-              </button>
+              {renderButton(screen)}
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+
+        <div className="nav-center">{renderButton(CENTER_SCREEN)}</div>
+
+        <ul className="nav-cluster nav-cluster--right">
+          {RIGHT_SCREENS.map((screen) => (
+            <li key={screen} className="nav-item">
+              {renderButton(screen)}
+            </li>
+          ))}
+        </ul>
+      </div>
     </nav>
   );
 }
