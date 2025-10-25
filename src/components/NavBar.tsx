@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, type JSX } from "react";
 
 export type Screen = "main" | "tasks" | "shop" | "statistics" | "referrals" | "settings";
 

@@ -68,17 +68,14 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
   const outgoingClass = prev && dir ? (dir === "left" ? "slide-out-left" : "slide-out-right") : "";
   const incomingClass = prev && dir ? (dir === "left" ? "slide-in-right" : "slide-in-left") : "";
   const hasHome = screen === "main" || prev === "main";
-  const mainBodyClass = useMemo(
-    () => `main-body${hasHome ? " main-body--home" : ""}`,
-    [hasHome],
-  );
+  const mainBodyClass = useMemo(() => `main-body${hasHome ? " main-body--home" : ""}`, [hasHome]);
   const viewportClass = useMemo(
     () => `screens-viewport${hasHome ? " screens-viewport--home" : ""}`,
     [hasHome],
   );
 
   return (
-    <div className="main-screen" role="main" aria-label="Главное меню">
+    <main className="main-screen" aria-label="Главное меню">
       <header className="top-bar">
         <div className="mining-panel" aria-live="polite">
           <div className="mining-info">
@@ -111,7 +108,7 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
       </section>
 
       {(showNav || !loading) && <NavBar current={screen} onNavigate={navigate} />}
-    </div>
+    </main>
   );
 }
 

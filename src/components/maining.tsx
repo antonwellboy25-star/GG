@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
 
 type MainingProps = {
@@ -9,7 +9,7 @@ type MainingProps = {
 const ease = {
   inQuad: (t: number) => t * t,
   outQuad: (t: number) => 1 - (1 - t) * (1 - t),
-  inOutQuad: (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2),
+  inOutQuad: (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2),
   clamp: (v: number) => Math.min(Math.max(v, 0), 1),
 };
 
@@ -38,6 +38,196 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
     if (active) startRef.current = performance.now();
   }, [active]);
 
+  // Стабильные обновляющие функции для анимаций
+  const updateSun = useCallback((now: number, dt: number) => {
+    const sun = sunRef.current;
+    const corona = coronaRef.current;
+    const glow = glowRef.current;
+    if (!sun || !corona || !glow) return;
+
+    // Вращение сферы и короны
+    sun.rotation.y += dt * 0.08;
+    sun.rotation.x = Math.sin(now * 0.0003) * 0.15;
+    corona.rotation.y -= dt * 0.05;
+    corona.rotation.z += dt * 0.02;
+
+    // Пульсация свечения
+    const pulse = 1 + 0.06 * Math.sin(now * 0.004) + 0.04 * Math.sin(now * 0.0027);
+    glow.scale.set(3.8 * pulse, 3.8 * pulse, 1);
+
+    const glowMat = glow.material as THREE.SpriteMaterial;
+    glowMat.opacity = THREE.MathUtils.damp(
+      glowMat.opacity,
+      activeRef.current ? 0.85 : 0.5,
+      3.5,
+      dt,
+    );
+
+    // Интенсивность эмиссии
+    const sunMat = sun.material as THREE.MeshStandardMaterial;
+    sunMat.emissiveIntensity = THREE.MathUtils.damp(
+      sunMat.emissiveIntensity,
+      activeRef.current ? 1.6 : 1.0,
+      4,
+      dt,
+    );
+
+    // Анимация текстуры
+    if (sunMat.map) {
+      sunMat.map.offset.x = (now * 0.00012) % 1;
+      sunMat.map.offset.y = (now * 0.00008) % 1;
+    }
+
+    const coronaMat = corona.material as THREE.MeshBasicMaterial;
+    coronaMat.opacity = THREE.MathUtils.damp(
+      coronaMat.opacity,
+      activeRef.current ? 0.75 : 0.45,
+      3.8,
+      dt,
+    );
+  }, []);
+
+  const updateIdle = useCallback((dt: number) => {
+    const gram = gramRef.current;
+    const gg = ggRef.current;
+    const flare = flareRef.current;
+
+    if (gram) {
+      const m = gram.material as THREE.MeshBasicMaterial;
+      m.opacity = THREE.MathUtils.damp(m.opacity, 0, 5, dt);
+      gram.visible = false;
+    }
+    if (gg) {
+      const m = gg.material as THREE.MeshBasicMaterial;
+      m.opacity = THREE.MathUtils.damp(m.opacity, 0, 5, dt);
+      gg.visible = false;
+    }
+    if (flare) {
+      const fm = flare.material as THREE.SpriteMaterial;
+      fm.opacity = THREE.MathUtils.damp(fm.opacity, 0, 6, dt);
+    }
+  }, []);
+
+  const updateCycle = useCallback(
+    (now: number) => {
+      const gram = gramRef.current;
+      const gg = ggRef.current;
+      const cam = cameraRef.current;
+      const flare = flareRef.current;
+      if (!gram || !gg || !cam) return;
+
+      const elapsed = (now - startRef.current) % cycleMs;
+      const p = ease.clamp(elapsed / cycleMs);
+
+      // Синхронизация с камерой
+      gram.quaternion.copy(cam.quaternion);
+      gg.quaternion.copy(cam.quaternion);
+
+      // Фаза 1: Падение GRAM к сфере (0-35%)
+      if (p < 0.35) {
+        const t = p / 0.35;
+        const eased = ease.inQuad(t);
+        const y = THREE.MathUtils.lerp(2.2, 0.05, eased);
+        gram.visible = true;
+        gg.visible = false;
+        gram.position.set(0, y, 0.5);
+        gram.scale.setScalar(1 + 0.08 * Math.sin(t * Math.PI));
+        gram.rotation.z = 0.6 * Math.sin(t * Math.PI * 1.5);
+
+        const m = gram.material as THREE.MeshBasicMaterial;
+        m.opacity = THREE.MathUtils.lerp(1, 0.1, eased);
+
+        if (flare) {
+          const fm = flare.material as THREE.SpriteMaterial;
+          fm.opacity = THREE.MathUtils.damp(fm.opacity, 0, 8, 0.016);
+        }
+      }
+      // Фаза 2: Поглощение и вспышка (35-55%)
+      else if (p < 0.55) {
+        const t = (p - 0.35) / 0.2;
+        gram.visible = false;
+        gg.visible = false;
+
+        if (flare) {
+          const fm = flare.material as THREE.SpriteMaterial;
+          const intensity = Math.sin(t * Math.PI);
+          fm.opacity = intensity * 0.9;
+          const s = 4.8 + intensity * 1.8;
+          flare.scale.set(s, s, 1);
+        }
+      }
+      // Фаза 3: Выброс GG из сферы (55-100%)
+      else {
+        const t = (p - 0.55) / 0.45;
+        const eased = ease.outQuad(ease.clamp(t));
+        const y = THREE.MathUtils.lerp(0.05, 2.2, eased);
+        const sc = 0.7 + 0.5 * eased;
+
+        gg.visible = true;
+        gram.visible = false;
+        gg.position.set(0, y, 0.5);
+        gg.scale.set(sc, sc, 1);
+        gg.rotation.z = -0.5 * Math.sin(t * Math.PI * 1.3);
+
+        const m = gg.material as THREE.MeshBasicMaterial;
+        if (t < 0.15) {
+          m.opacity = ease.inOutQuad(t / 0.15);
+        } else if (t > 0.9) {
+          const tail = ease.clamp((1 - t) / 0.1);
+          m.opacity = tail * tail;
+        } else {
+          m.opacity = 1;
+        }
+
+        if (flare) {
+          const fm = flare.material as THREE.SpriteMaterial;
+          fm.opacity = THREE.MathUtils.damp(fm.opacity, 0, 5, 0.016);
+        }
+      }
+    },
+    [cycleMs],
+  );
+
+  const updateParticles = useCallback((dt: number, on: boolean) => {
+    const particles = particlesRef.current;
+    const speeds = particleSpeedsRef.current;
+    if (!particles || !speeds) return;
+
+    const positions = particles.geometry.getAttribute("position") as THREE.BufferAttribute;
+    const arr = positions.array as Float32Array;
+    const count = arr.length / 3;
+
+    if (on) {
+      for (let i = 0; i < count; i++) {
+        const k = i * 3;
+        const speed = speeds[i];
+
+        // Радиальное движение от центра
+        const len = Math.sqrt(arr[k] ** 2 + arr[k + 1] ** 2 + arr[k + 2] ** 2);
+        if (len > 0) {
+          arr[k] += (arr[k] / len) * speed * dt;
+          arr[k + 1] += (arr[k + 1] / len) * speed * dt;
+          arr[k + 2] += (arr[k + 2] / len) * speed * dt;
+        }
+
+        // Сброс улетевших частиц
+        const dist = Math.sqrt(arr[k] ** 2 + arr[k + 1] ** 2 + arr[k + 2] ** 2);
+        if (dist > 3.5) {
+          resetParticle(i, arr, speeds);
+        }
+      }
+
+      const mat = particles.material as THREE.PointsMaterial;
+      mat.opacity = THREE.MathUtils.clamp(mat.opacity + dt * 1.5, 0, 0.8);
+      particles.visible = true;
+      positions.needsUpdate = true;
+    } else {
+      const mat = particles.material as THREE.PointsMaterial;
+      mat.opacity = Math.max(0, mat.opacity - dt * 1.2);
+      if (mat.opacity <= 0.02) particles.visible = false;
+    }
+  }, []);
+  // Эффект инициализации и рендера сцены
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -215,7 +405,7 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
 
       // Адаптивный размер частиц
       if (particlesRef.current) {
-        const mat = particlesRef.current.material as THREE.PointsMaterial;
+        const mat: THREE.PointsMaterial = particlesRef.current.material as THREE.PointsMaterial;
         mat.size = 0.08 * (0.7 + scale * 0.3);
       }
     };
@@ -262,199 +452,12 @@ export default function Maining({ active, cycleMs = 2800 }: MainingProps) {
               m.dispose();
             }
           } else {
-            obj.material?.dispose();
+            (obj.material as THREE.Material | undefined)?.dispose?.();
           }
         }
       });
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cycleMs]);
-
-  const updateSun = (now: number, dt: number) => {
-    const sun = sunRef.current;
-    const corona = coronaRef.current;
-    const glow = glowRef.current;
-    if (!sun || !corona || !glow) return;
-
-    // Вращение сферы и короны
-    sun.rotation.y += dt * 0.08;
-    sun.rotation.x = Math.sin(now * 0.0003) * 0.15;
-    corona.rotation.y -= dt * 0.05;
-    corona.rotation.z += dt * 0.02;
-
-    // Пульсация свечения
-    const pulse = 1 + 0.06 * Math.sin(now * 0.004) + 0.04 * Math.sin(now * 0.0027);
-    glow.scale.set(3.8 * pulse, 3.8 * pulse, 1);
-
-    const glowMat = glow.material as THREE.SpriteMaterial;
-    glowMat.opacity = THREE.MathUtils.damp(
-      glowMat.opacity,
-      activeRef.current ? 0.85 : 0.5,
-      3.5,
-      dt,
-    );
-
-    // Интенсивность эмиссии
-    const sunMat = sun.material as THREE.MeshStandardMaterial;
-    sunMat.emissiveIntensity = THREE.MathUtils.damp(
-      sunMat.emissiveIntensity,
-      activeRef.current ? 1.6 : 1.0,
-      4,
-      dt,
-    );
-
-    // Анимация текстуры
-    if (sunMat.map) {
-      sunMat.map.offset.x = (now * 0.00012) % 1;
-      sunMat.map.offset.y = (now * 0.00008) % 1;
-    }
-
-    const coronaMat = corona.material as THREE.MeshBasicMaterial;
-    coronaMat.opacity = THREE.MathUtils.damp(
-      coronaMat.opacity,
-      activeRef.current ? 0.75 : 0.45,
-      3.8,
-      dt,
-    );
-  };
-
-  const updateIdle = (dt: number) => {
-    const gram = gramRef.current;
-    const gg = ggRef.current;
-    const flare = flareRef.current;
-
-    if (gram) {
-      const m = gram.material as THREE.MeshBasicMaterial;
-      m.opacity = THREE.MathUtils.damp(m.opacity, 0, 5, dt);
-      gram.visible = false;
-    }
-    if (gg) {
-      const m = gg.material as THREE.MeshBasicMaterial;
-      m.opacity = THREE.MathUtils.damp(m.opacity, 0, 5, dt);
-      gg.visible = false;
-    }
-    if (flare) {
-      const fm = flare.material as THREE.SpriteMaterial;
-      fm.opacity = THREE.MathUtils.damp(fm.opacity, 0, 6, dt);
-    }
-  };
-
-  const updateCycle = (now: number) => {
-    const gram = gramRef.current;
-    const gg = ggRef.current;
-    const cam = cameraRef.current;
-    const flare = flareRef.current;
-    if (!gram || !gg || !cam) return;
-
-    const elapsed = (now - startRef.current) % cycleMs;
-    const p = ease.clamp(elapsed / cycleMs);
-
-    // Синхронизация с камерой
-    gram.quaternion.copy(cam.quaternion);
-    gg.quaternion.copy(cam.quaternion);
-
-    // Фаза 1: Падение GRAM к сфере (0-35%)
-    if (p < 0.35) {
-      const t = p / 0.35;
-      const eased = ease.inQuad(t);
-      const y = THREE.MathUtils.lerp(2.2, 0.05, eased);
-      gram.visible = true;
-      gg.visible = false;
-      gram.position.set(0, y, 0.5);
-      gram.scale.setScalar(1 + 0.08 * Math.sin(t * Math.PI));
-      gram.rotation.z = 0.6 * Math.sin(t * Math.PI * 1.5);
-
-      const m = gram.material as THREE.MeshBasicMaterial;
-      m.opacity = THREE.MathUtils.lerp(1, 0.1, eased);
-
-      if (flare) {
-        const fm = flare.material as THREE.SpriteMaterial;
-        fm.opacity = THREE.MathUtils.damp(fm.opacity, 0, 8, 0.016);
-      }
-    }
-    // Фаза 2: Поглощение и вспышка (35-55%)
-    else if (p < 0.55) {
-      const t = (p - 0.35) / 0.2;
-      gram.visible = false;
-      gg.visible = false;
-
-      if (flare) {
-        const fm = flare.material as THREE.SpriteMaterial;
-        const intensity = Math.sin(t * Math.PI);
-        fm.opacity = intensity * 0.9;
-        const s = 4.8 + intensity * 1.8;
-        flare.scale.set(s, s, 1);
-      }
-    }
-    // Фаза 3: Выброс GG из сферы (55-100%)
-    else {
-      const t = (p - 0.55) / 0.45;
-      const eased = ease.outQuad(ease.clamp(t));
-      const y = THREE.MathUtils.lerp(0.05, 2.2, eased);
-      const sc = 0.7 + 0.5 * eased;
-
-      gg.visible = true;
-      gram.visible = false;
-      gg.position.set(0, y, 0.5);
-      gg.scale.set(sc, sc, 1);
-      gg.rotation.z = -0.5 * Math.sin(t * Math.PI * 1.3);
-
-      const m = gg.material as THREE.MeshBasicMaterial;
-      if (t < 0.15) {
-        m.opacity = ease.inOutQuad(t / 0.15);
-      } else if (t > 0.9) {
-        const tail = ease.clamp((1 - t) / 0.1);
-        m.opacity = tail * tail;
-      } else {
-        m.opacity = 1;
-      }
-
-      if (flare) {
-        const fm = flare.material as THREE.SpriteMaterial;
-        fm.opacity = THREE.MathUtils.damp(fm.opacity, 0, 5, 0.016);
-      }
-    }
-  };
-
-  const updateParticles = (dt: number, on: boolean) => {
-    const particles = particlesRef.current;
-    const speeds = particleSpeedsRef.current;
-    if (!particles || !speeds) return;
-
-    const positions = particles.geometry.getAttribute("position") as THREE.BufferAttribute;
-    const arr = positions.array as Float32Array;
-    const count = arr.length / 3;
-
-    if (on) {
-      for (let i = 0; i < count; i++) {
-        const k = i * 3;
-        const speed = speeds[i];
-
-        // Радиальное движение от центра
-        const len = Math.sqrt(arr[k] ** 2 + arr[k + 1] ** 2 + arr[k + 2] ** 2);
-        if (len > 0) {
-          arr[k] += (arr[k] / len) * speed * dt;
-          arr[k + 1] += (arr[k + 1] / len) * speed * dt;
-          arr[k + 2] += (arr[k + 2] / len) * speed * dt;
-        }
-
-        // Сброс улетевших частиц
-        const dist = Math.sqrt(arr[k] ** 2 + arr[k + 1] ** 2 + arr[k + 2] ** 2);
-        if (dist > 3.5) {
-          resetParticle(i, arr, speeds);
-        }
-      }
-
-      const mat = particles.material as THREE.PointsMaterial;
-      mat.opacity = THREE.MathUtils.clamp(mat.opacity + dt * 1.5, 0, 0.8);
-      particles.visible = true;
-      positions.needsUpdate = true;
-    } else {
-      const mat = particles.material as THREE.PointsMaterial;
-      mat.opacity = Math.max(0, mat.opacity - dt * 1.2);
-      if (mat.opacity <= 0.02) particles.visible = false;
-    }
-  };
+  }, [updateSun, updateCycle, updateParticles, updateIdle]);
 
   return <div ref={containerRef} className="maining-canvas" role="presentation" />;
 }
@@ -477,7 +480,11 @@ function createFireTexture(size: number): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    // Возвращаем пустую текстуру, если 2D контекст недоступен
+    return new THREE.CanvasTexture(canvas);
+  }
 
   const cx = size / 2;
   const cy = size / 2;
@@ -505,7 +512,7 @@ function createFireTexture(size: number): THREE.CanvasTexture {
       const angle = Math.atan2(ny, nx);
       const swirl = Math.sin(angle * 4 + r * 14);
       const bands = Math.sin((nx + ny) * 24) * 0.5 + Math.cos((nx - ny) * 28) * 0.5;
-      const falloff = Math.pow(Math.max(0, 1 - r * 2), 2.2);
+      const falloff = Math.max(0, 1 - r * 2) ** 2.2;
       const delta = (swirl * 0.35 + bands * 0.25) * 48 * falloff;
       const idx = (y * size + x) * 4;
       data[idx] = clamp255(data[idx] + delta);
@@ -518,13 +525,15 @@ function createFireTexture(size: number): THREE.CanvasTexture {
   const blurCanvas = document.createElement("canvas");
   blurCanvas.width = size;
   blurCanvas.height = size;
-  const blurCtx = blurCanvas.getContext("2d")!;
-  blurCtx.filter = "blur(3px)";
-  blurCtx.drawImage(canvas, 0, 0);
-  ctx.clearRect(0, 0, size, size);
-  ctx.filter = "blur(1.2px)";
-  ctx.drawImage(blurCanvas, 0, 0);
-  ctx.filter = "none";
+  const blurCtx = blurCanvas.getContext("2d");
+  if (blurCtx) {
+    blurCtx.filter = "blur(3px)";
+    blurCtx.drawImage(canvas, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    ctx.filter = "blur(1.2px)";
+    ctx.drawImage(blurCanvas, 0, 0);
+    ctx.filter = "none";
+  }
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -543,7 +552,10 @@ function createCoronaTexture(size: number): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return new THREE.CanvasTexture(canvas);
+  }
 
   const cx = size / 2;
   const cy = size / 2;
@@ -560,13 +572,15 @@ function createCoronaTexture(size: number): THREE.CanvasTexture {
   const blurCanvas = document.createElement("canvas");
   blurCanvas.width = size;
   blurCanvas.height = size;
-  const blurCtx = blurCanvas.getContext("2d")!;
-  blurCtx.filter = "blur(5px)";
-  blurCtx.drawImage(canvas, 0, 0);
-  ctx.clearRect(0, 0, size, size);
-  ctx.filter = "blur(2px)";
-  ctx.drawImage(blurCanvas, 0, 0);
-  ctx.filter = "none";
+  const blurCtx = blurCanvas.getContext("2d");
+  if (blurCtx) {
+    blurCtx.filter = "blur(5px)";
+    blurCtx.drawImage(canvas, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    ctx.filter = "blur(2px)";
+    ctx.drawImage(blurCanvas, 0, 0);
+    ctx.filter = "none";
+  }
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -582,7 +596,10 @@ function createGlowTexture(size: number): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return new THREE.CanvasTexture(canvas);
+  }
 
   const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
   grad.addColorStop(0, "rgba(255, 248, 224, 1)");
@@ -597,13 +614,15 @@ function createGlowTexture(size: number): THREE.CanvasTexture {
   const blurCanvas = document.createElement("canvas");
   blurCanvas.width = size;
   blurCanvas.height = size;
-  const blurCtx = blurCanvas.getContext("2d")!;
-  blurCtx.filter = "blur(8px)";
-  blurCtx.drawImage(canvas, 0, 0);
-  ctx.clearRect(0, 0, size, size);
-  ctx.filter = "blur(4px)";
-  ctx.drawImage(blurCanvas, 0, 0);
-  ctx.filter = "none";
+  const blurCtx = blurCanvas.getContext("2d");
+  if (blurCtx) {
+    blurCtx.filter = "blur(8px)";
+    blurCtx.drawImage(canvas, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    ctx.filter = "blur(4px)";
+    ctx.drawImage(blurCanvas, 0, 0);
+    ctx.filter = "none";
+  }
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -619,7 +638,10 @@ function createFlareTexture(size: number): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return new THREE.CanvasTexture(canvas);
+  }
 
   const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
   grad.addColorStop(0, "rgba(255, 255, 255, 1)");
@@ -634,13 +656,15 @@ function createFlareTexture(size: number): THREE.CanvasTexture {
   const blurCanvas = document.createElement("canvas");
   blurCanvas.width = size;
   blurCanvas.height = size;
-  const blurCtx = blurCanvas.getContext("2d")!;
-  blurCtx.filter = "blur(10px)";
-  blurCtx.drawImage(canvas, 0, 0);
-  ctx.clearRect(0, 0, size, size);
-  ctx.filter = "blur(5px)";
-  ctx.drawImage(blurCanvas, 0, 0);
-  ctx.filter = "none";
+  const blurCtx = blurCanvas.getContext("2d");
+  if (blurCtx) {
+    blurCtx.filter = "blur(10px)";
+    blurCtx.drawImage(canvas, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    ctx.filter = "blur(5px)";
+    ctx.drawImage(blurCanvas, 0, 0);
+    ctx.filter = "none";
+  }
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -656,7 +680,10 @@ function createParticleTexture(size: number): THREE.Texture {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return new THREE.CanvasTexture(canvas);
+  }
   const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
   grad.addColorStop(0, "rgba(255, 244, 210, 1)");
   grad.addColorStop(0.4, "rgba(255, 210, 120, 0.85)");

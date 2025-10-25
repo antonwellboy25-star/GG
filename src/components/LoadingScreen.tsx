@@ -21,10 +21,11 @@ const INV_TAU = 1 / TAU;
 const LUT_SCALE = LUT_SIZE * INV_TAU; // multiply angle by this to get LUT index
 
 function sinLut(angle: number): number {
-  // Wrap angle to [0, TAU)
-  while (angle < 0) angle += TAU;
-  while (angle >= TAU) angle -= TAU;
-  const idx = ((angle * LUT_SCALE) | 0) & (LUT_SIZE - 1);
+  // Wrap angle to [0, TAU) without mutating the parameter
+  let a = angle;
+  while (a < 0) a += TAU;
+  while (a >= TAU) a -= TAU;
+  const idx = ((a * LUT_SCALE) | 0) & (LUT_SIZE - 1);
   return SINE_LUT[idx];
 }
 
@@ -230,7 +231,8 @@ export default function LoadingScreen({ durationMs = 5000, onDone }: LoadingScre
         if (p.y > viewH + 5) p.y = -5;
 
         ctx.globalAlpha = Math.max(0, Math.min(1, p.a * twinkle));
-        const sprites = spriteCache.get(p.hue)!;
+        const sprites = spriteCache.get(p.hue) || spriteCache.get(GOLD_COLORS[0]);
+        if (!sprites) continue;
         const sprite = sprites[p.si];
         const size = (sprite.width / 2) | 0;
         const x = (p.x - size) | 0;
@@ -260,7 +262,7 @@ export default function LoadingScreen({ durationMs = 5000, onDone }: LoadingScre
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       window.removeEventListener("resize", resize);
     };
-  }, [assetsReady, durationMs]);
+  }, [assetsReady, durationMs, tier]);
 
   useEffect(() => {
     if (!assetsReady) return;
@@ -319,10 +321,16 @@ export default function LoadingScreen({ durationMs = 5000, onDone }: LoadingScre
   );
 }
 
+type ExtendedNavigator = Navigator & {
+  hardwareConcurrency?: number;
+  deviceMemory?: number;
+};
+
 function detectPerfTier(): "low" | "mid" | "high" {
   try {
-    const cores = (navigator as any).hardwareConcurrency ?? 4;
-    const mem = (navigator as any).deviceMemory as number | undefined;
+    const n = navigator as ExtendedNavigator;
+    const cores = typeof n.hardwareConcurrency === "number" ? n.hardwareConcurrency : 4;
+    const mem = typeof n.deviceMemory === "number" ? n.deviceMemory : undefined;
     const width = window.innerWidth;
     const height = window.innerHeight;
     const area = width * height;
