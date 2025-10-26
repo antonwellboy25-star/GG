@@ -1,8 +1,19 @@
 import ScreenHeader from "@/features/main/components/ScreenHeader";
-import { recentSessions, statisticsSummary } from "@/features/main/data/statistics";
+import { useUserRuntime } from "@/features/user/UserRuntimeContext";
+
+const numberFormatter = new Intl.NumberFormat("ru-RU");
+const ggFormatter = new Intl.NumberFormat("ru-RU", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+const goldFormatter = new Intl.NumberFormat("ru-RU", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 4,
+});
 
 export default function StatisticsScreen() {
-  const stats = statisticsSummary;
+  const { stats, recentSessions, runtime, gramPerGold } = useUserRuntime();
+  const burnRatePercent = stats.burnRate * 100;
 
   return (
     <section className="screen statistics" aria-label="Статистика">
@@ -14,7 +25,7 @@ export default function StatisticsScreen() {
           <div className="stats-card stats-card--primary">
             <div className="stats-card__icon">💰</div>
             <div className="stats-card__content">
-              <div className="stats-card__value">{stats.totalGG.toLocaleString()}</div>
+              <div className="stats-card__value">{ggFormatter.format(stats.totalGG)}</div>
               <div className="stats-card__label">GG заработано</div>
             </div>
           </div>
@@ -22,7 +33,7 @@ export default function StatisticsScreen() {
           <div className="stats-card">
             <div className="stats-card__icon">⛏️</div>
             <div className="stats-card__content">
-              <div className="stats-card__value">{stats.totalSessions}</div>
+              <div className="stats-card__value">{numberFormatter.format(stats.totalSessions)}</div>
               <div className="stats-card__label">Сессий майнинга</div>
             </div>
           </div>
@@ -30,7 +41,7 @@ export default function StatisticsScreen() {
           <div className="stats-card">
             <div className="stats-card__icon">📊</div>
             <div className="stats-card__content">
-              <div className="stats-card__value">{stats.avgPerSession}</div>
+              <div className="stats-card__value">{ggFormatter.format(stats.avgPerSession)}</div>
               <div className="stats-card__label">GG в среднем</div>
             </div>
           </div>
@@ -38,10 +49,27 @@ export default function StatisticsScreen() {
           <div className="stats-card">
             <div className="stats-card__icon">🔥</div>
             <div className="stats-card__content">
-              <div className="stats-card__value">{stats.burnRate * 100}%</div>
-              <div className="stats-card__label">Коэф. сжигания</div>
+              <div className="stats-card__value">{burnRatePercent.toFixed(2)}%</div>
+              <div className="stats-card__label">Текущий коэффициент</div>
             </div>
           </div>
+
+          <div className="stats-card">
+            <div className="stats-card__icon">🏅</div>
+            <div className="stats-card__content">
+              <div className="stats-card__value">
+                +{goldFormatter.format(runtime.mintedGold)} GOLD
+              </div>
+              <div className="stats-card__label">Получено за обмен</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="stats-note">
+          <span className="stats-note__icon">ℹ️</span>
+          <p className="stats-note__text">
+            Фиксированный курс: 1 GOLD = {numberFormatter.format(gramPerGold)} GRAM.
+          </p>
         </div>
 
         {/* Recent Sessions */}
@@ -62,12 +90,14 @@ export default function StatisticsScreen() {
                     <div className="timeline-stat">
                       <span className="timeline-stat__label">Сожжено:</span>
                       <span className="timeline-stat__value">
-                        {session.burned.toLocaleString()} GRAM
+                        {numberFormatter.format(session.burned)} GRAM
                       </span>
                     </div>
                     <div className="timeline-stat timeline-stat--earned">
                       <span className="timeline-stat__label">Получено:</span>
-                      <span className="timeline-stat__value">+{session.earned} GG</span>
+                      <span className="timeline-stat__value">
+                        +{goldFormatter.format(session.earned)} GOLD
+                      </span>
                     </div>
                   </div>
                 </div>

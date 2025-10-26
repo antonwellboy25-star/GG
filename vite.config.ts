@@ -22,6 +22,8 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
+            if (id.includes("three")) return "vendor-three";
+            if (id.includes("@tonconnect")) return "vendor-ton";
             if (id.includes("react")) return "vendor-react";
             return "vendor";
           }

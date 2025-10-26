@@ -1,0 +1,7 @@
+{
+  "url": "https://gg-app.example/tonconnect-manifest.json",
+  "name": "GG Mining",
+  "iconUrl": "https://gg-app.example/icons/gg-icon.png",
+  "termsOfUseUrl": "https://gg-app.example/terms",
+  "privacyPolicyUrl": "https://gg-app.example/privacy"
+}

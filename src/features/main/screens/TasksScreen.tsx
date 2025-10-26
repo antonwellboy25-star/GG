@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { tasks as defaultTasks, type Task } from "@/features/main/data/tasks";
 
 export default function TasksScreen() {
   const [tasks] = useState<Task[]>(defaultTasks);
+  const rewardFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("ru-RU", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+    [],
+  );
 
   const tasksByType = {
     onboarding: tasks.filter((t) => t.type === "onboarding"),
@@ -29,7 +37,9 @@ export default function TasksScreen() {
               <div className="tasks-progress-stat__label">Выполнено</div>
             </div>
             <div className="tasks-progress-stat tasks-progress-stat--highlight">
-              <div className="tasks-progress-stat__value">+{totalReward}</div>
+              <div className="tasks-progress-stat__value">
+                +{rewardFormatter.format(totalReward)}
+              </div>
               <div className="tasks-progress-stat__label">GG заработано</div>
             </div>
           </div>
@@ -46,7 +56,7 @@ export default function TasksScreen() {
           <h2 className="tasks-section__title">🚀 Начало работы</h2>
           <div className="tasks-list">
             {tasksByType.onboarding.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} formatter={rewardFormatter} />
             ))}
           </div>
         </div>
@@ -56,7 +66,7 @@ export default function TasksScreen() {
           <h2 className="tasks-section__title">📅 Ежедневные задания</h2>
           <div className="tasks-list">
             {tasksByType.daily.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} formatter={rewardFormatter} />
             ))}
           </div>
         </div>
@@ -66,7 +76,7 @@ export default function TasksScreen() {
           <h2 className="tasks-section__title">💬 Социальные задания</h2>
           <div className="tasks-list">
             {tasksByType.social.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} formatter={rewardFormatter} />
             ))}
           </div>
         </div>
@@ -75,7 +85,7 @@ export default function TasksScreen() {
   );
 }
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, formatter }: { task: Task; formatter: Intl.NumberFormat }) {
   return (
     <div className={`task-card ${task.completed ? "task-card--completed" : ""}`}>
       <div className="task-card__icon">{task.completed ? "✅" : "⭕"}</div>
@@ -84,7 +94,7 @@ function TaskCard({ task }: { task: Task }) {
         <p className="task-card__description">{task.description}</p>
       </div>
       <div className="task-card__reward">
-        <div className="task-card__reward-value">+{task.reward}</div>
+        <div className="task-card__reward-value">+{formatter.format(task.reward)}</div>
         <div className="task-card__reward-label">GG</div>
       </div>
     </div>

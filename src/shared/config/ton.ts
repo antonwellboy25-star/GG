@@ -1,0 +1,6 @@
+/**
+ * TODO: замените значения фактическими адресами смартконтрактов.
+ */
+export const GRAM_BURN_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
+export const GRAM_TOPUP_ADDRESS = "EQBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBKCE";
+export const GRAM_DECIMALS = 9;

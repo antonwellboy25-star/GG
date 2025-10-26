@@ -14,14 +14,10 @@ export type RecentSession = {
 };
 
 export const statisticsSummary: StatisticsSummary = {
-  totalGG: 12_450,
-  totalSessions: 87,
-  avgPerSession: 143,
-  burnRate: 0.1,
+  totalGG: 0,
+  totalSessions: 0,
+  avgPerSession: 0,
+  burnRate: 0,
 };
 
-export const recentSessions: RecentSession[] = [
-  { id: 1, date: "26 окт", burned: 1_000, earned: 100, status: "completed" },
-  { id: 2, date: "25 окт", burned: 1_500, earned: 150, status: "completed" },
-  { id: 3, date: "24 окт", burned: 2_000, earned: 200, status: "completed" },
-];
+export const recentSessions: RecentSession[] = [];
