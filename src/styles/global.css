@@ -182,7 +182,27 @@ body {
   overflow-x: visible;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(118px + env(safe-area-inset-bottom));
+  padding-bottom: calc(108px + env(safe-area-inset-bottom));
+}
+
+/* Адаптивные отступы для контента */
+@media (max-width: 380px) {
+  .main-screen {
+    padding-bottom: calc(98px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 320px) {
+  .main-screen {
+    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Для очень узких экранов */
+@media (max-width: 280px) {
+  .main-screen {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
 }
 
 .top-bar {
@@ -286,31 +306,107 @@ body {
   right: 0;
   bottom: 0;
   z-index: 9;
-  padding: 0 0 calc(env(safe-area-inset-bottom) + 16px);
+  padding: 0 0 calc(env(safe-area-inset-bottom) + 10px);
   pointer-events: none;
+}
+
+@media (max-width: 380px) {
+  .nav-bar {
+    padding: 0 0 calc(env(safe-area-inset-bottom) + 8px);
+  }
+}
+
+@media (max-width: 320px) {
+  .nav-bar {
+    padding: 0 0 calc(env(safe-area-inset-bottom) + 6px);
+  }
+}
+
+/* Для очень узких экранов */
+@media (max-width: 280px) {
+  .nav-bar {
+    padding: 0 0 calc(env(safe-area-inset-bottom) + 5px);
+  }
+}
+
+/* Для больших экранов - увеличиваем размеры */
+@media (min-width: 768px) {
+  .nav-bar {
+    padding: 0 0 calc(env(safe-area-inset-bottom) + 16px);
+  }
+
+  .nav-bar__surface {
+    padding: 8px 12px;
+    gap: 6px;
+    border-radius: 24px;
+  }
+
+  .nav-bar__button {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+  }
+
+  .nav-bar__icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .main-screen {
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  }
 }
 
 .nav-bar__surface {
   margin: 0 auto;
-  padding: 8px 12px;
+  padding: 6px 8px;
   width: fit-content;
-  max-width: calc(100% - 24px);
+  max-width: calc(100vw - 16px);
   list-style: none;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   pointer-events: auto;
   box-sizing: border-box;
   background: linear-gradient(135deg, rgba(30, 30, 30, 0.85), rgba(15, 15, 15, 0.9));
   backdrop-filter: blur(20px) saturate(140%);
-  border-radius: 24px;
+  border-radius: 20px;
   position: relative;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Адаптивность для узких экранов */
+@media (max-width: 380px) {
+  .nav-bar__surface {
+    padding: 5px 6px;
+    gap: 2px;
+    max-width: calc(100vw - 12px);
+    border-radius: 18px;
+  }
+}
+
+@media (max-width: 320px) {
+  .nav-bar__surface {
+    padding: 4px 5px;
+    gap: 1px;
+    max-width: calc(100vw - 8px);
+    border-radius: 16px;
+  }
+}
+
+/* Для очень узких экранов (старые устройства) */
+@media (max-width: 280px) {
+  .nav-bar__surface {
+    padding: 3px 4px;
+    gap: 0px;
+    max-width: calc(100vw - 6px);
+    border-radius: 14px;
+  }
 }
 
 /* Тонкий акцентный штрих сверху */
@@ -333,29 +429,66 @@ body {
 
 .nav-bar__item {
   flex: 0 0 auto;
+  min-width: 0;
 }
 
 .nav-bar__button {
   -webkit-tap-highlight-color: transparent;
   appearance: none;
   position: relative;
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
+  min-width: 44px;
+  min-height: 44px;
   border: none;
   background: none;
   color: rgba(255, 255, 255, 0.5);
-  border-radius: 16px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   padding: 0;
   font-family: inherit;
   cursor: pointer;
   transition:
     color 250ms cubic-bezier(0.4, 0, 0.2, 1),
     transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Адаптивные размеры кнопок */
+@media (max-width: 380px) {
+  .nav-bar__button {
+    width: 46px;
+    height: 46px;
+    min-width: 42px;
+    min-height: 42px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 320px) {
+  .nav-bar__button {
+    width: 42px;
+    height: 42px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 10px;
+    gap: 2px;
+  }
+}
+
+/* Для очень узких экранов */
+@media (max-width: 280px) {
+  .nav-bar__button {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    border-radius: 9px;
+    gap: 1px;
+  }
 }
 
 .nav-bar__button::before {
@@ -374,10 +507,10 @@ body {
 .nav-bar__button::after {
   content: "";
   position: absolute;
-  bottom: 6px;
+  bottom: 5px;
   left: 50%;
   transform: translateX(-50%) scaleX(0);
-  width: 20px;
+  width: 18px;
   height: 2px;
   border-radius: 2px;
   background: linear-gradient(
@@ -390,6 +523,31 @@ body {
   transition:
     transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
     opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Адаптивный индикатор */
+@media (max-width: 380px) {
+  .nav-bar__button::after {
+    bottom: 4px;
+    width: 16px;
+  }
+}
+
+@media (max-width: 320px) {
+  .nav-bar__button::after {
+    bottom: 3px;
+    width: 14px;
+    height: 1.5px;
+  }
+}
+
+/* Для очень узких экранов */
+@media (max-width: 280px) {
+  .nav-bar__button::after {
+    bottom: 2px;
+    width: 12px;
+    height: 1.5px;
+  }
 }
 
 .nav-bar__button:focus-visible {
@@ -449,14 +607,37 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 
 .nav-bar__icon svg {
   width: 100%;
   height: 100%;
   transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Адаптивные размеры иконок */
+@media (max-width: 380px) {
+  .nav-bar__icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 320px) {
+  .nav-bar__icon {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* Для очень узких экранов */
+@media (max-width: 280px) {
+  .nav-bar__icon {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 .nav-bar__button:hover .nav-bar__icon svg {
