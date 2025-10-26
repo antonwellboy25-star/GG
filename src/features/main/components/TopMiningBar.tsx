@@ -1,11 +1,12 @@
 type TopMiningBarProps = {
   active: boolean;
   onToggle: () => void;
+  visible?: boolean;
 };
 
-export default function TopMiningBar({ active, onToggle }: TopMiningBarProps) {
+export default function TopMiningBar({ active, onToggle, visible = true }: TopMiningBarProps) {
   return (
-    <header className="top-bar">
+    <header className={`top-bar${visible ? "" : " top-bar--hidden"}`} aria-hidden={!visible}>
       <div className="mining-panel" aria-live="polite">
         <div className="mining-info">
           <span className={`indicator ${active ? "indicator--on" : ""}`} aria-hidden />

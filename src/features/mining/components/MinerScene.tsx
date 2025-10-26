@@ -13,6 +13,11 @@ const STREAM_COUNT = 1200;
 const DEFAULT_CYCLE = 4200;
 const MIN_CYCLE = 3200;
 const TWO_PI = Math.PI * 2;
+const BASE_PARTICLE_COLOR = new THREE.Color(0xf4c87d);
+const ABSORB_PARTICLE_COLOR = new THREE.Color(0xffb56f);
+const FLASH_PARTICLE_COLOR = new THREE.Color(0xfff6d9);
+const EMIT_PARTICLE_COLOR = new THREE.Color(0xf6dba4);
+const TEMP_PARTICLE_COLOR = new THREE.Color();
 
 const clamp = (value: number) => Math.min(Math.max(value, 0), 1);
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
@@ -76,6 +81,18 @@ type ViewportMetrics = {
   exitX: number;
 };
 
+type TimelineState = {
+  progress: number;
+  approach: number;
+  dissolve: number;
+  absorb: number;
+  flash: number;
+  emit: number;
+  release: number;
+  gramPos: THREE.Vector3;
+  ggPos: THREE.Vector3;
+};
+
 export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -86,6 +103,17 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
   const coinMeshesRef = useRef<CoinMeshes | null>(null);
   const haloRef = useRef<Halo | null>(null);
   const particleTextureRef = useRef<THREE.Texture | null>(null);
+  const timelineRef = useRef<TimelineState>({
+    progress: 0,
+    approach: 0,
+    dissolve: 0,
+    absorb: 0,
+    flash: 0,
+    emit: 0,
+    release: 0,
+    gramPos: new THREE.Vector3(),
+    ggPos: new THREE.Vector3(),
+  });
 
   const lastTimeRef = useRef(initialNow);
   const cohesionRef = useRef(active ? 1 : 0);
@@ -125,6 +153,16 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         (stream.sizes.array as Float32Array).fill(0);
         stream.sizes.needsUpdate = true;
       }
+      const timeline = timelineRef.current;
+      timeline.progress = 0;
+      timeline.approach = 0;
+      timeline.dissolve = 0;
+      timeline.absorb = 0;
+      timeline.flash = 0;
+      timeline.emit = 0;
+      timeline.release = 0;
+      timeline.gramPos.set(0, 0, 0);
+      timeline.ggPos.set(0, 0, 0);
     }
   }, [active]);
 
@@ -142,10 +180,68 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
     const { attribute, spherical, seeds, points, material, radius } = field;
     const arr = attribute.array as Float32Array;
     const cohesion = clamp(cohesionRef.current);
-    const swirl = 1 - cohesion;
+    const timeline = timelineRef.current;
+    const approach = clamp(timeline.approach);
+    const dissolve = clamp(timeline.dissolve);
+    const absorb = clamp(timeline.absorb);
+    const flash = clamp(timeline.flash);
+    const emit = clamp(timeline.emit);
+    const release = clamp(timeline.release);
+    const emission = Math.max(emit, release);
+
+    const intake = clamp(approach * 0.6 + dissolve * 0.85 + absorb * 1.05);
+    const blendBase = cohesion;
+    const blend = clamp(
+      blendBase + dissolve * 0.4 + absorb * 0.35 + flash * 0.25 + approach * 0.12 - emission * 0.45,
+    );
+    const swirlBase = 1 - cohesion;
+    const swirl = clamp(swirlBase + emission * 0.35 + flash * 0.18 - (dissolve + absorb) * 0.28);
+    const jitterAmplifier = 1 + flash * 0.5 + emission * 0.28;
+    const radiusFactor = THREE.MathUtils.clamp(
+      1 + flash * 0.24 + absorb * 0.12 + emission * 0.08 - dissolve * 0.14 - approach * 0.06,
+      0.72,
+      1.34,
+    );
+    const dynamicRadius = radius * radiusFactor;
 
     const time = now * 0.00062;
     const band = now * 0.0011;
+    const waveAmplitude = 0.06 + flash * 0.18 + absorb * 0.08 - emission * 0.05;
+    const swirlScale = 0.42 + emission * 0.28 + approach * 0.1;
+    const tiltScale = 0.55 + emission * 0.2;
+    const gramPos = timeline.gramPos;
+    const ggPos = timeline.ggPos;
+    const gramLenSq = gramPos.lengthSq();
+    const ggLenSq = ggPos.lengthSq();
+
+    let gramDirX = 0;
+    let gramDirY = 0;
+    let gramDirZ = 0;
+    if (gramLenSq > 1e-6) {
+      const invLen = 1 / Math.sqrt(gramLenSq);
+      gramDirX = -gramPos.x * invLen;
+      gramDirY = -gramPos.y * invLen;
+      gramDirZ = -gramPos.z * invLen;
+    }
+
+    let ggDirX = 0;
+    let ggDirY = 0;
+    let ggDirZ = 0;
+    if (ggLenSq > 1e-6) {
+      const invLen = 1 / Math.sqrt(ggLenSq);
+      ggDirX = ggPos.x * invLen;
+      ggDirY = ggPos.y * invLen;
+      ggDirZ = ggPos.z * invLen;
+    }
+
+    const gramBurst = clamp(dissolve * 1.4 + absorb * 0.35);
+    const gramShear = clamp(approach * 0.4 + dissolve * 0.6);
+    const gramOffsetBase = gramBurst * (0.22 + gramShear * 0.36);
+    const gramSpreadBase = gramBurst * (0.12 + gramShear * 0.22);
+
+    const emitBurst = clamp(emission * 1.2 + flash * 0.4);
+    const emitOffsetBase = emitBurst * (0.26 + absorb * 0.18);
+    const emitHollowBase = emitBurst * 0.18;
 
     for (let i = 0; i < PARTICLE_COUNT; i += 1) {
       const idx = i * 3;
@@ -154,9 +250,9 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       const radial = spherical[idx + 2];
       const seed = seeds[i];
 
-      const swirlRadius = radial + Math.sin(time * 1.35 + seed * 14.2) * 0.42;
+      const swirlRadius = radial + Math.sin(time * 1.35 + seed * 14.2) * swirlScale;
       const swirlAngle = phi + time * (1.6 + seed * 0.9);
-      const swirlTilt = Math.cos(time * 0.9 + seed * 12.4) * 0.55;
+      const swirlTilt = Math.cos(time * 0.9 + seed * 12.4) * tiltScale;
 
       const swirlX = swirlRadius * Math.cos(swirlAngle);
       const swirlY = swirlTilt + Math.sin(phi * 2.1 + time * 0.72) * 0.32;
@@ -166,28 +262,80 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       const sphereX = sinTheta * Math.cos(phi);
       const sphereY = Math.cos(theta);
       const sphereZ = sinTheta * Math.sin(phi);
-      const sphereRad = radius * (0.86 + seed * 0.18 + Math.sin(band + seed * 6.3) * 0.06);
+      const sphereRad =
+        dynamicRadius * (0.86 + seed * 0.18 + Math.sin(band + seed * 6.3) * waveAmplitude);
 
       const targetX = sphereX * sphereRad;
       const targetY = sphereY * sphereRad;
       const targetZ = sphereZ * sphereRad;
 
-      const blend = cohesion;
-      const jitter = (1 - blend * 0.55) * 0.28;
+      const jitter = (1 - blend * 0.55) * 0.28 * jitterAmplifier;
+      const leftPull = -intake * (0.42 + seed * 0.18);
+      const liftPull = intake * 0.12 * Math.sin(phi + seed * 5.1 + time * 0.7);
+      const depthPull = -intake * 0.08 * Math.cos(phi * 1.2 + seed * 3.4 + time * 0.6);
+      const flowFactor = THREE.MathUtils.lerp(1, 0, blend * 0.85);
+      let flowX = leftPull * flowFactor;
+      let flowY = liftPull * flowFactor;
+      let flowZ = depthPull * flowFactor;
+
+      if (gramOffsetBase > 0 && gramLenSq > 1e-6) {
+        const burstStrength = gramOffsetBase * (0.4 + seed * 0.3);
+        const spreadStrength = gramSpreadBase * (0.32 + seed * 0.25);
+        flowX +=
+          gramDirX * burstStrength + (gramDirY * spreadStrength - gramDirZ * spreadStrength * 0.4);
+        flowY += gramDirY * burstStrength + gramDirZ * spreadStrength * 0.16;
+        flowZ +=
+          gramDirZ * burstStrength +
+          (gramDirX * spreadStrength * 0.22 - gramDirY * spreadStrength * 0.14);
+      }
+
+      if (emitOffsetBase > 0 && ggLenSq > 1e-6) {
+        const emitStrength = emitOffsetBase * (0.38 + (1 - seed) * 0.28);
+        const hollowStrength = emitHollowBase * (0.22 + seed * 0.18);
+        flowX += ggDirX * emitStrength - ggDirX * hollowStrength * blend * 0.6;
+        flowY += ggDirY * emitStrength - ggDirY * hollowStrength * blend * 0.5;
+        flowZ += ggDirZ * emitStrength - ggDirZ * hollowStrength * blend * 0.7;
+      }
 
       arr[idx] =
-        THREE.MathUtils.lerp(swirlX, targetX, blend) + Math.sin(time * 3.6 + seed * 20.5) * jitter;
+        THREE.MathUtils.lerp(swirlX, targetX, blend) +
+        flowX +
+        Math.sin(time * 3.6 + seed * 20.5) * jitter;
       arr[idx + 1] =
         THREE.MathUtils.lerp(swirlY, targetY, blend) +
+        flowY +
         Math.cos(time * 2.8 + seed * 18.2) * jitter * 0.62;
       arr[idx + 2] =
-        THREE.MathUtils.lerp(swirlZ, targetZ, blend) + Math.sin(time * 3.1 + seed * 16.7) * jitter;
+        THREE.MathUtils.lerp(swirlZ, targetZ, blend) +
+        flowZ +
+        Math.sin(time * 3.1 + seed * 16.7) * jitter;
     }
 
     attribute.needsUpdate = true;
-    points.rotation.y += dt * (0.18 + swirl * 0.24);
-    points.rotation.x = THREE.MathUtils.damp(points.rotation.x, cohesion * 0.22, 3.8, dt);
-    material.opacity = THREE.MathUtils.lerp(0.48, 0.82, cohesion);
+    points.rotation.y += dt * (0.18 + swirl * 0.32 + emission * 0.18);
+    const tiltTarget = dissolve * 0.14 + absorb * 0.26 + flash * 0.18 - emission * 0.22;
+    points.rotation.x = THREE.MathUtils.damp(points.rotation.x, tiltTarget, 4.2, dt);
+    const scaleTarget = 1 + flash * 0.4 + absorb * 0.18 + emission * 0.1 - dissolve * 0.12;
+    const nextScale = THREE.MathUtils.damp(points.scale.x, scaleTarget, 6.2, dt);
+    points.scale.setScalar(nextScale);
+
+    const baseOpacity = THREE.MathUtils.lerp(0.44, 0.82, blend);
+    const targetOpacity = Math.min(baseOpacity + flash * 0.3 + absorb * 0.12 + emission * 0.18, 1);
+    material.opacity = THREE.MathUtils.damp(material.opacity, targetOpacity, 5.4, dt);
+
+    TEMP_PARTICLE_COLOR.copy(BASE_PARTICLE_COLOR);
+    if (dissolve > 0 || absorb > 0) {
+      const absorbMix = clamp(dissolve * 0.45 + absorb * 0.8);
+      TEMP_PARTICLE_COLOR.lerp(ABSORB_PARTICLE_COLOR, absorbMix);
+    }
+    if (emission > 0) {
+      TEMP_PARTICLE_COLOR.lerp(EMIT_PARTICLE_COLOR, clamp(emission * 0.6));
+    }
+    if (flash > 0) {
+      TEMP_PARTICLE_COLOR.lerp(FLASH_PARTICLE_COLOR, clamp(flash));
+    }
+    const colorLerp = THREE.MathUtils.clamp(0.18 + flash * 0.2 + emission * 0.1, 0.18, 0.65);
+    material.color.lerp(TEMP_PARTICLE_COLOR, colorLerp);
   }, []);
 
   const animateStream = useCallback((mode: "entry" | "release" | null, progress: number) => {
@@ -331,7 +479,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
   }, []);
 
   const updateCoins = useCallback(
-    (now: number, cycle: number) => {
+    (now: number, cycle: number, dt: number) => {
       const meshes = coinMeshesRef.current;
       const viewport = viewportRef.current;
       if (!meshes || !viewport) return;
@@ -341,6 +489,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       const ggMat = gg.material as THREE.MeshBasicMaterial;
       const camera = cameraRef.current;
       const halo = haloRef.current;
+      const timeline = timelineRef.current;
 
       if (camera) {
         gram.quaternion.copy(camera.quaternion);
@@ -360,12 +509,21 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       if (!coinEnabledRef.current) {
         gram.visible = false;
         gg.visible = false;
-        gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, 0, 8, 0.016);
-        ggMat.opacity = THREE.MathUtils.damp(ggMat.opacity, 0, 8, 0.016);
+        gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, 0, 8, dt);
+        ggMat.opacity = THREE.MathUtils.damp(ggMat.opacity, 0, 8, dt);
+        timeline.approach = clamp(THREE.MathUtils.damp(timeline.approach, 0, 6.5, dt));
+        timeline.dissolve = clamp(THREE.MathUtils.damp(timeline.dissolve, 0, 6.8, dt));
+        timeline.absorb = clamp(THREE.MathUtils.damp(timeline.absorb, 0, 7.2, dt));
+        timeline.flash = clamp(THREE.MathUtils.damp(timeline.flash, 0, 8.6, dt));
+        timeline.emit = clamp(THREE.MathUtils.damp(timeline.emit, 0, 7.2, dt));
+        timeline.release = clamp(THREE.MathUtils.damp(timeline.release, 0, 7.2, dt));
+        timeline.progress = 0;
+        timeline.gramPos.set(0, 0, 0);
+        timeline.ggPos.set(0, 0, 0);
         animateStream(null, 0);
         if (halo) {
-          halo.material.opacity = THREE.MathUtils.damp(halo.material.opacity, 0, 6.4, 0.016);
-          const newScale = THREE.MathUtils.damp(halo.sprite.scale.x, 1.08, 6.4, 0.016);
+          halo.material.opacity = THREE.MathUtils.damp(halo.material.opacity, 0, 6.4, dt);
+          const newScale = THREE.MathUtils.damp(halo.sprite.scale.x, 1.08, 6.4, dt);
           halo.sprite.scale.set(newScale, newScale, 1);
           if (halo.material.opacity < 0.02) {
             halo.sprite.visible = false;
@@ -377,143 +535,168 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       const duration = Math.max(cycle, MIN_CYCLE);
       const progress = ((now - coinStartRef.current) % duration) / duration;
       const baseScale = baseCoinScaleRef.current;
+      timeline.progress = progress;
 
-      let streamMode: "entry" | "release" | null = null;
-      let streamProgress = 0;
+      const approachPhase = phaseWindow(progress, 0, 0.28);
+      const dissolvePhase = phaseWindow(progress, 0.28, 0.18);
+      const absorbPhase = phaseWindow(progress, 0.46, 0.12);
+      const flashPhase = phaseWindow(progress, 0.54, 0.1);
+      const emitPhase = phaseWindow(progress, 0.62, 0.18);
+      const launchPhase = phaseWindow(progress, 0.8, 0.16);
+      const cooldownPhase = phaseWindow(progress, 0.96, 0.04);
+
+      const targetApproach = approachPhase !== null ? easeInOutCubic(approachPhase) : 0;
+      const targetDissolve = dissolvePhase !== null ? easeInOutCubic(dissolvePhase) : 0;
+      const targetAbsorb = absorbPhase !== null ? easeInOutCubic(absorbPhase) : 0;
+      const targetFlash = flashPhase !== null ? easeOutExpo(flashPhase) : 0;
+      const targetEmit = emitPhase !== null ? easeInOutCubic(emitPhase) : 0;
+      const targetRelease = launchPhase !== null ? easeInOutCubic(launchPhase) : 0;
+
+      timeline.approach = clamp(THREE.MathUtils.damp(timeline.approach, targetApproach, 6.8, dt));
+      timeline.dissolve = clamp(THREE.MathUtils.damp(timeline.dissolve, targetDissolve, 7.2, dt));
+      timeline.absorb = clamp(THREE.MathUtils.damp(timeline.absorb, targetAbsorb, 8.2, dt));
+      timeline.flash = clamp(THREE.MathUtils.damp(timeline.flash, targetFlash, 9.4, dt));
+      timeline.emit = clamp(THREE.MathUtils.damp(timeline.emit, targetEmit, 7.4, dt));
+      timeline.release = clamp(THREE.MathUtils.damp(timeline.release, targetRelease, 7.4, dt));
+
+      const timeWave = now * 0.0012;
+
       let haloTargetOpacity = 0.18;
-      let haloTargetScale = halo?.sprite.scale.x ?? 1.2;
+      let haloTargetScale = Math.max(1.08, halo?.sprite.scale.x ?? 1.2);
 
-      const entryPhase = phaseWindow(progress, 0, 0.26);
-      if (entryPhase !== null) {
-        const arc = easeInOutCubic(entryPhase);
-        const eased = easeOutBack(entryPhase);
-        const lift = Math.sin(arc * Math.PI) * viewport.height * 0.18;
+      if (approachPhase !== null) {
+        const arc = easeInOutCubic(approachPhase);
+        const wave = Math.sin(arc * Math.PI * 0.8);
+        const wobble = Math.sin(timeWave + arc * 4.2) * (1 - arc * 0.8) * 0.14;
         gram.visible = true;
         gg.visible = false;
-        gram.position.set(
-          THREE.MathUtils.lerp(viewport.entryX, 0, arc),
-          lift - arc * 0.12,
-          -0.08 + Math.cos(arc * Math.PI) * 0.06,
-        );
-        const scale = THREE.MathUtils.lerp(1.08, 0.9, eased);
+        const x = THREE.MathUtils.lerp(viewport.entryX * 0.9, -viewport.width * 0.04, arc);
+        const y =
+          THREE.MathUtils.lerp(viewport.height * 0.12, viewport.height * 0.022, arc) +
+          wave * viewport.height * 0.018;
+        const z = THREE.MathUtils.lerp(-0.22, -0.1, arc);
+        gram.position.set(x, y, z);
+        const scale = THREE.MathUtils.lerp(1.12, 0.98, arc);
         gram.scale.set(scale * baseScale, scale * baseScale, 1);
-        gram.rotation.z = Math.sin(arc * TWO_PI) * 0.24;
-        gram.rotation.y = Math.sin(arc * Math.PI * 0.8) * 0.2;
-        gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, 1, 16, 0.016);
-        if (entryPhase < 0.6) {
-          streamMode = "entry";
-          streamProgress = entryPhase;
-        } else {
-          streamMode = null;
-          streamProgress = 0;
+        gram.rotation.z = wobble;
+        gram.rotation.y = Math.sin(arc * Math.PI * 0.5) * 0.12;
+        const approachFade = THREE.MathUtils.clamp(1 - arc ** 2.4 * 0.18, 0.72, 1);
+        const approachTarget = Math.max(approachFade, gramMat.opacity);
+        gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, approachTarget, 12, dt);
+        timeline.gramPos.copy(gram.position);
+        haloTargetOpacity = Math.max(haloTargetOpacity, 0.22 + arc * 0.2);
+        haloTargetScale = Math.max(haloTargetScale, 1.12 + arc * 0.22);
+      }
+
+      if (dissolvePhase !== null) {
+        const eased = easeInOutCubic(dissolvePhase);
+        gram.visible = true;
+        const hover =
+          THREE.MathUtils.lerp(viewport.height * 0.022, viewport.height * 0.008, eased) +
+          Math.sin(timeWave * 1.4 + eased * 5.1) * 0.012;
+        const depth = THREE.MathUtils.lerp(-0.1, -0.028, eased);
+        const lateral = THREE.MathUtils.lerp(
+          -viewport.width * 0.04,
+          -viewport.width * 0.006,
+          eased,
+        );
+        gram.position.set(lateral, hover, depth);
+        const scale = THREE.MathUtils.lerp(0.98, 0.3, eased);
+        gram.scale.set(scale * baseScale, scale * baseScale, 1);
+        gram.rotation.z = Math.sin(timeWave * 0.8 + eased * 6.3) * 0.24;
+        gram.rotation.y = Math.sin(timeWave * 0.6 + eased * 3.8) * 0.18;
+        const fadeCurve = easeInOutCubic(eased);
+        const dissolveTarget = THREE.MathUtils.clamp(1 - fadeCurve ** 1.15, 0, 1);
+        gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, dissolveTarget, 18, dt);
+        if (gramMat.opacity < 0.032) {
+          gram.visible = false;
         }
-        haloTargetOpacity = Math.max(haloTargetOpacity, 0.24 + arc * 0.38);
-        haloTargetScale = Math.max(haloTargetScale, 1.18 + arc * 0.35);
-      } else {
-        gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, 0, 8, 0.016);
+        timeline.gramPos.copy(gram.position);
+        haloTargetOpacity = Math.max(haloTargetOpacity, 0.32 + eased * 0.36);
+        haloTargetScale = Math.max(haloTargetScale, 1.24 + eased * 0.6);
+      } else if (approachPhase === null) {
+        gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, 0, 8, dt);
         if (gramMat.opacity < 0.05) {
           gram.visible = false;
         }
+        timeline.gramPos.set(0, 0, 0);
       }
 
-      const fusePhase = phaseWindow(progress, 0.26, 0.14);
-      if (fusePhase !== null) {
-        const blend = easeInOutCubic(fusePhase);
-        gram.visible = true;
-        gram.position.set(0, Math.sin((1 - blend) * Math.PI) * viewport.height * 0.06, -0.06);
-        const scale = THREE.MathUtils.lerp(0.88, 0.32, blend);
-        gram.scale.set(scale * baseScale, scale * baseScale, 1);
-        gramMat.opacity = 1 - blend;
-        haloTargetOpacity = Math.max(haloTargetOpacity, 0.36 + blend * 0.48);
-        haloTargetScale = Math.max(haloTargetScale, 1.36 + blend * 1.1);
-        streamMode = null;
-        streamProgress = 0;
+      if (absorbPhase !== null) {
+        const eased = easeInOutCubic(absorbPhase);
+        haloTargetOpacity = Math.max(haloTargetOpacity, 0.46 + eased * 0.38);
+        haloTargetScale = Math.max(haloTargetScale, 1.36 + eased * 0.9);
       }
 
-      const pulsePhase = phaseWindow(progress, 0.4, 0.18);
-      if (pulsePhase !== null) {
-        const wave = Math.sin(pulsePhase * Math.PI);
-        haloTargetOpacity = Math.max(haloTargetOpacity, 0.52 + wave * 0.42);
-        haloTargetScale = Math.max(haloTargetScale, 1.5 + wave * 0.68);
-        // Без шлейфа во время пульса
-        streamMode = null;
-        streamProgress = 0;
+      if (flashPhase !== null) {
+        const flare = easeOutExpo(flashPhase);
+        haloTargetOpacity = Math.max(haloTargetOpacity, 0.78 + flare * 0.4);
+        haloTargetScale = Math.max(haloTargetScale, 1.6 + flare * 0.8);
       }
 
-      const releasePhase = phaseWindow(progress, 0.58, 0.16);
-      const exitPhase = phaseWindow(progress, 0.74, 0.18);
-
-      if (releasePhase !== null) {
-        const arc = easeInOutCubic(releasePhase);
-        const ease = easeOutExpo(releasePhase);
+      if (emitPhase !== null) {
+        const arc = easeInOutCubic(emitPhase);
+        const reveal = easeInOutCubic(emitPhase);
+        const glow = easeOutExpo(emitPhase);
         gg.visible = true;
-        gg.position.set(
-          Math.sin(arc * Math.PI * 0.65) * viewport.width * 0.06,
-          Math.sin(arc * Math.PI) * viewport.height * 0.14 - arc * 0.1,
-          -0.04,
-        );
-        gg.scale.setScalar(baseScale * (0.42 + ease * 0.8));
-        gg.rotation.z = Math.sin(arc * TWO_PI) * 0.18;
-        gg.rotation.y = Math.sin(arc * Math.PI * 0.7) * 0.16;
-        ggMat.opacity = ease;
-        const releaseTrailStart = 0.22;
-        if (releasePhase > releaseTrailStart) {
-          streamMode = "release";
-          // Прогресс вдоль пути выпуска (0 -> ~0.65)
-          streamProgress = releasePhase * 0.65;
-        } else {
-          streamMode = null;
-          streamProgress = 0;
-        }
-        haloTargetOpacity = Math.max(haloTargetOpacity, 0.48 + ease * 0.5);
-        haloTargetScale = Math.max(haloTargetScale, 1.48 + ease * 1.32);
-      } else if (exitPhase === null) {
-        ggMat.opacity = THREE.MathUtils.damp(ggMat.opacity, 0, 8, 0.016);
+        const x = THREE.MathUtils.lerp(-viewport.width * 0.004, viewport.width * 0.14, arc);
+        const y = THREE.MathUtils.lerp(viewport.height * 0.008, viewport.height * 0.06, arc);
+        const z = THREE.MathUtils.lerp(-0.028, 0.08, arc);
+        gg.position.set(x, y, z);
+        const scale = THREE.MathUtils.lerp(0.28, 0.86, reveal);
+        gg.scale.set(scale * baseScale, scale * baseScale, 1);
+        gg.rotation.z = Math.sin(arc * Math.PI * 0.9) * 0.12;
+        gg.rotation.y = Math.sin(arc * Math.PI * 0.6) * 0.1;
+        const emitTarget = THREE.MathUtils.clamp(reveal ** 1.4, 0, 1);
+        const haloAssist = THREE.MathUtils.clamp(glow * 0.6, 0, 0.72);
+        ggMat.opacity = THREE.MathUtils.damp(ggMat.opacity, emitTarget + haloAssist * 0.2, 11, dt);
+        timeline.ggPos.copy(gg.position);
+        haloTargetOpacity = Math.max(haloTargetOpacity, 0.58 + reveal * 0.32);
+        haloTargetScale = Math.max(haloTargetScale, 1.48 + reveal * 0.6);
+      }
+
+      if (launchPhase !== null) {
+        const arc = easeInOutCubic(launchPhase);
+        gg.visible = true;
+        const x = THREE.MathUtils.lerp(viewport.width * 0.14, viewport.exitX, arc);
+        const y =
+          THREE.MathUtils.lerp(viewport.height * 0.06, viewport.height * 0.04, arc) - arc * 0.04;
+        const z = THREE.MathUtils.lerp(0.08, 0.24, arc);
+        gg.position.set(x, y, z);
+        const releaseScale = baseScale * (0.86 + arc * 0.34);
+        gg.scale.set(releaseScale, releaseScale, 1);
+        gg.rotation.z = -Math.sin(arc * Math.PI * 0.8) * 0.1;
+        gg.rotation.y = Math.sin(arc * Math.PI * 0.3) * 0.08;
+        ggMat.opacity = THREE.MathUtils.damp(ggMat.opacity, 1, 12, dt);
+        timeline.ggPos.copy(gg.position);
+        haloTargetOpacity = Math.max(haloTargetOpacity, 0.44 + arc * 0.2);
+        haloTargetScale = Math.max(haloTargetScale, 1.3 + arc * 0.3);
+      } else if (emitPhase === null) {
+        ggMat.opacity = THREE.MathUtils.damp(ggMat.opacity, 0, 8, dt);
         if (ggMat.opacity < 0.05) {
           gg.visible = false;
         }
+        if (launchPhase === null) {
+          timeline.ggPos.set(0, 0, 0);
+        }
       }
 
-      if (exitPhase !== null) {
-        const arc = easeInOutCubic(exitPhase);
-        const overshoot = easeOutBack(exitPhase);
-        gg.visible = true;
-        gg.position.set(
-          THREE.MathUtils.lerp(0, viewport.exitX, arc) + overshoot * 1.2,
-          Math.sin((1 - arc) * Math.PI) * viewport.height * 0.12 - arc * 0.16,
-          0.08 + arc * 0.22,
-        );
-        gg.scale.setScalar(baseScale * (1.02 + arc * 0.26));
-        gg.rotation.z = -Math.sin(arc * TWO_PI) * 0.22;
-        ggMat.opacity = 1;
-        streamMode = "release";
-        // Продолжаем путь до выхода (0.65 -> 1)
-        streamProgress = 0.65 + exitPhase * 0.35;
-        haloTargetOpacity = Math.max(haloTargetOpacity, 0.38 + arc * 0.32);
-        haloTargetScale = Math.max(haloTargetScale, 1.26 + arc * 0.42);
+      if (cooldownPhase !== null) {
+        const fade = 1 - easeInSine(cooldownPhase);
+        haloTargetOpacity = Math.max(haloTargetOpacity, 0.18 * fade);
       }
 
-      const settlePhase = phaseWindow(progress, 0.92, 0.08);
-      if (settlePhase !== null) {
-        const delay = easeInSine(settlePhase);
-        haloTargetOpacity = Math.max(haloTargetOpacity, 0.22 * (1 - delay));
-        haloTargetScale = Math.max(haloTargetScale, 1.1 + delay * 0.2);
-        // Затухающий след от release
-        streamMode = "release";
-        streamProgress = 1;
-      }
-
-      animateStream(streamMode, streamProgress);
+      animateStream(null, 0);
 
       if (halo) {
         halo.sprite.visible = true;
         halo.material.opacity = THREE.MathUtils.damp(
           halo.material.opacity,
           haloTargetOpacity,
-          5.6,
-          0.016,
+          6.2,
+          dt,
         );
-        const newScale = THREE.MathUtils.damp(halo.sprite.scale.x, haloTargetScale, 5.4, 0.016);
+        const newScale = THREE.MathUtils.damp(halo.sprite.scale.x, haloTargetScale, 6, dt);
         halo.sprite.scale.set(newScale, newScale, 1);
         if (halo.material.opacity < 0.02) {
           halo.sprite.visible = false;
@@ -650,8 +833,8 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         lastTimeRef.current = now;
 
         updateCohesion(dt);
+        updateCoins(now, cycleMs, dt);
         updateParticles(now, dt);
-        updateCoins(now, cycleMs);
 
         renderer?.render(scene as THREE.Scene, camera);
       };

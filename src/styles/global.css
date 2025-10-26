@@ -90,6 +90,12 @@ body {
   height: 100%;
   display: block;
   background: #000;
+  /* Максимальное качество рендеринга */
+  image-rendering: high-quality;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: contents;
 }
 
 .loader-fallback {
@@ -104,12 +110,17 @@ body {
 .loader-fallback__ring {
   width: 100%;
   height: 100%;
+  /* Улучшенное качество рендеринга SVG */
+  shape-rendering: geometricPrecision;
+  image-rendering: crisp-edges;
 }
 
 .loader-fallback__track {
   fill: none;
   stroke: rgba(255, 255, 255, 0.08);
   stroke-width: 2.5;
+  /* Гладкие края */
+  vector-effect: non-scaling-stroke;
 }
 
 .loader-fallback__progress {
@@ -123,6 +134,9 @@ body {
     forwards;
   filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5))
     drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
+  /* Гладкие края с антиалиасингом */
+  vector-effect: non-scaling-stroke;
+  paint-order: stroke;
 }
 
 .loader-fallback__logo {
@@ -131,6 +145,11 @@ body {
   filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.25)) drop-shadow(0 0 6px rgba(255, 215, 0, 0.15));
   user-select: none;
   animation: loader-fallback-pulse 2.5s ease-in-out infinite;
+  /* Улучшенное качество рендеринга изображения */
+  image-rendering: crisp-edges;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 @keyframes loader-fallback-progress {
@@ -173,35 +192,34 @@ body {
 
 /* Главное меню */
 .main-screen {
+  position: relative;
   flex: 1;
   min-height: 100%;
   background: #000;
   color: #fff;
   display: flex;
   flex-direction: column;
-  overflow-x: visible;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(108px + env(safe-area-inset-bottom));
+  overflow: hidden;
+  --nav-offset: calc(108px + env(safe-area-inset-bottom));
 }
 
-/* Адаптивные отступы для контента */
+/* Адаптивная высота нижнего градиента под навигацию */
 @media (max-width: 380px) {
   .main-screen {
-    padding-bottom: calc(98px + env(safe-area-inset-bottom));
+    --nav-offset: calc(98px + env(safe-area-inset-bottom));
   }
 }
 
 @media (max-width: 320px) {
   .main-screen {
-    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+    --nav-offset: calc(90px + env(safe-area-inset-bottom));
   }
 }
 
 /* Для очень узких экранов */
 @media (max-width: 280px) {
   .main-screen {
-    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+    --nav-offset: calc(82px + env(safe-area-inset-bottom));
   }
 }
 
@@ -212,6 +230,27 @@ body {
   background: linear-gradient(180deg, rgba(8, 8, 8, 0.58), rgba(8, 8, 8, 0));
   backdrop-filter: saturate(140%) blur(18px);
   padding-top: env(safe-area-inset-top);
+  opacity: 1;
+  transform: translateY(0);
+  overflow: hidden;
+  max-height: clamp(68px, 16vh, 140px);
+  transition:
+    opacity 240ms ease,
+    transform 260ms ease,
+    padding-top 260ms ease;
+  will-change: opacity, transform;
+}
+
+.top-bar--hidden {
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
+  max-height: 0;
+  padding-top: 0;
+}
+
+.top-bar--hidden .mining-panel {
+  padding: 0 clamp(16px, 4vw, 32px);
 }
 
 .mining-panel {
@@ -220,6 +259,7 @@ body {
   justify-content: space-between;
   gap: clamp(10px, 3vw, 18px);
   padding: clamp(10px, 2.2vh, 16px) clamp(16px, 4vw, 32px);
+  transition: padding 240ms ease;
 }
 
 .mining-info {
@@ -353,7 +393,7 @@ body {
   }
 
   .main-screen {
-    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+    --nav-offset: calc(120px + env(safe-area-inset-bottom));
   }
 }
 
@@ -785,26 +825,57 @@ body {
 }
 
 .main-body {
+  --body-pad-x: clamp(14px, 5vw, 40px);
+  position: relative;
   flex: 1;
   display: flex;
   min-height: 0;
-  padding: clamp(18px, 4vh, 38px) clamp(14px, 5vw, 40px) 0;
+  padding: clamp(18px, 4vh, 38px) var(--body-pad-x) calc(max(40px, var(--nav-offset) * 0.35));
+}
+
+.main-body::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--nav-offset) + 64px);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.02) 14%,
+    rgba(0, 0, 0, 0.06) 26%,
+    rgba(0, 0, 0, 0.12) 38%,
+    rgba(0, 0, 0, 0.22) 50%,
+    rgba(0, 0, 0, 0.36) 62%,
+    rgba(0, 0, 0, 0.54) 74%,
+    rgba(0, 0, 0, 0.74) 86%,
+    rgba(0, 0, 0, 0.9) 96%,
+    #000 100%
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+
+.main-screen .main-body--home::after {
+  display: none;
 }
 
 .main-screen .main-body--home {
+  --body-pad-x: clamp(12px, 4vw, 28px);
   overflow: visible;
-  padding: clamp(14px, 3.2vh, 28px) clamp(12px, 4vw, 28px) 0;
+  padding: clamp(14px, 3.2vh, 28px) var(--body-pad-x) var(--nav-offset);
 }
 
 .screens-viewport {
   position: relative;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   flex: 1;
-  border-radius: clamp(20px, 6vw, 32px);
+  min-height: 0;
+  border-radius: 0;
   background: none;
   box-shadow: none;
+  overflow: visible;
+  z-index: 2;
 }
 
 .main-body .screens-viewport--home {
@@ -815,12 +886,30 @@ body {
 .screen-wrapper {
   position: absolute;
   inset: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.screen-wrapper::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .screen-wrapper--active {
   opacity: 1;
+  pointer-events: auto;
+  z-index: 3;
 }
 
 .screen {
@@ -930,7 +1019,7 @@ body {
 
 @media (max-height: 520px) and (orientation: landscape) {
   .main-screen {
-    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+    --nav-offset: calc(78px + env(safe-area-inset-bottom));
   }
 
   .screen-stack {
@@ -1079,7 +1168,7 @@ body {
 
 @media (max-width: 540px) {
   .main-screen {
-    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+    --nav-offset: calc(104px + env(safe-area-inset-bottom));
   }
 
   .nav-bar {

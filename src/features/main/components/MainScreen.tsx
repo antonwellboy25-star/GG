@@ -68,18 +68,20 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
   const currentNode = useMemo(() => renderScreen(screen), [renderScreen, screen]);
   const outgoingClass = prev && dir ? (dir === "left" ? "slide-out-left" : "slide-out-right") : "";
   const incomingClass = prev && dir ? (dir === "left" ? "slide-in-right" : "slide-in-left") : "";
-  const hasHome = screen === "main" || prev === "main";
-  const mainBodyClass = useMemo(() => `main-body${hasHome ? " main-body--home" : ""}`, [hasHome]);
+  const isHome = screen === "main";
+  const hasHome = isHome || prev === "main";
+  const mainBodyClass = useMemo(() => `main-body${isHome ? " main-body--home" : ""}`, [isHome]);
   const viewportClass = useMemo(
     () => `screens-viewport${hasHome ? " screens-viewport--home" : ""}`,
     [hasHome],
   );
-
-  const isHome = screen === "main";
+  const showTopBar = isHome || prev === "main";
 
   return (
     <main className="main-screen" aria-label="Главное меню">
-      {isHome && <TopMiningBar active={active} onToggle={() => setActive((v) => !v)} />}
+      {showTopBar && (
+        <TopMiningBar active={active} onToggle={() => setActive((v) => !v)} visible={isHome} />
+      )}
 
       <section className={mainBodyClass} aria-label="Контент">
         <div className={viewportClass}>

@@ -86,11 +86,11 @@ const detectPerfTier = (): PerfTier => {
 };
 
 const createDustTexture = () => {
-  const size = 128;
+  const size = 256; // Увеличен размер для лучшего качества
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  const context = canvas.getContext("2d");
+  const context = canvas.getContext("2d", { alpha: true, willReadFrequently: false });
 
   if (context) {
     // Более мягкий и изящный градиент для частиц
@@ -112,7 +112,7 @@ const createDustTexture = () => {
   }
 
   const texture = new CanvasTexture(canvas);
-  texture.anisotropy = 1;
+  texture.anisotropy = 16; // Максимальная анизотропия будет установлена позже
   texture.colorSpace = SRGBColorSpace;
   texture.needsUpdate = true;
   return texture;
@@ -133,7 +133,7 @@ type RingBundle = {
 const createRingMaterial = (): RingBundle => {
   const uniforms = {
     progress: { value: 0 },
-    innerRadius: { value: 0.925 },
+    innerRadius: { value: 0.92 }, // Немного уменьшен для более четкой толщины
     colorA: { value: new Color(0xffffff) }, // Белый
     colorB: { value: new Color(0xe8e8e8) }, // Светло-серый
     glow: { value: 0.5 },
@@ -148,14 +148,17 @@ const createRingMaterial = (): RingBundle => {
     side: DoubleSide,
     vertexShader: `
       varying vec2 vUv;
+      varying vec2 vPosition;
       void main() {
         vUv = uv;
+        vPosition = position.xy;
         vec4 worldPosition = modelMatrix * vec4(position, 1.0);
         gl_Position = projectionMatrix * viewMatrix * worldPosition;
       }
     `,
     fragmentShader: `
       varying vec2 vUv;
+      varying vec2 vPosition;
       uniform float progress;
       uniform float innerRadius;
       uniform vec3 colorA;
@@ -163,24 +166,44 @@ const createRingMaterial = (): RingBundle => {
       uniform float glow;
       uniform float opacity;
       const float PI = 3.141592653589793;
+      
+      // Функция высококачественного сглаживания с учетом размера пикселя
+      float aastep(float threshold, float value) {
+        float afwidth = length(vec2(dFdx(value), dFdy(value))) * 0.70710678118654757;
+        return smoothstep(threshold - afwidth, threshold + afwidth, value);
+      }
 
       void main() {
         vec2 centered = vUv * 2.0 - 1.0;
         float radius = length(centered);
         
-        // Более плавные границы кольца
+        // Идеально равномерная толщина кольца
         float ringThickness = 0.075;
         float outerRadius = 1.0;
         
-        if (radius < innerRadius || radius > outerRadius) {
+        // Вычисляем adaptive anti-aliasing width на основе производных
+        float radiusDeriv = length(vec2(dFdx(radius), dFdy(radius)));
+        float aaWidth = radiusDeriv * 3.5; // Увеличенная ширина AA для максимальной гладкости
+        
+        // Супер-гладкие края с расширенным диапазоном сглаживания
+        float innerEdge = smoothstep(innerRadius - aaWidth * 1.5, innerRadius + aaWidth * 1.5, radius);
+        float outerEdge = 1.0 - smoothstep(outerRadius - aaWidth * 1.5, outerRadius + aaWidth * 1.5, radius);
+        
+        // Мягкая отсечка вместо жесткого discard
+        if (innerEdge < 0.005 || outerEdge < 0.005) {
           discard;
         }
 
         float angle = atan(centered.y, centered.x);
         angle = (angle + PI) / (2.0 * PI);
         
+        // Сглаженная граница прогресса с увеличенной зоной AA
+        float angleDeriv = length(vec2(dFdx(angle), dFdy(angle)));
+        float angleAA = angleDeriv * 4.0;
+        float progressEdge = 1.0 - smoothstep(progress - angleAA, progress + angleAA, angle);
+        
         // Allow full circle completion
-        if (angle > progress && progress < 0.999) {
+        if (progressEdge < 0.005 && progress < 0.999) {
           discard;
         }
 
@@ -195,7 +218,7 @@ const createRingMaterial = (): RingBundle => {
         // Увеличиваем множитель для более сильного радиального эффекта
         float radialDist = length(vec2(normalizedDist, (radius - (innerRadius + 1.0) * 0.5) * 12.0));
         
-        // Очень плавная круглая форма головки с сильным закруглением
+        // Очень плавная круглая форма головки с сильным закруглением и AA
         float band = 1.0 - smoothstep(0.0, 0.85, radialDist);
         band = pow(band, 4.0); // Еще сильнее усиливаем закругление
         
@@ -204,11 +227,19 @@ const createRingMaterial = (): RingBundle => {
           band = 0.0;
         }
         
-        // Очень плавные края с двойным сглаживанием
-        float edgeInner = smoothstep(innerRadius - 0.01, innerRadius + 0.025, radius);
-        float edgeOuter = 1.0 - smoothstep(outerRadius - 0.025, outerRadius + 0.01, radius);
-        float edge = edgeInner * edgeOuter;
-        edge = edge * edge; // Дополнительное сглаживание
+        // Идеально равномерная толщина с супер-гладкими краями
+        // Используем квадратичное сглаживание для устранения неровностей
+        float midRadius = (innerRadius + outerRadius) * 0.5;
+        float normalizedRadius = (radius - midRadius) / (ringThickness * 0.5);
+        
+        // Тройное сглаживание для идеальной равномерности толщины
+        float thicknessProfile = 1.0 - abs(normalizedRadius);
+        thicknessProfile = smoothstep(0.0, 1.0, thicknessProfile);
+        thicknessProfile = thicknessProfile * thicknessProfile;
+        
+        // Комбинированная маска краев с усиленным AA
+        float edgeMask = innerEdge * outerEdge;
+        edgeMask = pow(edgeMask, 1.5); // Сглаживание неровностей
         
         // Градиент цвета по окружности с акцентом на головке
         vec3 baseColor = mix(colorA, colorB, angle * 0.5 + 0.2);
@@ -217,21 +248,31 @@ const createRingMaterial = (): RingBundle => {
         vec3 glowColor = vec3(1.0, 1.0, 1.0); // Белое свечение
         vec3 color = mix(baseColor, glowColor, band * 0.5);
         
-        // Радиальный градиент для объемности
-        float radialGradient = 1.0 - abs((radius - (innerRadius + outerRadius) * 0.5) / ringThickness);
-        color = mix(color * 0.7, color, radialGradient);
+        // Радиальный градиент для объемности с идеальной равномерностью
+        float radialGradient = smoothstep(0.0, 1.0, thicknessProfile);
+        radialGradient = mix(0.75, 1.0, radialGradient); // Ограничиваем затемнение
+        color = color * radialGradient;
         
-        // Динамическая прозрачность с акцентом на головке
-        float baseAlpha = edge * (0.85 + glow * 0.15) * opacity;
-        float headGlow = band * 0.7 * opacity;
+        // Динамическая прозрачность с идеально гладкими краями
+        float baseAlpha = edgeMask * (0.88 + glow * 0.12) * opacity;
+        float headGlow = band * 0.65 * opacity;
         float alpha = baseAlpha + headGlow;
         
-        // Дополнительное свечение по краям для современного вида
-        float innerGlow = smoothstep(innerRadius + 0.01, innerRadius + 0.015, radius) * 0.3;
-        float outerGlow = (1.0 - smoothstep(outerRadius - 0.015, outerRadius - 0.01, radius)) * 0.3;
+        // Супер-мягкое свечение по краям с расширенным градиентом
+        float innerGlowRange = aaWidth * 3.0;
+        float outerGlowRange = aaWidth * 3.0;
+        
+        float innerGlow = smoothstep(innerRadius, innerRadius + innerGlowRange, radius) * 
+                          smoothstep(innerRadius + innerGlowRange * 2.0, innerRadius + innerGlowRange, radius) * 0.25;
+        float outerGlow = smoothstep(outerRadius, outerRadius - outerGlowRange, radius) * 
+                          smoothstep(outerRadius - outerGlowRange * 2.0, outerRadius - outerGlowRange, radius) * 0.25;
+        
         alpha += (innerGlow + outerGlow) * opacity;
         
-        if (alpha <= 0.0) {
+        // Применяем профиль толщины для равномерности
+        alpha *= mix(0.85, 1.0, thicknessProfile);
+        
+        if (alpha <= 0.005) {
           discard;
         }
         
@@ -414,6 +455,9 @@ export default function LoadingScreen({
       antialias: true,
       powerPreference: "high-performance",
       alpha: false,
+      stencil: false,
+      depth: true,
+      premultipliedAlpha: true,
     });
 
     const camera = new PerspectiveCamera(38, 1, 0.1, 60);
@@ -423,11 +467,12 @@ export default function LoadingScreen({
     scene.background = new Color(0x000000);
     scene.fog = new Fog(0x020202, 10, 28);
 
-    const pixelRatioCap = tier === "high" ? 1.8 : tier === "mid" ? 1.45 : 1.15;
+    const pixelRatioCap = tier === "high" ? 2.5 : tier === "mid" ? 2.0 : 1.75; // Максимальное качество
     const applySizing = () => {
       const width = container.clientWidth || window.innerWidth;
       const height = container.clientHeight || window.innerHeight || 1;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, pixelRatioCap));
+      const dpr = Math.min(window.devicePixelRatio || 1, pixelRatioCap);
+      renderer.setPixelRatio(dpr);
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -435,11 +480,15 @@ export default function LoadingScreen({
 
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.autoClearColor = true;
+    renderer.sortObjects = true; // Правильная сортировка для прозрачности
     renderer.domElement.classList.add("loader-stage__canvas");
     container.appendChild(renderer.domElement);
 
     applySizing();
-    texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+
+    // Максимальная анизотропия для четкости текстур
+    const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
+    texture.anisotropy = maxAnisotropy;
 
     const dustNear = buildDustField(tier, reduceMotion);
     const dustFar = buildDustField(tier, reduceMotion);
@@ -455,14 +504,14 @@ export default function LoadingScreen({
     const texAspect = imageSource?.height ? imageSource.width / imageSource.height : 1;
 
     // Монета с улучшенным материалом и сглаженными краями
-    const logoGeometry = new PlaneGeometry(1, 1, 32, 32); // Больше сегментов для плавности
+    const logoGeometry = new PlaneGeometry(1, 1, 64, 64); // Максимум сегментов для идеальной плавности
     const logoMaterial = new MeshBasicMaterial({
       map: texture,
       transparent: true,
       opacity: 1.0,
       depthWrite: true,
       depthTest: true,
-      alphaTest: 0.02, // Более мягкий альфа-тест для плавных краев
+      alphaTest: 0.01, // Минимальный альфа-тест для максимально плавных краев
     });
     const logoMesh = new Mesh(logoGeometry, logoMaterial);
     logoMesh.position.z = 0.2;
@@ -477,7 +526,7 @@ export default function LoadingScreen({
     ringMaterial.depthTest = false;
     ringMaterial.depthWrite = false;
     ringMaterial.transparent = true;
-    const ringGeometry = new CircleGeometry(1, 128); // Высокое качество для плавности
+    const ringGeometry = new CircleGeometry(1, 256); // Максимальное качество для идеальной плавности
     const ringMesh = new Mesh(ringGeometry, ringMaterial);
     ringMesh.scale.setScalar(1.0);
     ringMesh.position.z = 0.25; // Чуть впереди монеты
