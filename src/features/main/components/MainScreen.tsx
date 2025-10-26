@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import NavBar, { SCREEN_ORDER, type Screen } from "@/features/navigation/NavBar";
 import HomeScreen from "@/features/main/components/HomeScreen";
+import TopMiningBar from "@/features/main/components/TopMiningBar";
 import SettingsScreen from "@/features/main/screens/SettingsScreen";
 import StatisticsScreen from "@/features/main/screens/StatisticsScreen";
 import ReferralsScreen from "@/features/main/screens/ReferralsScreen";
@@ -74,25 +75,11 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
     [hasHome],
   );
 
+  const isHome = screen === "main";
+
   return (
     <main className="main-screen" aria-label="Главное меню">
-      <header className="top-bar">
-        <div className="mining-panel" aria-live="polite">
-          <div className="mining-info">
-            <span className={`indicator ${active ? "indicator--on" : ""}`} aria-hidden />
-            <span className="mining-title">Майнинг</span>
-            <span className="mining-status">{active ? "активирован" : "выключен"}</span>
-          </div>
-          <button
-            type="button"
-            className={`btn-mine ${active ? "btn-mine--active" : ""}`}
-            onClick={() => setActive((v) => !v)}
-            aria-pressed={active}
-          >
-            {active ? "Остановить майнинг" : "Активировать майнинг"}
-          </button>
-        </div>
-      </header>
+      {isHome && <TopMiningBar active={active} onToggle={() => setActive((v) => !v)} />}
 
       <section className={mainBodyClass} aria-label="Контент">
         <div className={viewportClass}>
