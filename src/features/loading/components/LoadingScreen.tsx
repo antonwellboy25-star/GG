@@ -93,6 +93,7 @@ const createDustTexture = () => {
   const context = canvas.getContext("2d");
 
   if (context) {
+    // Более мягкий и изящный градиент для частиц
     const gradient = context.createRadialGradient(
       size / 2,
       size / 2,
@@ -101,10 +102,11 @@ const createDustTexture = () => {
       size / 2,
       size / 2,
     );
-    gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
-    gradient.addColorStop(0.14, "rgba(255, 243, 213, 0.82)");
-    gradient.addColorStop(0.5, "rgba(240, 204, 130, 0.36)");
-    gradient.addColorStop(1, "rgba(18, 18, 18, 0)");
+    gradient.addColorStop(0, "rgba(255, 240, 200, 1)"); // Теплый центр
+    gradient.addColorStop(0.12, "rgba(255, 235, 180, 0.88)");
+    gradient.addColorStop(0.35, "rgba(255, 220, 140, 0.52)");
+    gradient.addColorStop(0.65, "rgba(240, 200, 100, 0.18)");
+    gradient.addColorStop(1, "rgba(20, 18, 15, 0)"); // Плавное затухание
     context.fillStyle = gradient;
     context.fillRect(0, 0, size, size);
   }
@@ -131,10 +133,10 @@ type RingBundle = {
 const createRingMaterial = (): RingBundle => {
   const uniforms = {
     progress: { value: 0 },
-    innerRadius: { value: 0.935 },
-    colorA: { value: new Color(0xffffff) },
-    colorB: { value: new Color(0xf8f8f8) },
-    glow: { value: 0.42 },
+    innerRadius: { value: 0.925 },
+    colorA: { value: new Color(0xffffff) }, // Белый
+    colorB: { value: new Color(0xe8e8e8) }, // Светло-серый
+    glow: { value: 0.5 },
     opacity: { value: 1.0 },
   };
 
@@ -165,7 +167,12 @@ const createRingMaterial = (): RingBundle => {
       void main() {
         vec2 centered = vUv * 2.0 - 1.0;
         float radius = length(centered);
-        if (radius < innerRadius || radius > 1.0) {
+        
+        // Более плавные границы кольца
+        float ringThickness = 0.075;
+        float outerRadius = 1.0;
+        
+        if (radius < innerRadius || radius > outerRadius) {
           discard;
         }
 
@@ -177,17 +184,57 @@ const createRingMaterial = (): RingBundle => {
           discard;
         }
 
-  float band = smoothstep(progress - 0.03, progress, angle);
-  float edgeInner = smoothstep(innerRadius, innerRadius + 0.022, radius);
-  float edgeOuter = 1.0 - smoothstep(0.975, 1.0, radius);
-        float edge = clamp(edgeInner * edgeOuter, 0.0, 1.0);
-        vec3 color = mix(colorA, colorB, clamp(angle * 0.5, 0.0, 1.0));
-  float head = band * 0.43;
-  float alpha = edge * (0.78 + glow * 0.2) * opacity;
-        alpha += head * opacity;
+        // Максимально закругленная головка с радиальным градиентом
+        float headWidth = 0.18;
+        float angleDistance = progress - angle;
+        
+        // Нормализуем расстояние от головки
+        float normalizedDist = angleDistance / headWidth;
+        
+        // Создаем радиальный градиент для идеально круглой головки
+        // Увеличиваем множитель для более сильного радиального эффекта
+        float radialDist = length(vec2(normalizedDist, (radius - (innerRadius + 1.0) * 0.5) * 12.0));
+        
+        // Очень плавная круглая форма головки с сильным закруглением
+        float band = 1.0 - smoothstep(0.0, 0.85, radialDist);
+        band = pow(band, 4.0); // Еще сильнее усиливаем закругление
+        
+        // Ограничиваем головку только в области прогресса
+        if (angleDistance < 0.0 || angleDistance > headWidth) {
+          band = 0.0;
+        }
+        
+        // Очень плавные края с двойным сглаживанием
+        float edgeInner = smoothstep(innerRadius - 0.01, innerRadius + 0.025, radius);
+        float edgeOuter = 1.0 - smoothstep(outerRadius - 0.025, outerRadius + 0.01, radius);
+        float edge = edgeInner * edgeOuter;
+        edge = edge * edge; // Дополнительное сглаживание
+        
+        // Градиент цвета по окружности с акцентом на головке
+        vec3 baseColor = mix(colorA, colorB, angle * 0.5 + 0.2);
+        
+        // Пульсирующее свечение на головке прогресса
+        vec3 glowColor = vec3(1.0, 1.0, 1.0); // Белое свечение
+        vec3 color = mix(baseColor, glowColor, band * 0.5);
+        
+        // Радиальный градиент для объемности
+        float radialGradient = 1.0 - abs((radius - (innerRadius + outerRadius) * 0.5) / ringThickness);
+        color = mix(color * 0.7, color, radialGradient);
+        
+        // Динамическая прозрачность с акцентом на головке
+        float baseAlpha = edge * (0.85 + glow * 0.15) * opacity;
+        float headGlow = band * 0.7 * opacity;
+        float alpha = baseAlpha + headGlow;
+        
+        // Дополнительное свечение по краям для современного вида
+        float innerGlow = smoothstep(innerRadius + 0.01, innerRadius + 0.015, radius) * 0.3;
+        float outerGlow = (1.0 - smoothstep(outerRadius - 0.015, outerRadius - 0.01, radius)) * 0.3;
+        alpha += (innerGlow + outerGlow) * opacity;
+        
         if (alpha <= 0.0) {
           discard;
         }
+        
         gl_FragColor = vec4(color, alpha);
       }
     `,
@@ -234,13 +281,13 @@ const buildDustField = (tier: PerfTier, reduceMotion: boolean): DustField => {
   geometry.setAttribute("position", new BufferAttribute(positions, 3));
 
   const material = new PointsMaterial({
-    size: tier === "high" ? 0.034 : tier === "mid" ? 0.042 : 0.05,
+    size: tier === "high" ? 0.038 : tier === "mid" ? 0.045 : 0.052,
     sizeAttenuation: true,
     transparent: true,
     depthWrite: false,
     opacity: 0,
     blending: AdditiveBlending,
-    color: new Color(0xf4ddb2),
+    color: new Color(0xffedb8), // Более теплый золотистый оттенок
     map: createDustTexture(),
   });
 
@@ -407,28 +454,33 @@ export default function LoadingScreen({
     const imageSource = texture.image as { width: number; height: number } | undefined;
     const texAspect = imageSource?.height ? imageSource.width / imageSource.height : 1;
 
-    const logoGeometry = new PlaneGeometry(1, 1);
+    // Монета с улучшенным материалом и сглаженными краями
+    const logoGeometry = new PlaneGeometry(1, 1, 32, 32); // Больше сегментов для плавности
     const logoMaterial = new MeshBasicMaterial({
       map: texture,
       transparent: true,
       opacity: 1.0,
       depthWrite: true,
       depthTest: true,
-      alphaTest: 0.5,
+      alphaTest: 0.02, // Более мягкий альфа-тест для плавных краев
     });
     const logoMesh = new Mesh(logoGeometry, logoMaterial);
     logoMesh.position.z = 0.2;
     logoMesh.renderOrder = 10;
+
+    // Добавляем легкое свечение монете
+    logoMaterial.toneMapped = false;
+
     scene.add(logoMesh);
 
     const { material: ringMaterial, uniforms: ringUniforms } = createRingMaterial();
     ringMaterial.depthTest = false;
     ringMaterial.depthWrite = false;
     ringMaterial.transparent = true;
-    const ringGeometry = new CircleGeometry(1, 512);
+    const ringGeometry = new CircleGeometry(1, 128); // Высокое качество для плавности
     const ringMesh = new Mesh(ringGeometry, ringMaterial);
     ringMesh.scale.setScalar(1.0);
-    ringMesh.position.z = 0.24;
+    ringMesh.position.z = 0.25; // Чуть впереди монеты
     ringMesh.renderOrder = 20;
     scene.add(ringMesh);
 
@@ -483,17 +535,17 @@ export default function LoadingScreen({
       const worldH = 2 * Math.tan(MathUtils.degToRad(camera.fov * 0.5)) * camZ;
       const worldW = worldH * camera.aspect;
       const isPortrait = worldH > worldW;
-      const heightFrac = isPortrait ? 0.38 : 0.32; // larger coin
+      const heightFrac = isPortrait ? 0.42 : 0.36; // Немного увеличена монета
       const desiredH = worldH * heightFrac;
-      const desiredW = Math.min(worldW * 0.68, desiredH * texAspect);
+      const desiredW = Math.min(worldW * 0.72, desiredH * texAspect);
       const finalH = desiredW / (texAspect || 1);
       logoMesh.scale.set(desiredW, finalH, 1);
 
       // Tight content size without transparent padding
       const contentW = Math.max(0.001, (bounds.uMax - bounds.uMin) * desiredW);
       const contentH = Math.max(0.001, (bounds.vMax - bounds.vMin) * finalH);
-      // Ring radius exactly at coin edge (half of the larger dimension)
-      const ringRadius = 0.5 * Math.max(contentW, contentH) * 1.0;
+      // Ring radius немного больше монеты, чтобы не накладывался
+      const ringRadius = 0.5 * Math.max(contentW, contentH) * 1.12; // Больший отступ от края
       ringMesh.scale.setScalar(ringRadius);
     };
 
@@ -540,9 +592,13 @@ export default function LoadingScreen({
       updateDust(dustFar, 0.7);
       updateDust(dustNear, 1);
 
+      // Анимация кольца без пульсации масштаба
       ringUniforms.progress.value = progress;
-      ringUniforms.glow.value = 0.4 + Math.sin(elapsed * 3.0) * 0.3;
+      ringUniforms.glow.value = 0.5 + Math.sin(elapsed * 4.2) * 0.2; // Легкое свечение
       ringUniforms.opacity.value = intensity;
+
+      // Плавная пульсация яркости монеты
+      logoMaterial.opacity = 0.95 + Math.sin(elapsed * 2.8) * 0.05;
 
       renderer.render(scene, camera);
 
@@ -584,8 +640,9 @@ export default function LoadingScreen({
             <title>Loading indicator</title>
             <defs>
               <linearGradient id="loader-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#ffffff" />
-                <stop offset="100%" stopColor="#e9e9e9" />
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+                <stop offset="50%" stopColor="#f5f5f5" stopOpacity="0.95" />
+                <stop offset="100%" stopColor="#e8e8e8" stopOpacity="0.9" />
               </linearGradient>
             </defs>
             <circle className="loader-fallback__track" cx="60" cy="60" r="52" />

@@ -3,7 +3,7 @@ import { memo, type JSX } from "react";
 export type Screen = "main" | "tasks" | "shop" | "statistics" | "referrals" | "settings";
 
 const MAIN_SCREEN: Screen = "main";
-const NAV_ITEMS: Screen[] = ["tasks", "shop", "main", "statistics", "referrals", "settings"];
+const NAV_ITEMS: Screen[] = ["main", "tasks", "shop", "statistics", "referrals", "settings"];
 
 export const SCREEN_ORDER: Screen[] = [...NAV_ITEMS];
 
