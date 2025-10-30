@@ -4,14 +4,26 @@
   --gold1: #c59b24;
   --gold2: #d4af37;
   --gold3: #f1d27a;
-  --app-safe-area-top: env(safe-area-inset-top);
-  --app-safe-area-right: env(safe-area-inset-right);
-  --app-safe-area-bottom: env(safe-area-inset-bottom);
-  --app-safe-area-left: env(safe-area-inset-left);
-  --app-content-safe-area-top: var(--app-safe-area-top);
-  --app-content-safe-area-right: var(--app-safe-area-right);
-  --app-content-safe-area-bottom: var(--app-safe-area-bottom);
-  --app-content-safe-area-left: var(--app-safe-area-left);
+  --app-safe-area-top: var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --app-safe-area-right: var(--tg-safe-area-inset-right, env(safe-area-inset-right, 0px));
+  --app-safe-area-bottom: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --app-safe-area-left: var(--tg-safe-area-inset-left, env(safe-area-inset-left, 0px));
+  --app-content-safe-area-top: var(
+    --tg-content-safe-area-inset-top,
+    var(--app-safe-area-top)
+  );
+  --app-content-safe-area-right: var(
+    --tg-content-safe-area-inset-right,
+    var(--app-safe-area-right)
+  );
+  --app-content-safe-area-bottom: var(
+    --tg-content-safe-area-inset-bottom,
+    var(--app-safe-area-bottom)
+  );
+  --app-content-safe-area-left: var(
+    --tg-content-safe-area-inset-left,
+    var(--app-safe-area-left)
+  );
 }
 
 * {
