@@ -31,24 +31,48 @@ export default function App() {
     const root = document.documentElement;
     const toPx = (value?: number) => `${Math.max(0, value ?? 0)}px`;
 
+    type Insets = { top: number; bottom: number; left: number; right: number };
+    const hasInset = (inset?: Insets | null) => {
+      if (!inset) return false;
+      return inset.top > 0 || inset.bottom > 0 || inset.left > 0 || inset.right > 0;
+    };
+
+    const computeViewportInsets = (): Insets | null => {
+      if (typeof window.visualViewport === "undefined") return null;
+      const vv = window.visualViewport;
+      if (!vv) return null;
+
+      const top = Math.max(0, vv.offsetTop);
+      const left = Math.max(0, vv.offsetLeft);
+      const right = Math.max(0, window.innerWidth - vv.width - vv.offsetLeft);
+      const bottom = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+
+      const result = { top, bottom, left, right };
+      return hasInset(result) ? result : null;
+    };
+
+    const pickInsets = (primary: Insets | null | undefined, fallback: Insets | null) => {
+      if (hasInset(primary)) return primary ?? null;
+      if (fallback && hasInset(fallback)) return fallback;
+      return null;
+    };
+
+    const setInsetVar = (name: string, value: number | null | undefined) => {
+      if (value == null) {
+        root.style.removeProperty(name);
+        return;
+      }
+      root.style.setProperty(name, toPx(Math.max(0, value)));
+    };
+
     const applyInsets = () => {
       const safeRaw = webApp.safeAreaInsets ?? webApp.safeAreaInset;
       const contentRaw = webApp.contentSafeAreaInsets ?? webApp.contentSafeAreaInset;
-      const hasInset = (inset?: { top: number; bottom: number; left: number; right: number } | null) => {
-        if (!inset) return false;
-        return inset.top > 0 || inset.bottom > 0 || inset.left > 0 || inset.right > 0;
-      };
-      const safe = hasInset(safeRaw) ? safeRaw : null;
-      const content = hasInset(contentRaw) ? contentRaw : null;
-      const setInsetVar = (name: string, value: number | null | undefined) => {
-        if (value == null) {
-          root.style.removeProperty(name);
-          return;
-        }
-        root.style.setProperty(name, toPx(Math.max(0, value)));
-      };
+      const viewportFallback = computeViewportInsets();
+      const safe = pickInsets(safeRaw, viewportFallback);
+      const content = pickInsets(contentRaw, safe ?? viewportFallback);
 
-      if (!safe && !content) {
+      if (!hasInset(safe) && !hasInset(content)) {
         const safeVars = [
           "--app-safe-area-top",
           "--app-safe-area-bottom",
@@ -112,11 +136,24 @@ export default function App() {
     const handleResize = () => applyInsets();
     window.addEventListener("resize", handleResize);
 
+    const viewportEvents: Array<keyof VisualViewportEventMap> = ["resize", "scroll"];
+    const handleViewport = () => applyInsets();
+    if (window.visualViewport) {
+      viewportEvents.forEach((event) => {
+        window.visualViewport?.addEventListener(event, handleViewport);
+      });
+    }
+
     return () => {
       events.forEach((event) => {
         webApp.offEvent(event, handleUpdate);
       });
       window.removeEventListener("resize", handleResize);
+      if (window.visualViewport) {
+        viewportEvents.forEach((event) => {
+          window.visualViewport?.removeEventListener(event, handleViewport);
+        });
+      }
     };
   }, []);
 
