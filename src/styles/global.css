@@ -223,34 +223,8 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  --nav-offset: calc(108px + var(--app-safe-bottom));
-}
-
-/* Адаптивная высота нижнего градиента под навигацию */
-@media (max-width: 380px) {
-  .main-screen {
-    --nav-offset: calc(98px + var(--app-safe-bottom));
-  }
-}
-
-@media (max-width: 320px) {
-  .main-screen {
-    --nav-offset: calc(90px + var(--app-safe-bottom));
-  }
-}
-
-/* Для очень узких экранов */
-@media (max-width: 280px) {
-  .main-screen {
-    --nav-offset: calc(82px + var(--app-safe-bottom));
-  }
-}
-
-/* Для ультра-узких экранов (самые старые устройства) */
-@media (max-width: 240px) {
-  .main-screen {
-    --nav-offset: calc(76px + var(--app-safe-bottom));
-  }
+  --nav-offset-base: 108px;
+  --nav-offset: calc(var(--nav-offset-base) + var(--app-safe-bottom));
 }
 
 .top-bar {
@@ -552,64 +526,9 @@ body {
   padding-top: 0;
   padding-left: var(--app-safe-left);
   padding-right: var(--app-safe-right);
-  padding-bottom: calc(var(--app-safe-bottom) + 10px);
+  --nav-pad-bottom-extra: 10px;
+  padding-bottom: calc(var(--app-safe-bottom) + var(--nav-pad-bottom-extra));
   pointer-events: none;
-}
-
-@media (max-width: 380px) {
-  .nav-bar {
-    padding-bottom: calc(var(--app-safe-bottom) + 8px);
-  }
-}
-
-@media (max-width: 320px) {
-  .nav-bar {
-    padding-bottom: calc(var(--app-safe-bottom) + 6px);
-  }
-}
-
-/* Для очень узких экранов */
-@media (max-width: 280px) {
-  .nav-bar {
-    padding-bottom: calc(var(--app-safe-bottom) + 5px);
-  }
-}
-
-/* Для ультра-узких экранов (самые старые устройства) */
-@media (max-width: 240px) {
-  .nav-bar {
-    padding-bottom: calc(var(--app-safe-bottom) + 4px);
-  }
-}
-
-/* Для больших экранов - увеличиваем размеры */
-@media (min-width: 768px) {
-  .nav-bar {
-    padding-bottom: calc(var(--app-safe-bottom) + 16px);
-  }
-
-  .nav-bar__surface {
-    --nav-surface-pad-y: 10px;
-    --nav-surface-pad-x: clamp(22px, 4vw, 30px);
-    --nav-surface-gap: 6px;
-    --nav-surface-max-reduction: 24px;
-    border-radius: 24px;
-  }
-
-  .nav-bar__button {
-    width: 60px;
-    height: 60px;
-    border-radius: 16px;
-  }
-
-  .nav-bar__icon {
-    width: 28px;
-    height: 28px;
-  }
-
-  .main-screen {
-    --nav-offset: calc(120px + var(--app-safe-bottom));
-  }
 }
 
 .nav-bar__surface {
@@ -617,6 +536,7 @@ body {
   --nav-surface-pad-x: clamp(18px, 6vw, 26px);
   --nav-surface-gap: 4px;
   --nav-surface-max-reduction: 20px;
+  --nav-surface-radius: 20px;
   margin: 0 auto;
   padding: var(--nav-surface-pad-y) var(--nav-surface-pad-x);
   width: fit-content;
@@ -636,7 +556,7 @@ body {
   box-sizing: border-box;
   background: linear-gradient(135deg, rgba(30, 30, 30, 0.85), rgba(15, 15, 15, 0.9));
   backdrop-filter: blur(20px) saturate(140%);
-  border-radius: 20px;
+  border-radius: var(--nav-surface-radius);
   position: relative;
   overflow: hidden;
   box-shadow:
@@ -906,49 +826,6 @@ body {
   font-size: 14px;
 }
 
-/* Адаптивность для узких экранов */
-@media (max-width: 380px) {
-  .nav-bar__surface {
-    --nav-surface-pad-y: 6px;
-    --nav-surface-pad-x: clamp(16px, 7vw, 20px);
-    --nav-surface-gap: 3px;
-    --nav-surface-max-reduction: 16px;
-    border-radius: 18px;
-  }
-}
-
-@media (max-width: 320px) {
-  .nav-bar__surface {
-    --nav-surface-pad-y: 5px;
-    --nav-surface-pad-x: clamp(12px, 8vw, 16px);
-    --nav-surface-gap: 2px;
-    --nav-surface-max-reduction: 12px;
-    border-radius: 16px;
-  }
-}
-
-/* Для очень узких экранов (старые устройства) */
-@media (max-width: 280px) {
-  .nav-bar__surface {
-    --nav-surface-pad-y: 4px;
-    --nav-surface-pad-x: clamp(10px, 9vw, 14px);
-    --nav-surface-gap: 1px;
-    --nav-surface-max-reduction: 10px;
-    border-radius: 14px;
-  }
-}
-
-/* Для ультра-узких экранов (самые старые устройства) */
-@media (max-width: 240px) {
-  .nav-bar__surface {
-    --nav-surface-pad-y: 3px;
-    --nav-surface-pad-x: clamp(8px, 10vw, 12px);
-    --nav-surface-gap: 1px;
-    --nav-surface-max-reduction: 8px;
-    border-radius: 12px;
-  }
-}
-
 /* Тонкий акцентный штрих сверху */
 .nav-bar__surface::before {
   content: "";
@@ -964,11 +841,11 @@ body {
     rgba(255, 255, 255, 0.15) 50%,
     transparent 100%
   );
-  border-radius: 24px 24px 0 0;
+  border-radius: var(--nav-surface-radius) var(--nav-surface-radius) 0 0;
 }
 @media (max-height: 520px) and (orientation: landscape) {
   .main-screen {
-    --nav-offset: calc(78px + var(--app-safe-bottom));
+    --nav-offset-base: 78px;
   }
 }
 
@@ -981,71 +858,29 @@ body {
   -webkit-tap-highlight-color: transparent;
   appearance: none;
   position: relative;
-  width: 52px;
-  height: 52px;
-  min-width: 44px;
-  min-height: 44px;
+  --nav-button-size: 52px;
+  --nav-button-min-size: 44px;
+  --nav-button-radius: 14px;
+  --nav-button-gap: 3px;
+  width: var(--nav-button-size);
+  height: var(--nav-button-size);
+  min-width: var(--nav-button-min-size);
+  min-height: var(--nav-button-min-size);
   border: none;
   background: none;
   color: rgba(255, 255, 255, 0.5);
-  border-radius: 14px;
+  border-radius: var(--nav-button-radius);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--nav-button-gap);
   padding: 0;
   font-family: inherit;
   cursor: pointer;
   transition:
     color 250ms cubic-bezier(0.4, 0, 0.2, 1),
     transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* Адаптивные размеры кнопок */
-@media (max-width: 380px) {
-  .nav-bar__button {
-    width: 46px;
-    height: 46px;
-    min-width: 42px;
-    min-height: 42px;
-    border-radius: 12px;
-  }
-}
-
-@media (max-width: 320px) {
-  .nav-bar__button {
-    width: 42px;
-    height: 42px;
-    min-width: 40px;
-    min-height: 40px;
-    border-radius: 10px;
-    gap: 2px;
-  }
-}
-
-/* Для очень узких экранов */
-@media (max-width: 280px) {
-  .nav-bar__button {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    min-height: 38px;
-    border-radius: 9px;
-    gap: 1px;
-  }
-}
-
-/* Для ультра-узких экранов (самые старые устройства) */
-@media (max-width: 240px) {
-  .nav-bar__button {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
-    border-radius: 8px;
-    gap: 0px;
-  }
 }
 
 .nav-bar__button::before {
@@ -1064,11 +899,14 @@ body {
 .nav-bar__button::after {
   content: "";
   position: absolute;
-  bottom: 5px;
   left: 50%;
   transform: translateX(-50%) scaleX(0);
-  width: 18px;
-  height: 2px;
+  --nav-indicator-bottom: 5px;
+  --nav-indicator-width: 18px;
+  --nav-indicator-height: 2px;
+  bottom: var(--nav-indicator-bottom);
+  width: var(--nav-indicator-width);
+  height: var(--nav-indicator-height);
   border-radius: 2px;
   background: linear-gradient(
     90deg,
@@ -1082,46 +920,6 @@ body {
     opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@media (min-width: 1024px) {
-  .main-screen {
-    --nav-offset: calc(104px + var(--app-safe-bottom));
-  }
-}
-
-/* Адаптивный индикатор */
-@media (max-width: 380px) {
-  .nav-bar__button::after {
-    bottom: 4px;
-    width: 16px;
-  }
-}
-
-@media (max-width: 320px) {
-  .nav-bar__button::after {
-    bottom: 3px;
-    width: 14px;
-    height: 1.5px;
-  }
-}
-
-/* Для очень узких экранов */
-@media (max-width: 280px) {
-  .nav-bar__button::after {
-    bottom: 2px;
-    width: 12px;
-    height: 1.5px;
-  }
-}
-
-/* Для ультра-узких экранов (самые старые устройства) */
-@media (max-width: 240px) {
-  .nav-bar__button::after {
-    bottom: 1px;
-    width: 10px;
-    height: 1px;
-  }
-}
-
 .nav-bar__button:focus-visible {
   outline: none;
 }
@@ -1130,7 +928,7 @@ body {
   content: "";
   position: absolute;
   inset: -3px;
-  border-radius: calc(16px + 3px);
+  border-radius: calc(var(--nav-button-radius) + 3px);
   border: 2px solid rgba(255, 255, 255, 0.4);
   pointer-events: none;
 }
@@ -1179,45 +977,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  --nav-icon-size: 26px;
+  width: var(--nav-icon-size);
+  height: var(--nav-icon-size);
 }
 
 .nav-bar__icon svg {
   width: 100%;
   height: 100%;
   transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* Адаптивные размеры иконок */
-@media (max-width: 380px) {
-  .nav-bar__icon {
-    width: 24px;
-    height: 24px;
-  }
-}
-
-@media (max-width: 320px) {
-  .nav-bar__icon {
-    width: 22px;
-    height: 22px;
-  }
-}
-
-/* Для очень узких экранов */
-@media (max-width: 280px) {
-  .nav-bar__icon {
-    width: 20px;
-    height: 20px;
-  }
-}
-
-/* Для ультра-узких экранов (самые старые устройства) */
-@media (max-width: 240px) {
-  .nav-bar__icon {
-    width: 18px;
-    height: 18px;
-  }
 }
 
 .nav-bar__button:hover .nav-bar__icon svg {
@@ -1268,68 +1036,169 @@ body {
   );
 }
 
-/* Адаптивность для маленьких экранов */
-@media (max-width: 360px) {
+@media (max-width: 380px) {
+  .main-screen {
+    --nav-offset-base: 98px;
+  }
+
   .nav-bar {
-    padding-bottom: calc(var(--app-safe-bottom) + 12px);
+    --nav-pad-bottom-extra: 8px;
   }
 
   .nav-bar__surface {
     --nav-surface-pad-y: 6px;
-    --nav-surface-pad-x: clamp(14px, 7vw, 18px);
+    --nav-surface-pad-x: clamp(16px, 7vw, 20px);
     --nav-surface-gap: 3px;
     --nav-surface-max-reduction: 16px;
+    --nav-surface-radius: 18px;
   }
 
   .nav-bar__button {
-    width: 48px;
-    height: 48px;
+    --nav-button-size: 46px;
+    --nav-button-min-size: 42px;
+    --nav-button-radius: 12px;
+  }
+
+  .nav-bar__button::after {
+    --nav-indicator-bottom: 4px;
+    --nav-indicator-width: 16px;
   }
 
   .nav-bar__icon {
-    width: 24px;
-    height: 24px;
+    --nav-icon-size: 24px;
   }
 }
 
-/* Маленькие телефоны */
-@media (min-width: 361px) and (max-width: 390px) {
+@media (max-width: 360px) {
   .nav-bar {
-    padding-bottom: calc(var(--app-safe-bottom) + 14px);
+    --nav-pad-bottom-extra: 7px;
   }
 
   .nav-bar__surface {
-    --nav-surface-pad-y: 7px;
-    --nav-surface-pad-x: clamp(18px, 5vw, 24px);
-    --nav-surface-gap: 5px;
-    --nav-surface-max-reduction: 20px;
+    --nav-surface-pad-x: clamp(14px, 7vw, 18px);
   }
 
   .nav-bar__button {
-    width: 52px;
-    height: 52px;
-  }
-
-  .nav-bar__icon {
-    width: 26px;
-    height: 26px;
+    --nav-button-size: 44px;
+    --nav-button-min-size: 40px;
   }
 }
 
-/* Стандартные мобильные телефоны */
+@media (max-width: 320px) {
+  .main-screen {
+    --nav-offset-base: 90px;
+  }
+
+  .nav-bar {
+    --nav-pad-bottom-extra: 6px;
+  }
+
+  .nav-bar__surface {
+    --nav-surface-pad-y: 5px;
+    --nav-surface-pad-x: clamp(12px, 8vw, 16px);
+    --nav-surface-gap: 2px;
+    --nav-surface-max-reduction: 12px;
+    --nav-surface-radius: 16px;
+  }
+
+  .nav-bar__button {
+    --nav-button-size: 42px;
+    --nav-button-min-size: 38px;
+    --nav-button-radius: 10px;
+    --nav-button-gap: 2px;
+  }
+
+  .nav-bar__button::after {
+    --nav-indicator-bottom: 3px;
+    --nav-indicator-width: 14px;
+    --nav-indicator-height: 1.5px;
+  }
+
+  .nav-bar__icon {
+    --nav-icon-size: 22px;
+  }
+}
+
+@media (max-width: 280px) {
+  .main-screen {
+    --nav-offset-base: 82px;
+  }
+
+  .nav-bar {
+    --nav-pad-bottom-extra: 5px;
+  }
+
+  .nav-bar__surface {
+    --nav-surface-pad-y: 4px;
+    --nav-surface-pad-x: clamp(10px, 9vw, 14px);
+    --nav-surface-gap: 1px;
+    --nav-surface-max-reduction: 10px;
+    --nav-surface-radius: 14px;
+  }
+
+  .nav-bar__button {
+    --nav-button-size: 38px;
+    --nav-button-min-size: 36px;
+    --nav-button-radius: 9px;
+    --nav-button-gap: 1px;
+  }
+
+  .nav-bar__button::after {
+    --nav-indicator-bottom: 2px;
+    --nav-indicator-width: 12px;
+    --nav-indicator-height: 1.5px;
+  }
+
+  .nav-bar__icon {
+    --nav-icon-size: 20px;
+  }
+}
+
+@media (max-width: 240px) {
+  .main-screen {
+    --nav-offset-base: 76px;
+  }
+
+  .nav-bar {
+    --nav-pad-bottom-extra: 4px;
+  }
+
+  .nav-bar__surface {
+    --nav-surface-pad-y: 3px;
+    --nav-surface-pad-x: clamp(8px, 10vw, 12px);
+    --nav-surface-max-reduction: 8px;
+    --nav-surface-radius: 12px;
+  }
+
+  .nav-bar__button {
+    --nav-button-size: 36px;
+    --nav-button-min-size: 36px;
+    --nav-button-radius: 8px;
+    --nav-button-gap: 0px;
+  }
+
+  .nav-bar__button::after {
+    --nav-indicator-bottom: 1px;
+    --nav-indicator-width: 10px;
+    --nav-indicator-height: 1px;
+  }
+
+  .nav-bar__icon {
+    --nav-icon-size: 18px;
+  }
+}
+
 @media (min-width: 391px) {
   .nav-bar__button {
-    width: 56px;
-    height: 56px;
+    --nav-button-size: 56px;
+    --nav-button-min-size: 54px;
   }
 
   .nav-bar__icon {
-    width: 28px;
-    height: 28px;
+    --nav-icon-size: 28px;
   }
 }
 
-/* Tablets and larger phones */
 @media (min-width: 640px) {
   .nav-bar__surface {
     --nav-surface-pad-y: 10px;
@@ -1339,17 +1208,43 @@ body {
   }
 
   .nav-bar__button {
-    width: 60px;
-    height: 60px;
+    --nav-button-size: 60px;
+    --nav-button-min-size: 56px;
   }
 
   .nav-bar__icon {
-    width: 30px;
-    height: 30px;
+    --nav-icon-size: 30px;
   }
 }
 
-/* Desktops */
+@media (min-width: 768px) {
+  .nav-bar {
+    --nav-pad-bottom-extra: 16px;
+  }
+
+  .nav-bar__surface {
+    --nav-surface-pad-y: 10px;
+    --nav-surface-pad-x: clamp(22px, 4vw, 30px);
+    --nav-surface-gap: 6px;
+    --nav-surface-max-reduction: 24px;
+    --nav-surface-radius: 24px;
+  }
+
+  .nav-bar__button {
+    --nav-button-size: 60px;
+    --nav-button-min-size: 60px;
+    --nav-button-radius: 16px;
+  }
+
+  .nav-bar__icon {
+    --nav-icon-size: 28px;
+  }
+
+  .main-screen {
+    --nav-offset-base: 120px;
+  }
+}
+
 @media (min-width: 1024px) {
   .nav-bar__surface {
     --nav-surface-pad-y: 12px;
@@ -1359,13 +1254,16 @@ body {
   }
 
   .nav-bar__button {
-    width: 64px;
-    height: 64px;
+    --nav-button-size: 64px;
+    --nav-button-min-size: 60px;
   }
 
   .nav-bar__icon {
-    width: 32px;
-    height: 32px;
+    --nav-icon-size: 32px;
+  }
+
+  .main-screen {
+    --nav-offset-base: 104px;
   }
 }
 
@@ -1564,7 +1462,7 @@ body {
 
 @media (max-height: 520px) and (orientation: landscape) {
   .main-screen {
-    --nav-offset: calc(78px + var(--app-safe-bottom));
+    --nav-offset-base: 78px;
   }
 
   .screen-stack {
@@ -1725,7 +1623,7 @@ body {
 
 @media (max-width: 540px) {
   .main-screen {
-    --nav-offset: calc(104px + var(--app-safe-bottom));
+    --nav-offset-base: 104px;
   }
 
   .nav-bar {
