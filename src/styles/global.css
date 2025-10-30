@@ -20,13 +20,13 @@
   --app-content-safe-area-left: var(--tg-content-safe-area-inset-left, var(--app-safe-area-left));
   --app-safe-left-raw: var(--app-content-safe-area-left, var(--app-safe-area-left, 0px));
   --app-safe-right-raw: var(--app-content-safe-area-right, var(--app-safe-area-right, 0px));
-  --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 0px);
+  --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 12px);
   --app-safe-bottom: max(
     var(--app-content-safe-area-bottom, var(--app-safe-area-bottom, 0px)),
-    0px
+    12px
   );
-  --app-safe-left: max(var(--app-safe-left-raw), 0px);
-  --app-safe-right: max(var(--app-safe-right-raw), 0px);
+  --app-safe-left: max(var(--app-safe-left-raw), 12px);
+  --app-safe-right: max(var(--app-safe-right-raw), 12px);
 }
 
 * {

@@ -64,10 +64,15 @@ export default function App() {
       const safe = pickInsets(safeRaw, viewportFallback);
       const content = pickInsets(contentRaw, safe ?? viewportFallback);
 
-      const safeTop = Math.max(0, safe?.top ?? 0, content?.top ?? 0);
-      const safeBottom = Math.max(0, safe?.bottom ?? 0, content?.bottom ?? 0);
-      const safeLeft = Math.max(0, safe?.left ?? 0, content?.left ?? 0);
-      const safeRight = Math.max(0, safe?.right ?? 0, content?.right ?? 0);
+      // Минимальные отступы для предотвращения наложения
+      const MIN_TOP = 12;
+      const MIN_BOTTOM = 12;
+      const MIN_SIDE = 12;
+
+      const safeTop = Math.max(MIN_TOP, safe?.top ?? 0, content?.top ?? 0);
+      const safeBottom = Math.max(MIN_BOTTOM, safe?.bottom ?? 0, content?.bottom ?? 0);
+      const safeLeft = Math.max(MIN_SIDE, safe?.left ?? 0, content?.left ?? 0);
+      const safeRight = Math.max(MIN_SIDE, safe?.right ?? 0, content?.right ?? 0);
 
       root.style.setProperty("--app-safe-area-top", toPx(safeTop));
       root.style.setProperty("--app-safe-area-bottom", toPx(safeBottom));
