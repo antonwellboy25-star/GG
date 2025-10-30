@@ -7,32 +7,66 @@ type TelegramViewportStableFlag = {
   height: number;
 };
 
+type TelegramSafeAreaInset = {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+};
+
+type TelegramContentSafeAreaInset = TelegramSafeAreaInset;
+
+type TelegramEventHandler = (...args: unknown[]) => void;
+
+interface TelegramBackButton {
+  show(): void;
+  hide(): void;
+  onClick(handler: () => void): void;
+  offClick(handler: () => void): void;
+}
+
+interface TelegramWebApp {
+  readonly initData: string;
+  readonly colorScheme: "light" | "dark";
+  readonly platform: string;
+  readonly viewportStableHeight: number;
+  readonly viewportHeight: number;
+  readonly viewportWidth: number;
+  readonly themeParams: TelegramThemeParams;
+  readonly isExpanded: boolean;
+  readonly version: string;
+  readonly isFullscreen?: boolean;
+  readonly safeAreaInset?: TelegramSafeAreaInset;
+  readonly contentSafeAreaInset?: TelegramContentSafeAreaInset;
+  readonly viewportStable?: TelegramViewportStableFlag;
+
+  ready(): void;
+  expand(): void;
+  close(): void;
+  requestFullscreen?(): void;
+  exitFullscreen?(): void;
+  setHeaderColor?(color: string): void;
+  setBackgroundColor?(color: string): void;
+  setBottomBarColor?(color: string): void;
+  isVersionAtLeast?(version: string): boolean;
+  enableClosingConfirmation?(): void;
+  disableClosingConfirmation?(): void;
+  enableVerticalSwipes?(): void;
+  disableVerticalSwipes?(): void;
+  hideKeyboard?(): void;
+
+  onEvent(event: string, handler: TelegramEventHandler): void;
+  offEvent(event: string, handler: TelegramEventHandler): void;
+
+  showAlert(message: string, callback?: () => void): void;
+  showConfirm(message: string, callback: (confirmed: boolean) => void): void;
+  openLink(url: string, options?: { try_instant_view?: boolean }): void;
+
+  BackButton: TelegramBackButton;
+}
+
 declare namespace Telegram {
-  namespace WebApp {
-    function ready(): void;
-    function expand(): void;
-    function close(): void;
-    const initData: string;
-    const colorScheme: "light" | "dark";
-    const platform: string;
-    const viewportStableHeight: number;
-    const viewportHeight: number;
-    const viewportWidth: number;
-    const themeParams: TelegramThemeParams;
-    const isExpanded: boolean;
-    const version: string;
-    function onEvent(event: string, handler: (...args: unknown[]) => void): void;
-    function offEvent(event: string, handler: (...args: unknown[]) => void): void;
-    function showAlert(message: string, callback?: () => void): void;
-    function showConfirm(message: string, callback: (confirmed: boolean) => void): void;
-    function openLink(url: string, options?: { try_instant_view?: boolean }): void;
-    const BackButton: {
-      show(): void;
-      hide(): void;
-      onClick(handler: () => void): void;
-      offClick(handler: () => void): void;
-    };
-  }
+  const WebApp: TelegramWebApp;
 }
 
 declare interface Window {
