@@ -8,10 +8,7 @@
   --app-safe-area-right: var(--tg-safe-area-inset-right, env(safe-area-inset-right, 0px));
   --app-safe-area-bottom: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   --app-safe-area-left: var(--tg-safe-area-inset-left, env(safe-area-inset-left, 0px));
-  --app-content-safe-area-top: var(
-    --tg-content-safe-area-inset-top,
-    var(--app-safe-area-top)
-  );
+  --app-content-safe-area-top: var(--tg-content-safe-area-inset-top, var(--app-safe-area-top));
   --app-content-safe-area-right: var(
     --tg-content-safe-area-inset-right,
     var(--app-safe-area-right)
@@ -20,25 +17,16 @@
     --tg-content-safe-area-inset-bottom,
     var(--app-safe-area-bottom)
   );
-  --app-content-safe-area-left: var(
-    --tg-content-safe-area-inset-left,
-    var(--app-safe-area-left)
-  );
-  --app-safe-top-min: clamp(56px, 7vh, 80px);
-  --app-safe-bottom-min: clamp(20px, 6vh, 32px);
-  --app-safe-side-min: clamp(20px, 6vw, 36px);
+  --app-content-safe-area-left: var(--tg-content-safe-area-inset-left, var(--app-safe-area-left));
   --app-safe-left-raw: var(--app-content-safe-area-left, var(--app-safe-area-left, 0px));
   --app-safe-right-raw: var(--app-content-safe-area-right, var(--app-safe-area-right, 0px));
-  --app-safe-top: max(
-    var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)),
-    var(--app-safe-top-min)
-  );
+  --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 0px);
   --app-safe-bottom: max(
     var(--app-content-safe-area-bottom, var(--app-safe-area-bottom, 0px)),
-    var(--app-safe-bottom-min)
+    0px
   );
-  --app-safe-left: max(var(--app-safe-left-raw), var(--app-safe-side-min));
-  --app-safe-right: max(var(--app-safe-right-raw), var(--app-safe-side-min));
+  --app-safe-left: max(var(--app-safe-left-raw), 0px);
+  --app-safe-right: max(var(--app-safe-right-raw), 0px);
 }
 
 * {
@@ -259,14 +247,13 @@ body {
 }
 
 .top-bar {
+  --settings-offset: 0px;
   position: sticky;
   top: 0;
   z-index: 2;
-  padding:
-    calc(var(--app-safe-top) + clamp(12px, 2.6vh, 20px))
-    calc(var(--app-safe-right) + clamp(16px, 5vw, 32px))
-    clamp(12px, 2vh, 18px)
-    calc(var(--app-safe-left) + clamp(16px, 5vw, 32px));
+  padding: calc(var(--app-safe-top) + clamp(12px, 2.6vh, 20px))
+    calc(var(--app-safe-right) + clamp(16px, 5vw, 32px) + var(--settings-offset))
+    clamp(12px, 2vh, 18px) calc(var(--app-safe-left) + clamp(16px, 5vw, 32px));
   background: linear-gradient(180deg, rgba(8, 8, 8, 0.82), rgba(8, 8, 8, 0));
   backdrop-filter: saturate(160%) blur(18px);
   opacity: 1;
@@ -277,6 +264,12 @@ body {
     transform 260ms ease,
     padding 260ms ease;
   will-change: opacity, transform;
+}
+
+@media (min-width: 768px) {
+  .top-bar {
+    --settings-offset: 72px;
+  }
 }
 
 .top-bar__inner {
@@ -582,8 +575,10 @@ body {
   }
 
   .nav-bar__surface {
-    padding: 8px 12px;
-    gap: 6px;
+    --nav-surface-pad-y: 10px;
+    --nav-surface-pad-x: clamp(22px, 4vw, 30px);
+    --nav-surface-gap: 6px;
+    --nav-surface-max-reduction: 24px;
     border-radius: 24px;
   }
 
@@ -604,22 +599,32 @@ body {
 }
 
 .nav-bar__surface {
+  --nav-surface-pad-y: clamp(8px, 1.8vh, 12px);
+  --nav-surface-pad-x: clamp(18px, 6vw, 26px);
+  --nav-surface-gap: 4px;
+  --nav-surface-max-reduction: 20px;
   margin: 0 auto;
-  padding: 6px 8px;
+  padding: var(--nav-surface-pad-y) var(--nav-surface-pad-x);
   width: fit-content;
-  max-width: calc(100vw - var(--app-safe-left) - var(--app-safe-right) - 16px);
+  max-width: calc(
+    100vw -
+    var(--app-safe-left) -
+    var(--app-safe-right) -
+    var(--nav-surface-max-reduction)
+  );
   list-style: none;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--nav-surface-gap);
   pointer-events: auto;
   box-sizing: border-box;
   background: linear-gradient(135deg, rgba(30, 30, 30, 0.85), rgba(15, 15, 15, 0.9));
   backdrop-filter: blur(20px) saturate(140%);
   border-radius: 20px;
   position: relative;
+  overflow: hidden;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.06),
@@ -890,18 +895,20 @@ body {
 /* Адаптивность для узких экранов */
 @media (max-width: 380px) {
   .nav-bar__surface {
-    padding: 5px 6px;
-    gap: 2px;
-    max-width: calc(100vw - 12px);
+    --nav-surface-pad-y: 6px;
+    --nav-surface-pad-x: clamp(16px, 7vw, 20px);
+    --nav-surface-gap: 3px;
+    --nav-surface-max-reduction: 16px;
     border-radius: 18px;
   }
 }
 
 @media (max-width: 320px) {
   .nav-bar__surface {
-    padding: 4px 5px;
-    gap: 1px;
-    max-width: calc(100vw - 8px);
+    --nav-surface-pad-y: 5px;
+    --nav-surface-pad-x: clamp(12px, 8vw, 16px);
+    --nav-surface-gap: 2px;
+    --nav-surface-max-reduction: 12px;
     border-radius: 16px;
   }
 }
@@ -909,9 +916,10 @@ body {
 /* Для очень узких экранов (старые устройства) */
 @media (max-width: 280px) {
   .nav-bar__surface {
-    padding: 3px 4px;
-    gap: 0px;
-    max-width: calc(100vw - 6px);
+    --nav-surface-pad-y: 4px;
+    --nav-surface-pad-x: clamp(10px, 9vw, 14px);
+    --nav-surface-gap: 1px;
+    --nav-surface-max-reduction: 10px;
     border-radius: 14px;
   }
 }
@@ -1006,7 +1014,7 @@ body {
 .nav-bar__button::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 2px;
   border-radius: inherit;
   background: transparent;
   opacity: 0;
@@ -1110,7 +1118,7 @@ body {
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, 0.2),
     inset 0 -1px 1px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 /* Показываем индикатор для активной кнопки */
@@ -1189,8 +1197,7 @@ body {
   box-shadow:
     inset 0 1px 1px rgba(150, 180, 255, 0.25),
     inset 0 -1px 1px rgba(0, 0, 50, 0.15),
-    0 0 0 1px rgba(100, 150, 255, 0.12),
-    0 0 12px rgba(100, 150, 255, 0.08);
+    inset 0 0 0 1px rgba(100, 150, 255, 0.2);
 }
 
 .nav-bar__button--main.is-active {
@@ -1205,7 +1212,6 @@ body {
     rgba(150, 180, 255, 0.9) 50%,
     transparent 100%
   );
-  box-shadow: 0 0 6px rgba(100, 150, 255, 0.5);
 }
 
 /* Адаптивность для маленьких экранов */
@@ -1215,9 +1221,10 @@ body {
   }
 
   .nav-bar__surface {
-    gap: 4px;
-    padding: 6px 8px;
-    max-width: calc(100% - 16px);
+    --nav-surface-pad-y: 6px;
+    --nav-surface-pad-x: clamp(14px, 7vw, 18px);
+    --nav-surface-gap: 3px;
+    --nav-surface-max-reduction: 16px;
   }
 
   .nav-bar__button {
@@ -1238,8 +1245,10 @@ body {
   }
 
   .nav-bar__surface {
-    gap: 5px;
-    padding: 7px 10px;
+    --nav-surface-pad-y: 7px;
+    --nav-surface-pad-x: clamp(18px, 5vw, 24px);
+    --nav-surface-gap: 5px;
+    --nav-surface-max-reduction: 20px;
   }
 
   .nav-bar__button {
@@ -1269,8 +1278,10 @@ body {
 /* Tablets and larger phones */
 @media (min-width: 640px) {
   .nav-bar__surface {
-    gap: 8px;
-    padding: 10px 14px;
+    --nav-surface-pad-y: 10px;
+    --nav-surface-pad-x: clamp(24px, 5vw, 34px);
+    --nav-surface-gap: 8px;
+    --nav-surface-max-reduction: 24px;
   }
 
   .nav-bar__button {
@@ -1287,8 +1298,10 @@ body {
 /* Desktops */
 @media (min-width: 1024px) {
   .nav-bar__surface {
-    gap: 10px;
-    padding: 12px 16px;
+    --nav-surface-pad-y: 12px;
+    --nav-surface-pad-x: clamp(28px, 4vw, 40px);
+    --nav-surface-gap: 10px;
+    --nav-surface-max-reduction: 28px;
   }
 
   .nav-bar__button {
@@ -1501,18 +1514,9 @@ body {
   }
 
   .screen-stack {
-    padding-left: calc(
-      var(--app-safe-left) +
-      clamp(12px, 4vw, 20px)
-    );
-    padding-right: calc(
-      var(--app-safe-right) +
-      clamp(12px, 4vw, 20px)
-    );
-    padding-top: calc(
-      var(--app-safe-top) +
-      clamp(8px, 2.5vh, 18px)
-    );
+    padding-left: calc(var(--app-safe-left) + clamp(12px, 4vw, 20px));
+    padding-right: calc(var(--app-safe-right) + clamp(12px, 4vw, 20px));
+    padding-top: calc(var(--app-safe-top) + clamp(8px, 2.5vh, 18px));
     padding-bottom: calc(var(--nav-offset, 120px) + clamp(24px, 6vh, 40px));
     gap: var(--screen-gap, clamp(18px, 4vh, 28px));
   }
@@ -1523,10 +1527,8 @@ body {
   }
 
   .top-bar {
-    padding:
-      calc(var(--app-safe-top) + clamp(8px, 2vh, 12px))
-      calc(var(--app-safe-right) + clamp(12px, 4vw, 20px))
-      clamp(10px, 2vh, 14px)
+    padding: calc(var(--app-safe-top) + clamp(8px, 2vh, 12px))
+      calc(var(--app-safe-right) + clamp(12px, 4vw, 20px)) clamp(10px, 2vh, 14px)
       calc(var(--app-safe-left) + clamp(12px, 4vw, 20px));
   }
 
@@ -1595,18 +1597,9 @@ body {
   width: 100%;
   max-width: var(--screen-max-width, 760px);
   margin: 0 auto;
-  padding-left: calc(
-    var(--app-safe-left) +
-    clamp(16px, 4vw, 24px)
-  );
-  padding-right: calc(
-    var(--app-safe-right) +
-    clamp(16px, 4vw, 24px)
-  );
-  padding-top: calc(
-    var(--app-safe-top) +
-    clamp(12px, 3vh, 24px)
-  );
+  padding-left: calc(var(--app-safe-left) + clamp(16px, 4vw, 24px));
+  padding-right: calc(var(--app-safe-right) + clamp(16px, 4vw, 24px));
+  padding-top: calc(var(--app-safe-top) + clamp(12px, 3vh, 24px));
   padding-bottom: calc(var(--nav-offset, 120px) + clamp(32px, 7vh, 56px));
   display: flex;
   flex-direction: column;
