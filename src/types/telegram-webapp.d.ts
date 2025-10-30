@@ -7,14 +7,14 @@ type TelegramViewportStableFlag = {
   height: number;
 };
 
-type TelegramSafeAreaInset = {
+type TelegramSafeAreaInsets = {
   top: number;
   bottom: number;
   left: number;
   right: number;
 };
 
-type TelegramContentSafeAreaInset = TelegramSafeAreaInset;
+type TelegramContentSafeAreaInsets = TelegramSafeAreaInsets;
 
 type TelegramEventHandler = (...args: unknown[]) => void;
 
@@ -36,8 +36,10 @@ interface TelegramWebApp {
   readonly isExpanded: boolean;
   readonly version: string;
   readonly isFullscreen?: boolean;
-  readonly safeAreaInset?: TelegramSafeAreaInset;
-  readonly contentSafeAreaInset?: TelegramContentSafeAreaInset;
+  readonly safeAreaInsets?: TelegramSafeAreaInsets;
+  readonly safeAreaInset?: TelegramSafeAreaInsets;
+  readonly contentSafeAreaInsets?: TelegramContentSafeAreaInsets;
+  readonly contentSafeAreaInset?: TelegramContentSafeAreaInsets;
   readonly viewportStable?: TelegramViewportStableFlag;
 
   ready(): void;

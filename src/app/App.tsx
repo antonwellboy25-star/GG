@@ -32,8 +32,8 @@ export default function App() {
     const toPx = (value?: number) => `${Math.max(0, value ?? 0)}px`;
 
     const applyInsets = () => {
-      const safe = webApp.safeAreaInset;
-      const content = webApp.contentSafeAreaInset;
+      const safe = webApp.safeAreaInsets ?? webApp.safeAreaInset;
+      const content = webApp.contentSafeAreaInsets ?? webApp.contentSafeAreaInset;
 
       const safeTop = Math.max(0, safe?.top ?? 0, content?.top ?? 0);
       const safeBottom = Math.max(0, safe?.bottom ?? 0, content?.bottom ?? 0);
