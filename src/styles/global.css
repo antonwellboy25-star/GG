@@ -248,7 +248,7 @@ body {
   top: 0;
   z-index: 2;
   padding: calc(
-      var(--app-content-safe-area-top, 0px) +
+      max(var(--app-content-safe-area-top, 0px), 44px) +
       clamp(12px, 2.6vh, 20px)
     )
     clamp(16px, 5vw, 32px) clamp(12px, 2vh, 18px);
@@ -349,7 +349,7 @@ body {
 
 .settings-fab {
   position: fixed;
-  top: calc(var(--app-content-safe-area-top, 0px) + clamp(14px, 3vh, 26px));
+  top: calc(max(var(--app-content-safe-area-top, 0px), 44px) + clamp(14px, 3vh, 26px));
   right: clamp(16px, 6vw, 32px);
   z-index: 6;
   display: inline-flex;

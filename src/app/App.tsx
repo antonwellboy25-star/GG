@@ -57,14 +57,6 @@ export default function App() {
       return null;
     };
 
-    const setInsetVar = (name: string, value: number | null | undefined) => {
-      if (value == null) {
-        root.style.removeProperty(name);
-        return;
-      }
-      root.style.setProperty(name, toPx(Math.max(0, value)));
-    };
-
     const applyInsets = () => {
       const safeRaw = webApp.safeAreaInsets ?? webApp.safeAreaInset;
       const contentRaw = webApp.contentSafeAreaInsets ?? webApp.contentSafeAreaInset;
@@ -72,38 +64,20 @@ export default function App() {
       const safe = pickInsets(safeRaw, viewportFallback);
       const content = pickInsets(contentRaw, safe ?? viewportFallback);
 
-      if (!hasInset(safe) && !hasInset(content)) {
-        const safeVars = [
-          "--app-safe-area-top",
-          "--app-safe-area-bottom",
-          "--app-safe-area-left",
-          "--app-safe-area-right",
-        ];
-        const contentVars = [
-          "--app-content-safe-area-top",
-          "--app-content-safe-area-bottom",
-          "--app-content-safe-area-left",
-          "--app-content-safe-area-right",
-        ];
-        [...safeVars, ...contentVars].forEach((name) => {
-          root.style.removeProperty(name);
-        });
-      } else {
-        const safeTop = Math.max(0, safe?.top ?? 0, content?.top ?? 0);
-        const safeBottom = Math.max(0, safe?.bottom ?? 0, content?.bottom ?? 0);
-        const safeLeft = Math.max(0, safe?.left ?? 0, content?.left ?? 0);
-        const safeRight = Math.max(0, safe?.right ?? 0, content?.right ?? 0);
+      const safeTop = Math.max(0, safe?.top ?? 0, content?.top ?? 0);
+      const safeBottom = Math.max(0, safe?.bottom ?? 0, content?.bottom ?? 0);
+      const safeLeft = Math.max(0, safe?.left ?? 0, content?.left ?? 0);
+      const safeRight = Math.max(0, safe?.right ?? 0, content?.right ?? 0);
 
-        setInsetVar("--app-safe-area-top", safeTop);
-        setInsetVar("--app-safe-area-bottom", safeBottom);
-        setInsetVar("--app-safe-area-left", safeLeft);
-        setInsetVar("--app-safe-area-right", safeRight);
+      root.style.setProperty("--app-safe-area-top", toPx(safeTop));
+      root.style.setProperty("--app-safe-area-bottom", toPx(safeBottom));
+      root.style.setProperty("--app-safe-area-left", toPx(safeLeft));
+      root.style.setProperty("--app-safe-area-right", toPx(safeRight));
 
-        setInsetVar("--app-content-safe-area-top", content?.top ?? safeTop);
-        setInsetVar("--app-content-safe-area-bottom", content?.bottom ?? safeBottom);
-        setInsetVar("--app-content-safe-area-left", content?.left ?? safeLeft);
-        setInsetVar("--app-content-safe-area-right", content?.right ?? safeRight);
-      }
+      root.style.setProperty("--app-content-safe-area-top", toPx(content?.top ?? safeTop));
+      root.style.setProperty("--app-content-safe-area-bottom", toPx(content?.bottom ?? safeBottom));
+      root.style.setProperty("--app-content-safe-area-left", toPx(content?.left ?? safeLeft));
+      root.style.setProperty("--app-content-safe-area-right", toPx(content?.right ?? safeRight));
 
       root.dataset.tgFullscreen = webApp.isFullscreen ? "true" : "false";
 
