@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { shopItems } from "@/features/main/data/shop";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
+import { ggFormatter, numberFormatter } from "@/shared/utils/formatters";
 
 type ShopItem = (typeof shopItems)[number];
 
@@ -11,15 +12,6 @@ export default function ShopScreen() {
   const [selected, setSelected] = useState<ShopItem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const numberFormatter = useMemo(() => new Intl.NumberFormat("ru-RU"), []);
-  const goldFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("ru-RU", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      }),
-    [],
-  );
 
   const canAfford = useMemo(() => {
     if (!selected) return true;
@@ -76,7 +68,7 @@ export default function ShopScreen() {
             <span className="shop-balance__icon">💰</span>
             <span className="shop-balance__label">Баланс:</span>
             <span className="shop-balance__value">
-              {numberFormatter.format(balances.gram)} GRAM · {goldFormatter.format(balances.gold)}{" "}
+              {numberFormatter.format(balances.gram)} GRAM · {ggFormatter.format(balances.gold)}{" "}
               GOLD
             </span>
           </div>
@@ -147,7 +139,7 @@ export default function ShopScreen() {
               </p>
               <p className="modal__hint">
                 Баланс: {numberFormatter.format(balances.gram)} GRAM ·{" "}
-                {goldFormatter.format(balances.gold)} GOLD
+                {ggFormatter.format(balances.gold)} GOLD
               </p>
               {!canAfford && !error && (
                 <p className="modal__warning">Недостаточно GRAM для покупки. Пополните баланс.</p>

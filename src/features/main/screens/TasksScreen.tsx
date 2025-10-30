@@ -1,17 +1,10 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { tasks as defaultTasks, type Task } from "@/features/main/data/tasks";
+import { ggFormatter } from "@/shared/utils/formatters";
 
 export default function TasksScreen() {
   const [tasks] = useState<Task[]>(defaultTasks);
-  const rewardFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("ru-RU", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      }),
-    [],
-  );
 
   const tasksByType = {
     onboarding: tasks.filter((t) => t.type === "onboarding"),
@@ -37,9 +30,7 @@ export default function TasksScreen() {
               <div className="tasks-progress-stat__label">Выполнено</div>
             </div>
             <div className="tasks-progress-stat tasks-progress-stat--highlight">
-              <div className="tasks-progress-stat__value">
-                +{rewardFormatter.format(totalReward)}
-              </div>
+              <div className="tasks-progress-stat__value">+{ggFormatter.format(totalReward)}</div>
               <div className="tasks-progress-stat__label">GG заработано</div>
             </div>
           </div>
@@ -56,7 +47,7 @@ export default function TasksScreen() {
           <h2 className="tasks-section__title">🚀 Начало работы</h2>
           <div className="tasks-list">
             {tasksByType.onboarding.map((task) => (
-              <TaskCard key={task.id} task={task} formatter={rewardFormatter} />
+              <TaskCard key={task.id} task={task} formatter={ggFormatter} />
             ))}
           </div>
         </div>
@@ -66,7 +57,7 @@ export default function TasksScreen() {
           <h2 className="tasks-section__title">📅 Ежедневные задания</h2>
           <div className="tasks-list">
             {tasksByType.daily.map((task) => (
-              <TaskCard key={task.id} task={task} formatter={rewardFormatter} />
+              <TaskCard key={task.id} task={task} formatter={ggFormatter} />
             ))}
           </div>
         </div>
@@ -76,7 +67,7 @@ export default function TasksScreen() {
           <h2 className="tasks-section__title">💬 Социальные задания</h2>
           <div className="tasks-list">
             {tasksByType.social.map((task) => (
-              <TaskCard key={task.id} task={task} formatter={rewardFormatter} />
+              <TaskCard key={task.id} task={task} formatter={ggFormatter} />
             ))}
           </div>
         </div>

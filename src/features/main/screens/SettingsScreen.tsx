@@ -1,21 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
+import { goldFormatter, numberFormatter } from "@/shared/utils/formatters";
 
 export default function SettingsScreen() {
   const [devMode, setDevMode] = useState(false);
   const [devMessage, setDevMessage] = useState<string | null>(null);
   const { balances, runtime, addGram, resetAll } = useUserRuntime();
-
-  const numberFormatter = useMemo(() => new Intl.NumberFormat("ru-RU"), []);
-  const goldFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("ru-RU", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 4,
-      }),
-    [],
-  );
 
   const handleAddFunds = () => {
     const amount = 1_000;

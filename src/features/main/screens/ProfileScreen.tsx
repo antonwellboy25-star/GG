@@ -9,9 +9,7 @@ import {
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
 import { GRAM_DECIMALS, GRAM_TOPUP_ADDRESS } from "@/shared/config/ton";
-
-const numberFormatter = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
-const goldFormatter = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 4 });
+import { goldFormatter, numberFormatter } from "@/shared/utils/formatters";
 
 export default function ProfileScreen() {
   const wallet = useTonWallet();

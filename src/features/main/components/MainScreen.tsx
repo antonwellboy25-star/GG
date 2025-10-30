@@ -9,6 +9,7 @@ import ShopScreen from "@/features/main/screens/ShopScreen";
 import TasksScreen from "@/features/main/screens/TasksScreen";
 import ProfileScreen from "@/features/main/screens/ProfileScreen";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
+import { ggFormatter } from "@/shared/utils/formatters";
 
 const ANIM_MS = 320;
 const SESSION_DURATION_SEC = 20;
@@ -23,14 +24,6 @@ type MainScreenProps = {
 export default function MainScreen({ loading = false, showNav = false }: MainScreenProps) {
   const { gramPerGold, runtime, recordBurn, spendGram, addGram, balances } = useUserRuntime();
   const goldPerSession = useMemo(() => GRAM_PER_SESSION / gramPerGold, [gramPerGold]);
-  const goldFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("ru-RU", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      }),
-    [],
-  );
 
   const [isMining, setIsMining] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -181,7 +174,7 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
         setIsMining(false);
         rafRef.current = null;
         setSessionStake(0);
-        setNotice(`Начислено +${goldFormatter.format(goldPerSession)} GOLD.`);
+        setNotice(`Начислено +${ggFormatter.format(goldPerSession)} GOLD.`);
         return;
       }
 
@@ -195,7 +188,7 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
         rafRef.current = null;
       }
     };
-  }, [isMining, recordBurn, goldPerSession, goldFormatter]);
+  }, [isMining, recordBurn, goldPerSession]);
 
   useEffect(
     () => () => {

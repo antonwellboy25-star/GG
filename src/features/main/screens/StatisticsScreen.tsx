@@ -1,15 +1,6 @@
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
-
-const numberFormatter = new Intl.NumberFormat("ru-RU");
-const ggFormatter = new Intl.NumberFormat("ru-RU", {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
-const goldFormatter = new Intl.NumberFormat("ru-RU", {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 4,
-});
+import { ggFormatter, goldFormatter, numberFormatter } from "@/shared/utils/formatters";
 
 export default function StatisticsScreen() {
   const { stats, recentSessions, runtime, gramPerGold } = useUserRuntime();

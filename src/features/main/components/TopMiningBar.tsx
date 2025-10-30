@@ -1,8 +1,4 @@
-const numberFormatter = new Intl.NumberFormat("ru-RU");
-const goldFormatter = new Intl.NumberFormat("ru-RU", {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
+import { formatTime, goldFormatter, numberFormatter } from "@/shared/utils/formatters";
 
 type MiningSessionDisplay = {
   active: boolean;
@@ -32,13 +28,6 @@ type TopMiningBarProps = {
   status?: string | null;
   onToggle: () => void;
   disabled?: boolean;
-};
-
-const formatTime = (seconds: number) => {
-  const clamped = Math.max(0, Math.ceil(seconds));
-  const mm = String(Math.floor(clamped / 60)).padStart(2, "0");
-  const ss = String(clamped % 60).padStart(2, "0");
-  return `${mm}:${ss}`;
 };
 
 export default function TopMiningBar({
