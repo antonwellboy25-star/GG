@@ -41,12 +41,16 @@ interface TelegramWebApp {
   readonly contentSafeAreaInsets?: TelegramContentSafeAreaInsets;
   readonly contentSafeAreaInset?: TelegramContentSafeAreaInsets;
   readonly viewportStable?: TelegramViewportStableFlag;
+  readonly viewport?: TelegramViewport;
 
   ready(): void;
   expand(): void;
   close(): void;
   requestFullscreen?(): void;
   exitFullscreen?(): void;
+  requestSafeArea?(): void;
+  requestContentSafeArea?(): void;
+  requestViewport?(): void;
   setHeaderColor?(color: string): void;
   setBackgroundColor?(color: string): void;
   setBottomBarColor?(color: string): void;
@@ -65,6 +69,26 @@ interface TelegramWebApp {
   openLink(url: string, options?: { try_instant_view?: boolean }): void;
 
   BackButton: TelegramBackButton;
+}
+
+interface TelegramViewport {
+  height?: number;
+  width?: number;
+  stableHeight?: number;
+  isExpanded?: boolean;
+  isFullscreen?: boolean;
+  safeAreaInsets?: TelegramSafeAreaInsets;
+  safeAreaInset?: TelegramSafeAreaInsets;
+  contentSafeAreaInsets?: TelegramContentSafeAreaInsets;
+  contentSafeAreaInset?: TelegramContentSafeAreaInsets;
+  onViewportChanged?(handler: (event: unknown) => void): void;
+  offViewportChanged?(handler: (event: unknown) => void): void;
+  onFullscreenChanged?(handler: (event: unknown) => void): void;
+  offFullscreenChanged?(handler: (event: unknown) => void): void;
+  onSafeAreaInsetsChanged?(handler: (insets: TelegramSafeAreaInsets) => void): void;
+  offSafeAreaInsetsChanged?(handler: (insets: TelegramSafeAreaInsets) => void): void;
+  onContentSafeAreaInsetsChanged?(handler: (insets: TelegramContentSafeAreaInsets) => void): void;
+  offContentSafeAreaInsetsChanged?(handler: (insets: TelegramContentSafeAreaInsets) => void): void;
 }
 
 declare namespace Telegram {

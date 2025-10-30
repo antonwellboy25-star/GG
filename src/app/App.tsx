@@ -1,6 +1,13 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import MainScreen from "@/features/main/components/MainScreen";
 
+type Insets = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
+
 const LazyLoadingScreen = lazy(() => import("@/features/loading/components/LoadingScreen"));
 
 export default function App() {
@@ -9,17 +16,27 @@ export default function App() {
 
   useEffect(() => {
     if (!loading) return;
-    const fadeTimer = setTimeout(() => setFadeOut(true), 4700);
-    return () => clearTimeout(fadeTimer);
+    const fadeTimer = window.setTimeout(() => setFadeOut(true), 4700);
+    return () => window.clearTimeout(fadeTimer);
   }, [loading]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const webApp = window.Telegram?.WebApp;
     if (!webApp) return;
-    webApp.ready();
+
+    try {
+      webApp.ready();
+    } catch (_error) {
+      // Ignore errors from optional Telegram init step.
+    }
+
     if (typeof webApp.expand === "function") {
-      webApp.expand();
+      try {
+        webApp.expand();
+      } catch (_error) {
+        // Swallow expansion errors, Telegram may block it in some contexts.
+      }
     }
   }, []);
 
@@ -29,9 +46,41 @@ export default function App() {
     if (!webApp) return;
 
     const root = document.documentElement;
+    const viewportApi = (webApp as unknown as { viewport?: unknown }).viewport as
+      | {
+          height?: number;
+          width?: number;
+          stableHeight?: number;
+          isExpanded?: boolean;
+          isFullscreen?: boolean;
+          safeAreaInsets?: Insets;
+          safeAreaInset?: Insets;
+          contentSafeAreaInsets?: Insets;
+          contentSafeAreaInset?: Insets;
+          onViewportChanged?: (listener: (event: unknown) => void) => void;
+          offViewportChanged?: (listener: (event: unknown) => void) => void;
+          onFullscreenChanged?: (listener: (event: unknown) => void) => void;
+          offFullscreenChanged?: (listener: (event: unknown) => void) => void;
+          onSafeAreaInsetsChanged?: (listener: (insets: Insets) => void) => void;
+          offSafeAreaInsetsChanged?: (listener: (insets: Insets) => void) => void;
+          onContentSafeAreaInsetsChanged?: (listener: (insets: Insets) => void) => void;
+          offContentSafeAreaInsetsChanged?: (listener: (insets: Insets) => void) => void;
+        }
+      | undefined;
+
     const toPx = (value?: number) => `${Math.max(0, value ?? 0)}px`;
 
-    type Insets = { top: number; bottom: number; left: number; right: number };
+    const sanitizeInsets = (raw: Partial<Insets> | null | undefined): Insets | null => {
+      if (!raw) return null;
+      const top = typeof raw.top === "number" && Number.isFinite(raw.top) ? Math.max(0, raw.top) : 0;
+      const right = typeof raw.right === "number" && Number.isFinite(raw.right) ? Math.max(0, raw.right) : 0;
+      const bottom = typeof raw.bottom === "number" && Number.isFinite(raw.bottom)
+        ? Math.max(0, raw.bottom)
+        : 0;
+      const left = typeof raw.left === "number" && Number.isFinite(raw.left) ? Math.max(0, raw.left) : 0;
+      return { top, right, bottom, left };
+    };
+
     const hasInset = (inset?: Insets | null) => {
       if (!inset) return false;
       return inset.top > 0 || inset.bottom > 0 || inset.left > 0 || inset.right > 0;
@@ -47,44 +96,120 @@ export default function App() {
       const right = Math.max(0, window.innerWidth - vv.width - vv.offsetLeft);
       const bottom = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
 
-      const result = { top, bottom, left, right };
+      const result: Insets = { top, right, bottom, left };
       return hasInset(result) ? result : null;
     };
 
-    const pickInsets = (primary: Insets | null | undefined, fallback: Insets | null) => {
-      if (hasInset(primary)) return primary ?? null;
-      if (fallback && hasInset(fallback)) return fallback;
+    const preferNumber = (...values: Array<number | null | undefined>) => {
+      for (const value of values) {
+        if (typeof value === "number" && Number.isFinite(value)) {
+          return value;
+        }
+      }
       return null;
     };
 
-    const applyInsets = () => {
-      const safeRaw = webApp.safeAreaInsets ?? webApp.safeAreaInset;
-      const contentRaw = webApp.contentSafeAreaInsets ?? webApp.contentSafeAreaInset;
+    const setPxVar = (name: string, value: number | null) => {
+      if (typeof value === "number" && Number.isFinite(value)) {
+        root.style.setProperty(name, toPx(value));
+      } else {
+        root.style.removeProperty(name);
+      }
+    };
+
+    const setInsets = (prefix: string, primary?: Insets | null, fallback?: Insets | null) => {
+      const sides: Array<keyof Insets> = ["top", "right", "bottom", "left"];
+      sides.forEach((side) => {
+        const value = primary?.[side] ?? fallback?.[side];
+        const cssVar = `${prefix}-${side}`;
+        if (typeof value === "number" && Number.isFinite(value)) {
+          root.style.setProperty(cssVar, toPx(value));
+        } else {
+          root.style.removeProperty(cssVar);
+        }
+      });
+    };
+
+    const derivedSafeVars = [
+      "--app-safe-top",
+      "--app-safe-bottom",
+      "--app-safe-left",
+      "--app-safe-right",
+      "--app-safe-left-raw",
+      "--app-safe-right-raw",
+    ];
+    derivedSafeVars.forEach((name) => {
+      root.style.removeProperty(name);
+    });
+
+    const applyMetrics = () => {
       const viewportFallback = computeViewportInsets();
-      const safe = pickInsets(safeRaw, viewportFallback);
-      const content = pickInsets(contentRaw, safe ?? viewportFallback);
 
-      // Минимальные отступы для предотвращения наложения
-      const MIN_TOP = 12;
-      const MIN_BOTTOM = 12;
-      const MIN_SIDE = 12;
+      const safeCandidates: Array<Partial<Insets> | null | undefined> = [
+        viewportApi?.safeAreaInsets,
+        (viewportApi as { safeAreaInset?: Insets } | undefined)?.safeAreaInset,
+        webApp.safeAreaInsets,
+        webApp.safeAreaInset,
+      ];
+      let safe: Insets | null = null;
+      for (const candidate of safeCandidates) {
+        if (candidate) {
+          safe = sanitizeInsets(candidate);
+          if (safe) break;
+        }
+      }
+      if (!safe && viewportFallback && hasInset(viewportFallback)) {
+        safe = viewportFallback;
+      }
 
-      const safeTop = Math.max(MIN_TOP, safe?.top ?? 0, content?.top ?? 0);
-      const safeBottom = Math.max(MIN_BOTTOM, safe?.bottom ?? 0, content?.bottom ?? 0);
-      const safeLeft = Math.max(MIN_SIDE, safe?.left ?? 0, content?.left ?? 0);
-      const safeRight = Math.max(MIN_SIDE, safe?.right ?? 0, content?.right ?? 0);
+      const contentCandidates: Array<Partial<Insets> | null | undefined> = [
+        viewportApi?.contentSafeAreaInsets,
+        (viewportApi as { contentSafeAreaInset?: Insets } | undefined)?.contentSafeAreaInset,
+        webApp.contentSafeAreaInsets,
+        webApp.contentSafeAreaInset,
+      ];
+      let content: Insets | null = null;
+      for (const candidate of contentCandidates) {
+        if (candidate) {
+          content = sanitizeInsets(candidate);
+          if (content) break;
+        }
+      }
+      if (!content) {
+        content = safe ?? (viewportFallback && hasInset(viewportFallback) ? viewportFallback : null);
+      }
 
-      root.style.setProperty("--app-safe-area-top", toPx(safeTop));
-      root.style.setProperty("--app-safe-area-bottom", toPx(safeBottom));
-      root.style.setProperty("--app-safe-area-left", toPx(safeLeft));
-      root.style.setProperty("--app-safe-area-right", toPx(safeRight));
+      setInsets("--app-safe-area", safe);
+      setInsets("--app-content-safe-area", content, safe);
+      setInsets("--tg-viewport-safe-area-inset", safe);
+      setInsets("--tg-viewport-content-safe-area-inset", content, safe);
 
-      root.style.setProperty("--app-content-safe-area-top", toPx(content?.top ?? safeTop));
-      root.style.setProperty("--app-content-safe-area-bottom", toPx(content?.bottom ?? safeBottom));
-      root.style.setProperty("--app-content-safe-area-left", toPx(content?.left ?? safeLeft));
-      root.style.setProperty("--app-content-safe-area-right", toPx(content?.right ?? safeRight));
+      const viewportHeight = preferNumber(
+        viewportApi?.height,
+        webApp.viewportHeight,
+        window.visualViewport?.height,
+        window.innerHeight,
+      );
+      const viewportStableHeight = preferNumber(
+        viewportApi?.stableHeight,
+        webApp.viewportStable?.height,
+        webApp.viewportStableHeight,
+        viewportApi?.height,
+        viewportHeight,
+      );
+      const viewportWidth = preferNumber(
+        viewportApi?.width,
+        webApp.viewportWidth,
+        window.visualViewport?.width,
+        window.innerWidth,
+      );
 
-      root.dataset.tgFullscreen = webApp.isFullscreen ? "true" : "false";
+      setPxVar("--tg-viewport-height", viewportHeight);
+      setPxVar("--tg-viewport-stable-height", viewportStableHeight ?? viewportHeight);
+      setPxVar("--tg-viewport-width", viewportWidth);
+
+      root.dataset.tgFullscreen = (webApp.isFullscreen ?? viewportApi?.isFullscreen) ? "true" : "false";
+      root.dataset.tgExpanded = (webApp.isExpanded ?? viewportApi?.isExpanded) ? "true" : "false";
 
       if (typeof webApp.setHeaderColor === "function") {
         webApp.setHeaderColor("#000000");
@@ -97,42 +222,130 @@ export default function App() {
       }
     };
 
-    applyInsets();
+    applyMetrics();
 
-    const events = [
+    const cleanup: Array<VoidFunction> = [];
+
+    const registerWebAppEvent = (event: string) => {
+      if (typeof webApp.onEvent === "function" && typeof webApp.offEvent === "function") {
+        webApp.onEvent(event, applyMetrics);
+        cleanup.push(() => {
+          webApp.offEvent?.(event, applyMetrics);
+        });
+      }
+    };
+
+    const webAppEvents = new Set([
+      "safe_area_changed",
+      "content_safe_area_changed",
+      "viewport_changed",
+      "fullscreen_changed",
+      "theme_changed",
       "safeAreaChanged",
       "contentSafeAreaChanged",
+      "viewportChanged",
       "fullscreenChanged",
       "themeChanged",
-      "viewportChanged",
-    ] as const;
+    ]);
+    webAppEvents.forEach(registerWebAppEvent);
 
-    const handleUpdate = () => applyInsets();
-    events.forEach((event) => {
-      webApp.onEvent(event, handleUpdate);
-    });
+    const handleViewportUpdate = () => applyMetrics();
 
-    const handleResize = () => applyInsets();
-    window.addEventListener("resize", handleResize);
-
-    const viewportEvents: Array<keyof VisualViewportEventMap> = ["resize", "scroll"];
-    const handleViewport = () => applyInsets();
-    if (window.visualViewport) {
-      viewportEvents.forEach((event) => {
-        window.visualViewport?.addEventListener(event, handleViewport);
+    if (typeof viewportApi?.onViewportChanged === "function" && typeof viewportApi?.offViewportChanged === "function") {
+      viewportApi.onViewportChanged(handleViewportUpdate);
+      cleanup.push(() => {
+        viewportApi.offViewportChanged?.(handleViewportUpdate);
       });
     }
 
-    return () => {
-      events.forEach((event) => {
-        webApp.offEvent(event, handleUpdate);
+    if (
+      typeof viewportApi?.onFullscreenChanged === "function" &&
+      typeof viewportApi?.offFullscreenChanged === "function"
+    ) {
+      viewportApi.onFullscreenChanged(handleViewportUpdate);
+      cleanup.push(() => {
+        viewportApi.offFullscreenChanged?.(handleViewportUpdate);
       });
+    }
+
+    if (
+      typeof viewportApi?.onSafeAreaInsetsChanged === "function" &&
+      typeof viewportApi?.offSafeAreaInsetsChanged === "function"
+    ) {
+      const safeAreaListener: (insets: Insets) => void = () => handleViewportUpdate();
+      viewportApi.onSafeAreaInsetsChanged(safeAreaListener);
+      cleanup.push(() => {
+        viewportApi.offSafeAreaInsetsChanged?.(safeAreaListener);
+      });
+    }
+
+    if (
+      typeof viewportApi?.onContentSafeAreaInsetsChanged === "function" &&
+      typeof viewportApi?.offContentSafeAreaInsetsChanged === "function"
+    ) {
+      const contentSafeAreaListener: (insets: Insets) => void = () => handleViewportUpdate();
+      viewportApi.onContentSafeAreaInsetsChanged(contentSafeAreaListener);
+      cleanup.push(() => {
+        viewportApi.offContentSafeAreaInsetsChanged?.(contentSafeAreaListener);
+      });
+    }
+
+    const handleResize = () => applyMetrics();
+    window.addEventListener("resize", handleResize);
+    cleanup.push(() => {
       window.removeEventListener("resize", handleResize);
-      if (window.visualViewport) {
-        viewportEvents.forEach((event) => {
+    });
+
+    if (window.visualViewport) {
+      const handleViewport = () => applyMetrics();
+      const events: Array<keyof VisualViewportEventMap> = ["resize", "scroll"];
+      events.forEach((event) => {
+        window.visualViewport?.addEventListener(event, handleViewport);
+      });
+      cleanup.push(() => {
+        events.forEach((event) => {
           window.visualViewport?.removeEventListener(event, handleViewport);
         });
+      });
+    }
+
+    try {
+      webApp.requestSafeArea?.();
+      webApp.requestContentSafeArea?.();
+      webApp.requestViewport?.();
+    } catch (_error) {
+      // Swallow errors from optional Telegram APIs silently.
+    }
+
+    return () => {
+      for (const fn of cleanup) {
+        fn();
       }
+      [
+        "--app-safe-area-top",
+        "--app-safe-area-right",
+        "--app-safe-area-bottom",
+        "--app-safe-area-left",
+        "--app-content-safe-area-top",
+        "--app-content-safe-area-right",
+        "--app-content-safe-area-bottom",
+        "--app-content-safe-area-left",
+        "--tg-viewport-height",
+        "--tg-viewport-stable-height",
+        "--tg-viewport-width",
+        "--tg-viewport-safe-area-inset-top",
+        "--tg-viewport-safe-area-inset-right",
+        "--tg-viewport-safe-area-inset-bottom",
+        "--tg-viewport-safe-area-inset-left",
+        "--tg-viewport-content-safe-area-inset-top",
+        "--tg-viewport-content-safe-area-inset-right",
+        "--tg-viewport-content-safe-area-inset-bottom",
+        "--tg-viewport-content-safe-area-inset-left",
+      ].forEach((varName) => {
+        root.style.removeProperty(varName);
+      });
+      delete root.dataset.tgFullscreen;
+      delete root.dataset.tgExpanded;
     };
   }, []);
 
@@ -146,7 +359,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Главное меню */}
       <main className="app-main app-main--visible" aria-label="Application">
         <MainScreen loading={loading} showNav={fadeOut || !loading} />
       </main>

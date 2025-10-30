@@ -4,6 +4,16 @@
   --gold1: #c59b24;
   --gold2: #d4af37;
   --gold3: #f1d27a;
+  --app-viewport-width: var(--tg-viewport-width, 100vw);
+  --app-viewport-height: var(--tg-viewport-height, 100vh);
+  --app-viewport-stable-height: var(
+    --tg-viewport-stable-height,
+    var(--app-viewport-height, 100vh)
+  );
+  --app-body-min-height: var(
+    --app-viewport-stable-height,
+    var(--app-viewport-height, 100vh)
+  );
   --app-safe-area-top: var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px));
   --app-safe-area-right: var(--tg-safe-area-inset-right, env(safe-area-inset-right, 0px));
   --app-safe-area-bottom: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
@@ -35,7 +45,7 @@
 html,
 body,
 #root {
-  min-height: 100%;
+  min-height: max(100vh, var(--app-body-min-height, 0px));
 }
 body {
   margin: 0;
@@ -46,7 +56,7 @@ body {
 
 .app-root,
 .app-main {
-  min-height: 100vh;
+  min-height: max(100vh, var(--app-body-min-height, 0px));
   display: flex;
   flex-direction: column;
 }
@@ -56,7 +66,7 @@ body {
   #root,
   .app-root,
   .app-main {
-    min-height: 100dvh;
+    min-height: max(100dvh, var(--app-body-min-height, 0px));
   }
 }
 
