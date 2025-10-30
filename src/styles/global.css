@@ -24,8 +24,11 @@
     --tg-content-safe-area-inset-left,
     var(--app-safe-area-left)
   );
-  --app-safe-top-min: clamp(48px, 6vh, 64px);
-  --app-safe-bottom-min: clamp(16px, 5vh, 28px);
+  --app-safe-top-min: clamp(56px, 7vh, 80px);
+  --app-safe-bottom-min: clamp(20px, 6vh, 32px);
+  --app-safe-side-min: clamp(20px, 6vw, 36px);
+  --app-safe-left-raw: var(--app-content-safe-area-left, var(--app-safe-area-left, 0px));
+  --app-safe-right-raw: var(--app-content-safe-area-right, var(--app-safe-area-right, 0px));
   --app-safe-top: max(
     var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)),
     var(--app-safe-top-min)
@@ -34,8 +37,8 @@
     var(--app-content-safe-area-bottom, var(--app-safe-area-bottom, 0px)),
     var(--app-safe-bottom-min)
   );
-  --app-safe-left: var(--app-content-safe-area-left, var(--app-safe-area-left, 0px));
-  --app-safe-right: var(--app-content-safe-area-right, var(--app-safe-area-right, 0px));
+  --app-safe-left: max(var(--app-safe-left-raw), var(--app-safe-side-min));
+  --app-safe-right: max(var(--app-safe-right-raw), var(--app-safe-side-min));
 }
 
 * {
@@ -259,14 +262,13 @@ body {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: calc(
-      var(--app-safe-top) +
-      clamp(12px, 2.6vh, 20px)
-    )
-    clamp(16px, 5vw, 32px) clamp(12px, 2vh, 18px);
+  padding:
+    calc(var(--app-safe-top) + clamp(12px, 2.6vh, 20px))
+    calc(var(--app-safe-right) + clamp(16px, 5vw, 32px))
+    clamp(12px, 2vh, 18px)
+    calc(var(--app-safe-left) + clamp(16px, 5vw, 32px));
   background: linear-gradient(180deg, rgba(8, 8, 8, 0.82), rgba(8, 8, 8, 0));
   backdrop-filter: saturate(160%) blur(18px);
-  padding-right: calc(clamp(16px, 5vw, 32px) + clamp(52px, 12vw, 96px));
   opacity: 1;
   transform: translateY(0);
   overflow: hidden;
@@ -362,7 +364,7 @@ body {
 .settings-fab {
   position: fixed;
   top: calc(var(--app-safe-top) + clamp(14px, 3vh, 26px));
-  right: clamp(16px, 6vw, 32px);
+  right: calc(var(--app-safe-right) + clamp(12px, 5vw, 24px));
   z-index: 6;
   display: inline-flex;
   align-items: center;
@@ -605,7 +607,7 @@ body {
   margin: 0 auto;
   padding: 6px 8px;
   width: fit-content;
-  max-width: calc(100vw - 16px);
+  max-width: calc(100vw - var(--app-safe-left) - var(--app-safe-right) - 16px);
   list-style: none;
   display: flex;
   flex-wrap: nowrap;
@@ -1521,11 +1523,11 @@ body {
   }
 
   .top-bar {
-    padding: calc(
-        var(--app-safe-top) +
-        clamp(10px, 2vh, 14px)
-      )
-      clamp(14px, 4vw, 24px) clamp(10px, 2vh, 14px);
+    padding:
+      calc(var(--app-safe-top) + clamp(8px, 2vh, 12px))
+      calc(var(--app-safe-right) + clamp(12px, 4vw, 20px))
+      clamp(10px, 2vh, 14px)
+      calc(var(--app-safe-left) + clamp(12px, 4vw, 20px));
   }
 
   .top-bar__header {
@@ -1680,7 +1682,7 @@ body {
   }
 
   .nav-bar {
-    width: min(440px, calc(100% - 18px));
+    width: min(440px, calc(100% - var(--app-safe-left) - var(--app-safe-right) - 18px));
   }
 }
 
