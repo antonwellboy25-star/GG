@@ -24,6 +24,18 @@
     --tg-content-safe-area-inset-left,
     var(--app-safe-area-left)
   );
+  --app-safe-top-min: clamp(48px, 6vh, 64px);
+  --app-safe-bottom-min: clamp(16px, 5vh, 28px);
+  --app-safe-top: max(
+    var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)),
+    var(--app-safe-top-min)
+  );
+  --app-safe-bottom: max(
+    var(--app-content-safe-area-bottom, var(--app-safe-area-bottom, 0px)),
+    var(--app-safe-bottom-min)
+  );
+  --app-safe-left: var(--app-content-safe-area-left, var(--app-safe-area-left, 0px));
+  --app-safe-right: var(--app-content-safe-area-right, var(--app-safe-area-right, 0px));
 }
 
 * {
@@ -220,26 +232,26 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  --nav-offset: calc(108px + var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)));
+  --nav-offset: calc(108px + var(--app-safe-bottom));
 }
 
 /* Адаптивная высота нижнего градиента под навигацию */
 @media (max-width: 380px) {
   .main-screen {
-    --nav-offset: calc(98px + var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)));
+    --nav-offset: calc(98px + var(--app-safe-bottom));
   }
 }
 
 @media (max-width: 320px) {
   .main-screen {
-    --nav-offset: calc(90px + var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)));
+    --nav-offset: calc(90px + var(--app-safe-bottom));
   }
 }
 
 /* Для очень узких экранов */
 @media (max-width: 280px) {
   .main-screen {
-    --nav-offset: calc(82px + var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)));
+    --nav-offset: calc(82px + var(--app-safe-bottom));
   }
 }
 
@@ -248,7 +260,7 @@ body {
   top: 0;
   z-index: 2;
   padding: calc(
-      max(var(--app-content-safe-area-top, 0px), 44px) +
+      var(--app-safe-top) +
       clamp(12px, 2.6vh, 20px)
     )
     clamp(16px, 5vw, 32px) clamp(12px, 2vh, 18px);
@@ -349,7 +361,7 @@ body {
 
 .settings-fab {
   position: fixed;
-  top: calc(max(var(--app-content-safe-area-top, 0px), 44px) + clamp(14px, 3vh, 26px));
+  top: calc(var(--app-safe-top) + clamp(14px, 3vh, 26px));
   right: clamp(16px, 6vw, 32px);
   z-index: 6;
   display: inline-flex;
@@ -536,35 +548,35 @@ body {
   bottom: 0;
   z-index: 9;
   padding-top: 0;
-  padding-left: var(--app-content-safe-area-left, var(--app-safe-area-left));
-  padding-right: var(--app-content-safe-area-right, var(--app-safe-area-right));
-  padding-bottom: calc(var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)) + 10px);
+  padding-left: var(--app-safe-left);
+  padding-right: var(--app-safe-right);
+  padding-bottom: calc(var(--app-safe-bottom) + 10px);
   pointer-events: none;
 }
 
 @media (max-width: 380px) {
   .nav-bar {
-    padding-bottom: calc(var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)) + 8px);
+    padding-bottom: calc(var(--app-safe-bottom) + 8px);
   }
 }
 
 @media (max-width: 320px) {
   .nav-bar {
-    padding-bottom: calc(var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)) + 6px);
+    padding-bottom: calc(var(--app-safe-bottom) + 6px);
   }
 }
 
 /* Для очень узких экранов */
 @media (max-width: 280px) {
   .nav-bar {
-    padding-bottom: calc(var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)) + 5px);
+    padding-bottom: calc(var(--app-safe-bottom) + 5px);
   }
 }
 
 /* Для больших экранов - увеличиваем размеры */
 @media (min-width: 768px) {
   .nav-bar {
-    padding-bottom: calc(var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)) + 16px);
+    padding-bottom: calc(var(--app-safe-bottom) + 16px);
   }
 
   .nav-bar__surface {
@@ -585,7 +597,7 @@ body {
   }
 
   .main-screen {
-    --nav-offset: calc(120px + var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)));
+    --nav-offset: calc(120px + var(--app-safe-bottom));
   }
 }
 
@@ -921,7 +933,7 @@ body {
 }
 @media (max-height: 520px) and (orientation: landscape) {
   .main-screen {
-    --nav-offset: calc(78px + var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)));
+    --nav-offset: calc(78px + var(--app-safe-bottom));
   }
 }
 
@@ -1025,7 +1037,7 @@ body {
 
 @media (min-width: 1024px) {
   .main-screen {
-    --nav-offset: calc(104px + var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)));
+    --nav-offset: calc(104px + var(--app-safe-bottom));
   }
 }
 
@@ -1197,7 +1209,7 @@ body {
 /* Адаптивность для маленьких экранов */
 @media (max-width: 360px) {
   .nav-bar {
-    padding-bottom: calc(var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)) + 12px);
+    padding-bottom: calc(var(--app-safe-bottom) + 12px);
   }
 
   .nav-bar__surface {
@@ -1220,7 +1232,7 @@ body {
 /* Маленькие телефоны */
 @media (min-width: 361px) and (max-width: 390px) {
   .nav-bar {
-    padding-bottom: calc(var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)) + 14px);
+    padding-bottom: calc(var(--app-safe-bottom) + 14px);
   }
 
   .nav-bar__surface {
@@ -1483,21 +1495,21 @@ body {
 
 @media (max-height: 520px) and (orientation: landscape) {
   .main-screen {
-    --nav-offset: calc(78px + var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)));
+    --nav-offset: calc(78px + var(--app-safe-bottom));
   }
 
   .screen-stack {
     padding-left: calc(
-      var(--app-content-safe-area-left, var(--app-safe-area-left)) +
+      var(--app-safe-left) +
       clamp(12px, 4vw, 20px)
     );
     padding-right: calc(
-      var(--app-content-safe-area-right, var(--app-safe-area-right)) +
+      var(--app-safe-right) +
       clamp(12px, 4vw, 20px)
     );
     padding-top: calc(
-      var(--app-content-safe-area-top, var(--app-safe-area-top)) +
-      clamp(14px, 3vh, 24px)
+      var(--app-safe-top) +
+      clamp(8px, 2.5vh, 18px)
     );
     padding-bottom: calc(var(--nav-offset, 120px) + clamp(24px, 6vh, 40px));
     gap: var(--screen-gap, clamp(18px, 4vh, 28px));
@@ -1510,7 +1522,7 @@ body {
 
   .top-bar {
     padding: calc(
-        var(--app-content-safe-area-top, var(--app-safe-area-top)) +
+        var(--app-safe-top) +
         clamp(10px, 2vh, 14px)
       )
       clamp(14px, 4vw, 24px) clamp(10px, 2vh, 14px);
@@ -1582,16 +1594,16 @@ body {
   max-width: var(--screen-max-width, 760px);
   margin: 0 auto;
   padding-left: calc(
-    var(--app-content-safe-area-left, var(--app-safe-area-left)) +
+    var(--app-safe-left) +
     clamp(16px, 4vw, 24px)
   );
   padding-right: calc(
-    var(--app-content-safe-area-right, var(--app-safe-area-right)) +
+    var(--app-safe-right) +
     clamp(16px, 4vw, 24px)
   );
   padding-top: calc(
-    var(--app-content-safe-area-top, var(--app-safe-area-top)) +
-    clamp(20px, 4vh, 40px)
+    var(--app-safe-top) +
+    clamp(12px, 3vh, 24px)
   );
   padding-bottom: calc(var(--nav-offset, 120px) + clamp(32px, 7vh, 56px));
   display: flex;
@@ -1664,7 +1676,7 @@ body {
 
 @media (max-width: 540px) {
   .main-screen {
-    --nav-offset: calc(104px + var(--app-content-safe-area-bottom, var(--app-safe-area-bottom)));
+    --nav-offset: calc(104px + var(--app-safe-bottom));
   }
 
   .nav-bar {
