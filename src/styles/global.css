@@ -246,6 +246,13 @@ body {
   }
 }
 
+/* Для ультра-узких экранов (самые старые устройства) */
+@media (max-width: 240px) {
+  .main-screen {
+    --nav-offset: calc(76px + var(--app-safe-bottom));
+  }
+}
+
 .top-bar {
   --settings-offset: 0px;
   position: sticky;
@@ -565,6 +572,13 @@ body {
 @media (max-width: 280px) {
   .nav-bar {
     padding-bottom: calc(var(--app-safe-bottom) + 5px);
+  }
+}
+
+/* Для ультра-узких экранов (самые старые устройства) */
+@media (max-width: 240px) {
+  .nav-bar {
+    padding-bottom: calc(var(--app-safe-bottom) + 4px);
   }
 }
 
@@ -924,6 +938,17 @@ body {
   }
 }
 
+/* Для ультра-узких экранов (самые старые устройства) */
+@media (max-width: 240px) {
+  .nav-bar__surface {
+    --nav-surface-pad-y: 3px;
+    --nav-surface-pad-x: clamp(8px, 10vw, 12px);
+    --nav-surface-gap: 1px;
+    --nav-surface-max-reduction: 8px;
+    border-radius: 12px;
+  }
+}
+
 /* Тонкий акцентный штрих сверху */
 .nav-bar__surface::before {
   content: "";
@@ -1011,6 +1036,18 @@ body {
   }
 }
 
+/* Для ультра-узких экранов (самые старые устройства) */
+@media (max-width: 240px) {
+  .nav-bar__button {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 8px;
+    gap: 0px;
+  }
+}
+
 .nav-bar__button::before {
   content: "";
   position: absolute;
@@ -1073,6 +1110,15 @@ body {
     bottom: 2px;
     width: 12px;
     height: 1.5px;
+  }
+}
+
+/* Для ультра-узких экранов (самые старые устройства) */
+@media (max-width: 240px) {
+  .nav-bar__button::after {
+    bottom: 1px;
+    width: 10px;
+    height: 1px;
   }
 }
 
@@ -1163,6 +1209,14 @@ body {
   .nav-bar__icon {
     width: 20px;
     height: 20px;
+  }
+}
+
+/* Для ультра-узких экранов (самые старые устройства) */
+@media (max-width: 240px) {
+  .nav-bar__icon {
+    width: 18px;
+    height: 18px;
   }
 }
 
