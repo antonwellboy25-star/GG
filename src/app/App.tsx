@@ -32,35 +32,54 @@ export default function App() {
     const toPx = (value?: number) => `${Math.max(0, value ?? 0)}px`;
 
     const applyInsets = () => {
-      const safe = webApp.safeAreaInsets ?? webApp.safeAreaInset;
-      const content = webApp.contentSafeAreaInsets ?? webApp.contentSafeAreaInset;
+      const safeRaw = webApp.safeAreaInsets ?? webApp.safeAreaInset;
+      const contentRaw = webApp.contentSafeAreaInsets ?? webApp.contentSafeAreaInset;
+      const hasInset = (inset?: { top: number; bottom: number; left: number; right: number } | null) => {
+        if (!inset) return false;
+        return inset.top > 0 || inset.bottom > 0 || inset.left > 0 || inset.right > 0;
+      };
+      const safe = hasInset(safeRaw) ? safeRaw : null;
+      const content = hasInset(contentRaw) ? contentRaw : null;
+      const setInsetVar = (name: string, value: number | null | undefined) => {
+        if (value == null) {
+          root.style.removeProperty(name);
+          return;
+        }
+        root.style.setProperty(name, toPx(Math.max(0, value)));
+      };
 
-      const safeTop = Math.max(0, safe?.top ?? 0, content?.top ?? 0);
-      const safeBottom = Math.max(0, safe?.bottom ?? 0, content?.bottom ?? 0);
-      const safeLeft = Math.max(0, safe?.left ?? 0, content?.left ?? 0);
-      const safeRight = Math.max(0, safe?.right ?? 0, content?.right ?? 0);
+      if (!safe && !content) {
+        const safeVars = [
+          "--app-safe-area-top",
+          "--app-safe-area-bottom",
+          "--app-safe-area-left",
+          "--app-safe-area-right",
+        ];
+        const contentVars = [
+          "--app-content-safe-area-top",
+          "--app-content-safe-area-bottom",
+          "--app-content-safe-area-left",
+          "--app-content-safe-area-right",
+        ];
+        [...safeVars, ...contentVars].forEach((name) => {
+          root.style.removeProperty(name);
+        });
+      } else {
+        const safeTop = Math.max(0, safe?.top ?? 0, content?.top ?? 0);
+        const safeBottom = Math.max(0, safe?.bottom ?? 0, content?.bottom ?? 0);
+        const safeLeft = Math.max(0, safe?.left ?? 0, content?.left ?? 0);
+        const safeRight = Math.max(0, safe?.right ?? 0, content?.right ?? 0);
 
-      root.style.setProperty("--app-safe-area-top", toPx(safeTop));
-      root.style.setProperty("--app-safe-area-bottom", toPx(safeBottom));
-      root.style.setProperty("--app-safe-area-left", toPx(safeLeft));
-      root.style.setProperty("--app-safe-area-right", toPx(safeRight));
+        setInsetVar("--app-safe-area-top", safeTop);
+        setInsetVar("--app-safe-area-bottom", safeBottom);
+        setInsetVar("--app-safe-area-left", safeLeft);
+        setInsetVar("--app-safe-area-right", safeRight);
 
-      root.style.setProperty(
-        "--app-content-safe-area-top",
-        toPx(Math.max(0, content?.top ?? safeTop)),
-      );
-      root.style.setProperty(
-        "--app-content-safe-area-bottom",
-        toPx(Math.max(0, content?.bottom ?? safeBottom)),
-      );
-      root.style.setProperty(
-        "--app-content-safe-area-left",
-        toPx(Math.max(0, content?.left ?? safeLeft)),
-      );
-      root.style.setProperty(
-        "--app-content-safe-area-right",
-        toPx(Math.max(0, content?.right ?? safeRight)),
-      );
+        setInsetVar("--app-content-safe-area-top", content?.top ?? safeTop);
+        setInsetVar("--app-content-safe-area-bottom", content?.bottom ?? safeBottom);
+        setInsetVar("--app-content-safe-area-left", content?.left ?? safeLeft);
+        setInsetVar("--app-content-safe-area-right", content?.right ?? safeRight);
+      }
 
       root.dataset.tgFullscreen = webApp.isFullscreen ? "true" : "false";
 
