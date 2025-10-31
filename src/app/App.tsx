@@ -143,13 +143,13 @@ export default function App() {
 
     const root = document.documentElement;
     const platform = String(webApp.platform ?? "").toLowerCase();
-    
+
     // Помечаем что мы в Telegram WebApp
     root.dataset.telegram = "true";
     if (platform) {
       root.dataset.tgPlatform = platform;
     }
-    
+
     const viewportApi = (webApp as unknown as { viewport?: unknown }).viewport as
       | {
           height?: number;

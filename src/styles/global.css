@@ -31,7 +31,7 @@
   /* КРИТИЧНО: Верхний отступ должен быть больше для камеры и системных элементов */
   /* iPhone с Dynamic Island требуют ~59px, обычные notch ~44px */
   --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 16px);
-  
+
   /* По умолчанию - базовый отступ для обычных веб-приложений */
   --app-top-padding-base: var(--app-safe-top);
   --app-topbar-safe: max(var(--app-top-padding-base), 16px);
@@ -47,18 +47,27 @@
   --app-safe-right: max(var(--app-safe-right-raw), 12px);
 }
 
-/* КРИТИЧНО: Только в Telegram WebApp увеличиваем верхний отступ */
-/* На обычном ПК/браузере этот отступ НЕ применяется */
+/* КРИТИЧНО: Только в Telegram WebApp увеличиваем верхний отступ на мобильных */
 :root[data-telegram="true"]:not([data-tg-fullscreen="true"]) {
-  /* Для iOS устройств в Telegram (iPhone с notch/Dynamic Island) */
-  --app-top-padding-base: max(var(--app-safe-top), 78px);
-  --app-topbar-safe: max(var(--app-top-padding-base), 88px);
+  --app-telegram-top-padding: 56px;
+  --app-top-padding-base: max(var(--app-safe-top), var(--app-telegram-top-padding));
+  --app-topbar-safe: max(var(--app-top-padding-base), calc(var(--app-telegram-top-padding) + 10px));
 }
 
 :root[data-telegram="true"][data-tg-platform="android"]:not([data-tg-fullscreen="true"]) {
-  /* Для Android устройств в Telegram */
-  --app-top-padding-base: max(var(--app-safe-top), 64px);
-  --app-topbar-safe: max(var(--app-top-padding-base), 72px);
+  --app-telegram-top-padding: 64px;
+}
+
+:root[data-telegram="true"][data-tg-platform="ios"]:not([data-tg-fullscreen="true"]) {
+  --app-telegram-top-padding: 78px;
+}
+
+@media (pointer: fine) and (min-width: 768px) {
+  :root[data-telegram="true"]:not([data-tg-fullscreen="true"]) {
+    --app-telegram-top-padding: 24px;
+    --app-top-padding-base: max(var(--app-safe-top), 24px);
+    --app-topbar-safe: max(var(--app-top-padding-base), 28px);
+  }
 }
 
 /* В fullscreen режиме используем только реальные safe area без добавок */
