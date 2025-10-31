@@ -309,7 +309,8 @@ body {
   top: 0;
   z-index: 2;
   /* Увеличенные отступы сверху для камеры и системных элементов */
-  padding: calc(var(--app-topbar-safe) + clamp(12px, 2.5vh, 20px))
+  /* Опущено ниже для предотвращения перекрытия с системными элементами Telegram */
+  padding: calc(var(--app-topbar-safe) + clamp(20px, 4vh, 32px))
     calc(var(--app-safe-right) + clamp(12px, 4vw, 28px) + var(--settings-offset))
     clamp(10px, 2vh, 16px) calc(var(--app-safe-left) + clamp(12px, 4vw, 28px));
   background: linear-gradient(180deg, rgba(8, 8, 8, 0.82), rgba(8, 8, 8, 0));
@@ -433,7 +434,8 @@ body {
 .settings-fab {
   position: fixed;
   /* Увеличенный отступ сверху для камеры (особенно iPhone с Dynamic Island) */
-  top: calc(var(--app-topbar-safe) + clamp(16px, 3.5vh, 28px));
+  /* Опущено ниже для предотвращения перекрытия с системными элементами Telegram */
+  top: calc(var(--app-topbar-safe) + clamp(24px, 5vh, 40px));
   right: calc(var(--app-safe-right) + clamp(14px, 5vw, 26px));
   z-index: 6;
   display: inline-flex;
@@ -1628,7 +1630,8 @@ body {
     padding-left: calc(var(--app-safe-left) + clamp(12px, 4vw, 20px));
     padding-right: calc(var(--app-safe-right) + clamp(12px, 4vw, 20px));
     /* В landscape режиме меньше места по вертикали, но всё равно учитываем камеру */
-    padding-top: calc(var(--app-top-padding-base) + clamp(10px, 2.5vh, 18px));
+    /* Опущено ниже для предотвращения перекрытия с системными элементами Telegram */
+    padding-top: calc(var(--app-top-padding-base) + clamp(16px, 4vh, 24px));
     padding-bottom: calc(var(--nav-offset, 120px) + clamp(24px, 6vh, 40px));
     gap: var(--screen-gap, clamp(18px, 4vh, 28px));
   }
@@ -1646,12 +1649,12 @@ body {
   }
 
   .settings-fab {
-    top: calc(var(--app-topbar-safe) + clamp(12px, 2.5vh, 18px));
+    top: calc(var(--app-topbar-safe) + clamp(16px, 3.5vh, 24px));
     right: calc(var(--app-safe-right) + clamp(12px, 4vw, 20px));
   }
 
   .top-bar {
-    padding: calc(var(--app-topbar-safe) + clamp(8px, 2vh, 12px))
+    padding: calc(var(--app-topbar-safe) + clamp(14px, 3vh, 20px))
       calc(var(--app-safe-right) + clamp(12px, 4vw, 20px)) clamp(10px, 2vh, 14px)
       calc(var(--app-safe-left) + clamp(12px, 4vw, 20px));
   }
@@ -1724,7 +1727,8 @@ body {
   padding-left: calc(var(--app-safe-left) + clamp(16px, 4vw, 24px));
   padding-right: calc(var(--app-safe-right) + clamp(16px, 4vw, 24px));
   /* Увеличенный верхний отступ для безопасной зоны */
-  padding-top: calc(var(--app-top-padding-base) + clamp(16px, 3.5vh, 28px));
+  /* Опущено ниже для предотвращения перекрытия с системными элементами Telegram */
+  padding-top: calc(var(--app-top-padding-base) + clamp(24px, 5vh, 40px));
   padding-bottom: calc(var(--nav-offset, 120px) + clamp(32px, 7vh, 56px));
   display: flex;
   flex-direction: column;
