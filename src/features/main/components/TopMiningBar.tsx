@@ -92,11 +92,14 @@ export default function TopMiningBar({
           </div>
         </div>
 
-        {status && (
-          <div className="mining-status-message" aria-live="polite" aria-atomic="true">
-            {status}
+        <div className="mining-status-area" aria-live="polite" aria-atomic="true">
+          <div
+            className={`mining-status-message${status ? " mining-status-message--visible" : ""}`}
+            aria-hidden={status ? undefined : true}
+          >
+            {status ?? "\u00a0"}
           </div>
-        )}
+        </div>
 
         <div className="mining-progress">
           <div

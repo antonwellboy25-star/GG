@@ -104,10 +104,11 @@ export default function ShopScreen() {
                   className="shop-item__button"
                   disabled={!item.available}
                   onClick={() => handleBuyClick(item)}
+                  aria-label={
+                    item.available ? `Сжечь ${numberFormatter.format(item.price)} GRAM` : undefined
+                  }
                 >
-                  {item.available
-                    ? `Сжечь ${numberFormatter.format(item.price)} GRAM`
-                    : "Недоступно"}
+                  {item.available ? "Сжечь" : "Недоступно"}
                 </button>
               </div>
             </div>

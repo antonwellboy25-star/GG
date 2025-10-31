@@ -138,7 +138,7 @@ export default function SettingsScreen() {
           {/* Interface */}
           <div className="settings-card">
             <div className="settings-card__header">
-              <h2>� Звук</h2>
+              <h2>🎧 Звук</h2>
             </div>
             <div className="settings-card__content">
               <div className="settings-field">

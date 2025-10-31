@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="grad-bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#242D66" />
+      <stop offset="1" stop-color="#5771F4" />
+    </linearGradient>
+    <linearGradient id="grad-glow" x1="18" y1="12" x2="46" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE896" stop-opacity="0.95" />
+      <stop offset="1" stop-color="#FFB347" stop-opacity="0.8" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#grad-bg)" />
+  <circle cx="32" cy="32" r="18" fill="url(#grad-glow)" fill-opacity="0.45" />
+  <path fill="#101436" fill-opacity="0.85" d="M45.6 20.32a2 2 0 0 0-1.84-1.2h-9.52c-9.86 0-17.84 7.98-17.84 17.84S24.38 54.8 34.24 54.8c7.94 0 15-5 17.12-12.38a2 2 0 0 0-1.92-2.56h-8.66a2 2 0 0 0-1.82 1.2c-1.2 2.68-3.88 4.44-6.72 4.44-4.16 0-7.54-3.38-7.54-7.54s3.38-7.54 7.54-7.54c2.46 0 4.72 1.18 6.12 3.16a2 2 0 0 0 1.64.84h8.66a2 2 0 0 0 1.92-2.56 18.06 18.06 0 0 0-2.82-5.84Z" />
+  <path fill="#F8FBFF" d="M36.08 18.56c-7.46 0-13.52 6.06-13.52 13.52 0 7.46 6.06 13.52 13.52 13.52 4.98 0 9.48-2.68 11.9-7.02l-5.28-.02c-1.8 1.66-4.06 2.56-6.62 2.56-5.38 0-9.76-4.38-9.76-9.76s4.38-9.76 9.76-9.76c3.12 0 5.88 1.44 7.64 3.76l5.34.02c-2.64-4.48-7.48-7.82-13.48-7.82Z" />
+</svg>

@@ -4,13 +4,23 @@ import { recentSessions as baseSessions } from "@/features/main/data/statistics"
 import type { StatisticsSummary, RecentSession } from "@/features/main/data/statistics";
 
 const GRAM_PER_GOLD = 1000;
+const MAX_HISTORY_RECORDS = 20;
+const MAX_RECENT_SESSIONS = 10;
+
+type BurnSource = "mining" | "purchase" | "other";
 
 export type BurnRecord = {
   id: number;
   gram: number;
   gold: number;
   date: string;
-  source: "mining" | "purchase" | "other";
+  source: BurnSource;
+  description?: string;
+};
+
+type RecordBurnOptions = {
+  goldEarned?: number;
+  source?: BurnSource;
   description?: string;
 };
 
@@ -32,10 +42,7 @@ type UserRuntimeContextValue = {
     gram: number;
     gold: number;
   };
-  recordBurn: (
-    gramAmount: number,
-    options?: { goldEarned?: number; source?: BurnRecord["source"]; description?: string },
-  ) => BurnRecord;
+  recordBurn: (gramAmount: number, options?: RecordBurnOptions) => BurnRecord;
   addGram: (gramAmount: number) => void;
   spendGram: (gramAmount: number) => boolean;
   addGold: (goldAmount: number) => void;
@@ -44,52 +51,49 @@ type UserRuntimeContextValue = {
 
 const UserRuntimeContext = createContext<UserRuntimeContextValue | null>(null);
 
-const INITIAL_RUNTIME: RuntimeState = {
+const DATE_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
+  day: "2-digit",
+  month: "short",
+});
+
+const formatRecentDate = (date: Date) => DATE_FORMATTER.format(date);
+
+const createInitialRuntime = (): RuntimeState => ({
   burnedGram: 0,
   mintedGold: 0,
   history: [],
   gramBalance: 0,
   goldBalance: 0,
   sessionsCompleted: 0,
-};
+});
 
-const formatRecentDate = (date: Date) => {
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "short",
-  }).format(date);
-};
+const createInitialSessions = () => baseSessions.map((session) => ({ ...session }));
 
 export function UserRuntimeProvider({ children }: { children: ReactNode }) {
-  const [runtime, setRuntime] = useState<RuntimeState>({ ...INITIAL_RUNTIME });
-  const [sessions, setSessions] = useState<RecentSession[]>(baseSessions);
+  const [runtime, setRuntime] = useState<RuntimeState>(createInitialRuntime);
+  const [sessions, setSessions] = useState<RecentSession[]>(createInitialSessions);
 
   const stats = useMemo<StatisticsSummary>(() => {
-    const mintedTotal = runtime.mintedGold;
-    const burnedTotal = runtime.burnedGram;
-    const totalSessions = runtime.sessionsCompleted;
-    const avgPerSession = totalSessions > 0 ? mintedTotal / totalSessions : 0;
-    const burnRate = burnedTotal > 0 ? mintedTotal / burnedTotal : 0;
+    const { mintedGold, burnedGram, sessionsCompleted } = runtime;
+    const avgPerSession = sessionsCompleted > 0 ? mintedGold / sessionsCompleted : 0;
+    const burnRate = burnedGram > 0 ? mintedGold / burnedGram : 0;
 
     return {
-      totalGG: mintedTotal,
-      totalSessions,
+      totalGG: mintedGold,
+      totalSessions: sessionsCompleted,
       avgPerSession,
       burnRate,
     };
-  }, [runtime.mintedGold, runtime.burnedGram, runtime.sessionsCompleted]);
+  }, [runtime]);
 
   const recordBurn = useCallback(
-    (
-      gramAmount: number,
-      options: { goldEarned?: number; source?: BurnRecord["source"]; description?: string } = {},
-    ): BurnRecord => {
+    (gramAmount: number, options: RecordBurnOptions = {}): BurnRecord => {
       if (gramAmount <= 0) {
         throw new Error("GRAM amount must be positive");
       }
 
-      const gold = options.goldEarned ?? gramAmount / GRAM_PER_GOLD;
-      const source = options.source ?? "other";
+      const { goldEarned, source = "other", description } = options;
+      const gold = goldEarned ?? gramAmount / GRAM_PER_GOLD;
       const now = new Date();
       const record: BurnRecord = {
         id: now.getTime(),
@@ -97,7 +101,7 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
         gold,
         date: now.toISOString(),
         source,
-        description: options.description,
+        description,
       };
 
       setRuntime((prev) => ({
@@ -105,23 +109,20 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
         burnedGram: prev.burnedGram + gramAmount,
         mintedGold: prev.mintedGold + gold,
         goldBalance: prev.goldBalance + gold,
-        history: [record, ...prev.history].slice(0, 20),
+        history: [record, ...prev.history].slice(0, MAX_HISTORY_RECORDS),
         sessionsCompleted: prev.sessionsCompleted + (source === "mining" ? 1 : 0),
       }));
 
       if (source === "mining") {
-        setSessions((prev) =>
-          [
-            {
-              id: record.id,
-              date: formatRecentDate(now),
-              burned: gramAmount,
-              earned: gold,
-              status: "completed" as const,
-            },
-            ...prev,
-          ].slice(0, 10),
-        );
+        const sessionEntry: RecentSession = {
+          id: record.id,
+          date: formatRecentDate(now),
+          burned: gramAmount,
+          earned: gold,
+          status: "completed",
+        };
+
+        setSessions((prev) => [sessionEntry, ...prev].slice(0, MAX_RECENT_SESSIONS));
       }
 
       return record;
@@ -169,9 +170,17 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetAll = useCallback(() => {
-    setRuntime({ ...INITIAL_RUNTIME });
-    setSessions([]);
+    setRuntime(createInitialRuntime());
+    setSessions(createInitialSessions());
   }, []);
+
+  const balances = useMemo(
+    () => ({
+      gram: runtime.gramBalance,
+      gold: runtime.goldBalance,
+    }),
+    [runtime.gramBalance, runtime.goldBalance],
+  );
 
   const value: UserRuntimeContextValue = useMemo(
     () => ({
@@ -179,17 +188,14 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
       runtime,
       recentSessions: sessions,
       gramPerGold: GRAM_PER_GOLD,
-      balances: {
-        gram: runtime.gramBalance,
-        gold: runtime.goldBalance,
-      },
+      balances,
       recordBurn,
       addGram,
       spendGram,
       addGold,
       resetAll,
     }),
-    [stats, runtime, sessions, recordBurn, addGram, spendGram, addGold, resetAll],
+    [stats, runtime, sessions, balances, recordBurn, addGram, spendGram, addGold, resetAll],
   );
 
   return <UserRuntimeContext.Provider value={value}>{children}</UserRuntimeContext.Provider>;

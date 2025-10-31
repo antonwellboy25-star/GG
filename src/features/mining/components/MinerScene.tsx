@@ -19,7 +19,7 @@ const FLASH_PARTICLE_COLOR = new THREE.Color(0xfff6d9);
 const EMIT_PARTICLE_COLOR = new THREE.Color(0xf6dba4);
 const TEMP_PARTICLE_COLOR = new THREE.Color();
 
-const clamp = (value: number) => Math.min(Math.max(value, 0), 1);
+const clamp01 = (value: number) => THREE.MathUtils.clamp(value, 0, 1);
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const easeOutExpo = (t: number) => (t >= 1 ? 1 : 1 - 2 ** (-10 * t));
 const easeOutBack = (t: number) => {
@@ -30,7 +30,8 @@ const easeOutBack = (t: number) => {
 };
 const easeInSine = (t: number) => 1 - Math.cos((t * Math.PI) / 2);
 
-const initialNow = typeof performance !== "undefined" ? performance.now() : Date.now();
+const getNow = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+const initialNow = getNow();
 
 const isWebGLAvailable = () => {
   if (typeof window === "undefined") return false;
@@ -179,23 +180,23 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
 
     const { attribute, spherical, seeds, points, material, radius } = field;
     const arr = attribute.array as Float32Array;
-    const cohesion = clamp(cohesionRef.current);
+    const cohesion = clamp01(cohesionRef.current);
     const timeline = timelineRef.current;
-    const approach = clamp(timeline.approach);
-    const dissolve = clamp(timeline.dissolve);
-    const absorb = clamp(timeline.absorb);
-    const flash = clamp(timeline.flash);
-    const emit = clamp(timeline.emit);
-    const release = clamp(timeline.release);
+    const approach = clamp01(timeline.approach);
+    const dissolve = clamp01(timeline.dissolve);
+    const absorb = clamp01(timeline.absorb);
+    const flash = clamp01(timeline.flash);
+    const emit = clamp01(timeline.emit);
+    const release = clamp01(timeline.release);
     const emission = Math.max(emit, release);
 
-    const intake = clamp(approach * 0.6 + dissolve * 0.85 + absorb * 1.05);
+    const intake = clamp01(approach * 0.6 + dissolve * 0.85 + absorb * 1.05);
     const blendBase = cohesion;
-    const blend = clamp(
+    const blend = clamp01(
       blendBase + dissolve * 0.4 + absorb * 0.35 + flash * 0.25 + approach * 0.12 - emission * 0.45,
     );
     const swirlBase = 1 - cohesion;
-    const swirl = clamp(swirlBase + emission * 0.35 + flash * 0.18 - (dissolve + absorb) * 0.28);
+    const swirl = clamp01(swirlBase + emission * 0.35 + flash * 0.18 - (dissolve + absorb) * 0.28);
     const jitterAmplifier = 1 + flash * 0.5 + emission * 0.28;
     const radiusFactor = THREE.MathUtils.clamp(
       1 + flash * 0.24 + absorb * 0.12 + emission * 0.08 - dissolve * 0.14 - approach * 0.06,
@@ -234,12 +235,12 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       ggDirZ = ggPos.z * invLen;
     }
 
-    const gramBurst = clamp(dissolve * 1.4 + absorb * 0.35);
-    const gramShear = clamp(approach * 0.4 + dissolve * 0.6);
+    const gramBurst = clamp01(dissolve * 1.4 + absorb * 0.35);
+    const gramShear = clamp01(approach * 0.4 + dissolve * 0.6);
     const gramOffsetBase = gramBurst * (0.22 + gramShear * 0.36);
     const gramSpreadBase = gramBurst * (0.12 + gramShear * 0.22);
 
-    const emitBurst = clamp(emission * 1.2 + flash * 0.4);
+    const emitBurst = clamp01(emission * 1.2 + flash * 0.4);
     const emitOffsetBase = emitBurst * (0.26 + absorb * 0.18);
     const emitHollowBase = emitBurst * 0.18;
 
@@ -325,14 +326,14 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
 
     TEMP_PARTICLE_COLOR.copy(BASE_PARTICLE_COLOR);
     if (dissolve > 0 || absorb > 0) {
-      const absorbMix = clamp(dissolve * 0.45 + absorb * 0.8);
+      const absorbMix = clamp01(dissolve * 0.45 + absorb * 0.8);
       TEMP_PARTICLE_COLOR.lerp(ABSORB_PARTICLE_COLOR, absorbMix);
     }
     if (emission > 0) {
-      TEMP_PARTICLE_COLOR.lerp(EMIT_PARTICLE_COLOR, clamp(emission * 0.6));
+      TEMP_PARTICLE_COLOR.lerp(EMIT_PARTICLE_COLOR, clamp01(emission * 0.6));
     }
     if (flash > 0) {
-      TEMP_PARTICLE_COLOR.lerp(FLASH_PARTICLE_COLOR, clamp(flash));
+      TEMP_PARTICLE_COLOR.lerp(FLASH_PARTICLE_COLOR, clamp01(flash));
     }
     const colorLerp = THREE.MathUtils.clamp(0.18 + flash * 0.2 + emission * 0.1, 0.18, 0.65);
     material.color.lerp(TEMP_PARTICLE_COLOR, colorLerp);
@@ -347,7 +348,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
     const positions = attribute.array as Float32Array;
     const sizeArr = sizes.array as Float32Array;
 
-    const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.0013;
+    const time = getNow() * 0.0013;
 
     if (!mode) {
       const current = shader.uniforms.uOpacity.value as number;
@@ -362,8 +363,8 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       return;
     }
 
-    const head = clamp(progress);
-    const headBalanced = clamp(4 * head * (1 - head));
+    const head = clamp01(progress);
+    const headBalanced = clamp01(4 * head * (1 - head));
     const minTail = mode === "entry" ? 0.05 : 0.07;
     const maxTail = mode === "entry" ? 0.18 : 0.24;
     const tailSpan = THREE.MathUtils.lerp(minTail, maxTail, headBalanced);
@@ -418,7 +419,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         continue;
       }
 
-      const sampleProgress = clamp(Math.max(minSample, head - headGap - offset * tailSpan));
+      const sampleProgress = clamp01(Math.max(minSample, head - headGap - offset * tailSpan));
       if (sampleProgress >= head) {
         sizeArr[i] = 0;
         continue;
@@ -429,7 +430,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
           ? sampleEntryPath(sampleProgress, viewport, nX, nY)
           : sampleReleasePath(sampleProgress, viewport, nX, nY);
 
-      const alongTail = clamp((head - sampleProgress) / Math.max(tailSpan, 0.001));
+      const alongTail = clamp01((head - sampleProgress) / Math.max(tailSpan, 0.001));
       const jitterStrength = (1 - alongTail * 0.85) * (mode === "entry" ? 0.2 : 0.24);
       const sinJ = Math.sin(time * 3.6 + nX * 9.7) * jitterStrength * widthScale;
       const cosJ = Math.cos(time * 3.2 + nY * 8.9) * jitterStrength * heightScale;
@@ -499,7 +500,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         }
       }
 
-      const cohesion = clamp(cohesionRef.current);
+      const cohesion = clamp01(cohesionRef.current);
       const ready = cohesion > 0.68 && activeRef.current;
       if (ready && !coinEnabledRef.current) {
         coinEnabledRef.current = true;
@@ -511,12 +512,12 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         gg.visible = false;
         gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, 0, 8, dt);
         ggMat.opacity = THREE.MathUtils.damp(ggMat.opacity, 0, 8, dt);
-        timeline.approach = clamp(THREE.MathUtils.damp(timeline.approach, 0, 6.5, dt));
-        timeline.dissolve = clamp(THREE.MathUtils.damp(timeline.dissolve, 0, 6.8, dt));
-        timeline.absorb = clamp(THREE.MathUtils.damp(timeline.absorb, 0, 7.2, dt));
-        timeline.flash = clamp(THREE.MathUtils.damp(timeline.flash, 0, 8.6, dt));
-        timeline.emit = clamp(THREE.MathUtils.damp(timeline.emit, 0, 7.2, dt));
-        timeline.release = clamp(THREE.MathUtils.damp(timeline.release, 0, 7.2, dt));
+        timeline.approach = clamp01(THREE.MathUtils.damp(timeline.approach, 0, 6.5, dt));
+        timeline.dissolve = clamp01(THREE.MathUtils.damp(timeline.dissolve, 0, 6.8, dt));
+        timeline.absorb = clamp01(THREE.MathUtils.damp(timeline.absorb, 0, 7.2, dt));
+        timeline.flash = clamp01(THREE.MathUtils.damp(timeline.flash, 0, 8.6, dt));
+        timeline.emit = clamp01(THREE.MathUtils.damp(timeline.emit, 0, 7.2, dt));
+        timeline.release = clamp01(THREE.MathUtils.damp(timeline.release, 0, 7.2, dt));
         timeline.progress = 0;
         timeline.gramPos.set(0, 0, 0);
         timeline.ggPos.set(0, 0, 0);
@@ -552,12 +553,12 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       const targetEmit = emitPhase !== null ? easeInOutCubic(emitPhase) : 0;
       const targetRelease = launchPhase !== null ? easeInOutCubic(launchPhase) : 0;
 
-      timeline.approach = clamp(THREE.MathUtils.damp(timeline.approach, targetApproach, 6.8, dt));
-      timeline.dissolve = clamp(THREE.MathUtils.damp(timeline.dissolve, targetDissolve, 7.2, dt));
-      timeline.absorb = clamp(THREE.MathUtils.damp(timeline.absorb, targetAbsorb, 8.2, dt));
-      timeline.flash = clamp(THREE.MathUtils.damp(timeline.flash, targetFlash, 9.4, dt));
-      timeline.emit = clamp(THREE.MathUtils.damp(timeline.emit, targetEmit, 7.4, dt));
-      timeline.release = clamp(THREE.MathUtils.damp(timeline.release, targetRelease, 7.4, dt));
+      timeline.approach = clamp01(THREE.MathUtils.damp(timeline.approach, targetApproach, 6.8, dt));
+      timeline.dissolve = clamp01(THREE.MathUtils.damp(timeline.dissolve, targetDissolve, 7.2, dt));
+      timeline.absorb = clamp01(THREE.MathUtils.damp(timeline.absorb, targetAbsorb, 8.2, dt));
+      timeline.flash = clamp01(THREE.MathUtils.damp(timeline.flash, targetFlash, 9.4, dt));
+      timeline.emit = clamp01(THREE.MathUtils.damp(timeline.emit, targetEmit, 7.4, dt));
+      timeline.release = clamp01(THREE.MathUtils.damp(timeline.release, targetRelease, 7.4, dt));
 
       const timeWave = now * 0.0012;
 
@@ -791,7 +792,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         const worldHeight = 2 * Math.tan(halfFovRad) * distance;
         const worldWidth = worldHeight * camera.aspect;
 
-        // Адаптивный коэффициент: чем шире экран, тем дальше улетают монеты
+        // Adaptive coefficient pushes coins further on wider screens
         const exitCoeff = Math.min(1.2, 0.72 + camera.aspect * 0.15);
         const entryX = -worldWidth * exitCoeff;
         const exitX = worldWidth * exitCoeff;
@@ -828,7 +829,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       resize();
 
       const animate = () => {
-        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        const now = getNow();
         const dt = Math.min((now - lastTimeRef.current) / 1000, 0.05);
         lastTimeRef.current = now;
 
@@ -896,10 +897,10 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
 
   if (fallback) {
     return (
-      <div className="maining-fallback" role="img" aria-label="Статичное изображение монеты">
+      <div className="maining-fallback" role="img" aria-label="Static coin artwork">
         <span className="maining-fallback__halo" aria-hidden />
         <img src={ggTextureUrl} alt="" className="maining-fallback__logo" draggable={false} />
-        <p className="maining-fallback__text">Ваше устройство не поддерживает 3D-анимацию.</p>
+        <p className="maining-fallback__text">Your device does not support 3D animation.</p>
       </div>
     );
   }
@@ -911,7 +912,7 @@ function phaseWindow(value: number, start: number, length: number) {
   if (length <= 0) return null;
   const end = start + length;
   if (value < start || value > end) return null;
-  return clamp((value - start) / length);
+  return clamp01((value - start) / length);
 }
 
 function createParticleField(texture: THREE.Texture): ParticleField {
@@ -963,10 +964,10 @@ function createStreamField(texture: THREE.Texture): StreamField {
   const attribute = new THREE.BufferAttribute(positions, 3);
   geometry.setAttribute("position", attribute);
 
-  // Добавляем атрибут размера для каждой частицы
+  // Add per-particle size channel so we can fade streams smoothly
   const sizes = new Float32Array(STREAM_COUNT);
   for (let i = 0; i < STREAM_COUNT; i += 1) {
-    sizes[i] = 1.0; // изначально все частицы полного размера
+    sizes[i] = 1.0; // Start at full size before animation kicks in
   }
   const sizeAttribute = new THREE.BufferAttribute(sizes, 1);
   geometry.setAttribute("size", sizeAttribute);
@@ -981,7 +982,7 @@ function createStreamField(texture: THREE.Texture): StreamField {
     seeds[idx + 2] = Math.random() * 2 - 1;
   }
 
-  // Используем ShaderMaterial для поддержки индивидуальных размеров частиц
+  // Custom shader keeps unique sprite scale per particle
   const shader = new THREE.ShaderMaterial({
     uniforms: {
       uTexture: { value: texture },
@@ -1028,7 +1029,7 @@ function createStreamField(texture: THREE.Texture): StreamField {
   points.frustumCulled = false;
   points.renderOrder = 11;
 
-  // Создаём обёртку для совместимости с существующим кодом
+  // Bridge minimal PointsMaterial API expected by existing code paths
   const materialBridge = {} as THREE.PointsMaterial;
   Object.defineProperties(materialBridge, {
     color: {
@@ -1201,7 +1202,7 @@ function createHaloTexture(size: number): THREE.CanvasTexture {
 }
 
 function sampleEntryPath(t: number, viewport: ViewportMetrics, jitterX: number, jitterY: number) {
-  const eased = clamp(t);
+  const eased = clamp01(t);
   const base = getEntryBasePosition(eased, viewport);
   const attenuation = 1 - easeInOutCubic(eased) * 0.55;
   return {
@@ -1212,7 +1213,7 @@ function sampleEntryPath(t: number, viewport: ViewportMetrics, jitterX: number, 
 }
 
 function sampleReleasePath(t: number, viewport: ViewportMetrics, jitterX: number, jitterY: number) {
-  const eased = clamp(t);
+  const eased = clamp01(t);
   const base = getReleaseBasePosition(eased, viewport);
   const releasePhase = eased < 0.65 ? eased / 0.65 : 1;
   const attenuation = 1 - easeInOutCubic(releasePhase) * 0.6;
@@ -1224,7 +1225,7 @@ function sampleReleasePath(t: number, viewport: ViewportMetrics, jitterX: number
 }
 
 function getEntryBasePosition(t: number, viewport: ViewportMetrics) {
-  const eased = easeInOutCubic(clamp(t));
+  const eased = easeInOutCubic(clamp01(t));
   const x = THREE.MathUtils.lerp(viewport.entryX, 0, eased);
   const y = Math.sin(eased * Math.PI) * viewport.height * 0.18 - eased * 0.12;
   const z = -0.08 + Math.cos(eased * Math.PI) * 0.06;
@@ -1232,7 +1233,7 @@ function getEntryBasePosition(t: number, viewport: ViewportMetrics) {
 }
 
 function getReleaseBasePosition(t: number, viewport: ViewportMetrics) {
-  const clamped = clamp(t);
+  const clamped = clamp01(t);
   if (clamped <= 0.65) {
     const releaseT = clamped / 0.65;
     const arc = easeInOutCubic(releaseT);
@@ -1255,8 +1256,8 @@ function getReleaseBasePosition(t: number, viewport: ViewportMetrics) {
 
 function getStreamTangent(mode: "entry" | "release", t: number, viewport: ViewportMetrics) {
   const delta = 0.003;
-  const start = clamp(Math.max(0, t - delta));
-  const end = clamp(Math.min(1, t + delta));
+  const start = clamp01(Math.max(0, t - delta));
+  const end = clamp01(Math.min(1, t + delta));
   if (Math.abs(end - start) < 1e-4) {
     return { x: 0, y: 0, z: -1 };
   }

@@ -3,14 +3,16 @@ import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { copyToClipboard } from "@/shared/utils/clipboard";
 import { openTelegramShare } from "@/shared/utils/share";
 import { useTelegramInfo } from "@/shared/hooks/useTelegramInfo";
-import { buildReferralLink } from "@/shared/utils/telegram";
+import { buildReferralLinks } from "@/shared/utils/telegram";
 
 export default function ReferralsScreen() {
   const [copied, setCopied] = useState(false);
-  const { profile, referralCode, referralLink } = useTelegramInfo();
+  const { profile, referralCode, referralLinks } = useTelegramInfo();
 
   const effectiveCode = referralCode ?? "—";
-  const effectiveLink = referralLink ?? buildReferralLink(null);
+  const effectiveLinks = referralLinks ?? buildReferralLinks(null);
+  const shareLink = effectiveLinks.universal;
+
   const displayName = profile
     ? [profile.firstName, profile.lastName].filter(Boolean).join(" ") || profile.username || "Вы"
     : "Вы";
@@ -24,7 +26,7 @@ export default function ReferralsScreen() {
 
   const handleShare = () => {
     openTelegramShare({
-      url: effectiveLink,
+      url: shareLink,
       text: `${displayName} приглашает тебя в GG Mining!`,
     });
   };
@@ -82,11 +84,24 @@ export default function ReferralsScreen() {
             <button
               type="button"
               className="referral-action-btn"
-              onClick={() => handleCopy(effectiveLink)}
+              onClick={() => handleCopy(shareLink)}
             >
               <span>🔗</span>
               Скопировать ссылку
             </button>
+          </div>
+
+          <div className="referral-link-card__hint" role="note">
+            <p>
+              Для публикаций вне Telegram используйте ссылку Mini App:
+              <br />
+              <span className="referral-link-card__hint-link">{effectiveLinks.webApp}</span>
+            </p>
+            <p>
+              Если нужен переход в чат с ботом, отправьте:
+              <br />
+              <span className="referral-link-card__hint-link">{effectiveLinks.bot}</span>
+            </p>
           </div>
         </div>
 

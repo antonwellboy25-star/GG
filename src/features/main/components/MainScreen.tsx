@@ -41,6 +41,8 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
   const [sessionStake, setSessionStake] = useState(0);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
+  const progressRef = useRef(0);
+  const elapsedRef = useRef(0);
 
   const [screen, setScreen] = useState<Screen>("main");
   const [prev, setPrev] = useState<Screen | null>(null);
@@ -136,6 +138,8 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
     startRef.current = null;
     setProgress(0);
     setElapsed(0);
+    progressRef.current = 0;
+    elapsedRef.current = 0;
     setIsMining(true);
     setSessionStake(GRAM_PER_SESSION);
     setNotice(null);
@@ -156,6 +160,8 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
     setIsMining(false);
     setProgress(0);
     setElapsed(0);
+    progressRef.current = 0;
+    elapsedRef.current = 0;
     setSessionStake(0);
   }, [addGram, progress, sessionStake]);
 
@@ -184,8 +190,14 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
       const nextProgress = Math.min(elapsedMs / SESSION_DURATION_MS, 1);
       const nextElapsed = Math.min(elapsedMs / 1000, SESSION_DURATION_SEC);
 
-      setProgress(nextProgress);
-      setElapsed(nextElapsed);
+      if (Math.abs(nextProgress - progressRef.current) >= 0.005 || nextProgress >= 1) {
+        progressRef.current = nextProgress;
+        setProgress(nextProgress);
+      }
+      if (Math.abs(nextElapsed - elapsedRef.current) >= 0.1 || nextProgress >= 1) {
+        elapsedRef.current = nextElapsed;
+        setElapsed(nextElapsed);
+      }
 
       if (nextProgress >= 1) {
         setLastReward(goldPerSession);
