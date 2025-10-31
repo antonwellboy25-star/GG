@@ -51,7 +51,7 @@ export default function TopMiningBar({
     ? `+${goldFormatter.format(session.lastReward)} GOLD`
     : "—";
   const buttonDisabled = disabled || (!session.active && !canMine);
-  const buttonLabel = disabled 
+  const buttonLabel = disabled
     ? "Загрузка..."
     : session.active
       ? "Остановить"

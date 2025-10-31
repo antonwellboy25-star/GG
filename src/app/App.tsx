@@ -28,8 +28,8 @@ export default function App() {
     const preventPullToRefresh = (e: Event) => {
       const touchEvent = e as TouchEvent;
       const target = touchEvent.target as HTMLElement;
-      const scrollable = target.closest('.screen-wrapper');
-      
+      const scrollable = target.closest(".screen-wrapper");
+
       if (scrollable && scrollable.scrollTop === 0 && touchEvent.touches) {
         const touch = touchEvent.touches[0];
         const startY = touch.clientY;
@@ -37,7 +37,7 @@ export default function App() {
         const handleMove = (moveEvent: Event) => {
           const moveTouchEvent = moveEvent as TouchEvent;
           if (!moveTouchEvent.touches) return;
-          
+
           const moveTouch = moveTouchEvent.touches[0];
           const currentY = moveTouch.clientY;
           const diff = currentY - startY;
@@ -48,21 +48,21 @@ export default function App() {
           }
         };
 
-        document.addEventListener('touchmove', handleMove, { passive: false });
-        
+        document.addEventListener("touchmove", handleMove, { passive: false });
+
         const cleanup = () => {
-          document.removeEventListener('touchmove', handleMove);
+          document.removeEventListener("touchmove", handleMove);
         };
 
-        document.addEventListener('touchend', cleanup, { once: true });
-        document.addEventListener('touchcancel', cleanup, { once: true });
+        document.addEventListener("touchend", cleanup, { once: true });
+        document.addEventListener("touchcancel", cleanup, { once: true });
       }
     };
 
-    document.addEventListener('touchstart', preventPullToRefresh, { passive: false });
+    document.addEventListener("touchstart", preventPullToRefresh, { passive: false });
 
     return () => {
-      document.removeEventListener('touchstart', preventPullToRefresh);
+      document.removeEventListener("touchstart", preventPullToRefresh);
     };
   }, []);
 
@@ -74,27 +74,27 @@ export default function App() {
     try {
       // 1. Инициализация WebApp
       webApp.ready();
-      
+
       // 2. Раскрываем на весь экран
       if (typeof webApp.expand === "function") {
         webApp.expand();
       }
-      
+
       // 3. КРИТИЧНО: Запрашиваем fullscreen режим (новый API)
       if (typeof webApp.requestFullscreen === "function") {
         webApp.requestFullscreen();
       }
-      
+
       // 4. Блокируем вертикальные свайпы (предотвращаем закрытие)
       if (typeof webApp.disableVerticalSwipes === "function") {
         webApp.disableVerticalSwipes();
       }
-      
+
       // 5. Включаем подтверждение закрытия
       if (typeof webApp.enableClosingConfirmation === "function") {
         webApp.enableClosingConfirmation();
       }
-      
+
       // 6. Устанавливаем цвета для максимального погружения
       if (typeof webApp.setHeaderColor === "function") {
         webApp.setHeaderColor("#000000");
@@ -105,12 +105,11 @@ export default function App() {
       if (typeof webApp.setBottomBarColor === "function") {
         webApp.setBottomBarColor("#000000");
       }
-      
+
       // 7. Скрываем клавиатуру если открыта
       if (typeof webApp.hideKeyboard === "function") {
         webApp.hideKeyboard();
       }
-      
     } catch (_error) {
       // Игнорируем ошибки, если API недоступны
     }
@@ -148,12 +147,14 @@ export default function App() {
 
     const sanitizeInsets = (raw: Partial<Insets> | null | undefined): Insets | null => {
       if (!raw) return null;
-      const top = typeof raw.top === "number" && Number.isFinite(raw.top) ? Math.max(0, raw.top) : 0;
-      const right = typeof raw.right === "number" && Number.isFinite(raw.right) ? Math.max(0, raw.right) : 0;
-      const bottom = typeof raw.bottom === "number" && Number.isFinite(raw.bottom)
-        ? Math.max(0, raw.bottom)
-        : 0;
-      const left = typeof raw.left === "number" && Number.isFinite(raw.left) ? Math.max(0, raw.left) : 0;
+      const top =
+        typeof raw.top === "number" && Number.isFinite(raw.top) ? Math.max(0, raw.top) : 0;
+      const right =
+        typeof raw.right === "number" && Number.isFinite(raw.right) ? Math.max(0, raw.right) : 0;
+      const bottom =
+        typeof raw.bottom === "number" && Number.isFinite(raw.bottom) ? Math.max(0, raw.bottom) : 0;
+      const left =
+        typeof raw.left === "number" && Number.isFinite(raw.left) ? Math.max(0, raw.left) : 0;
       return { top, right, bottom, left };
     };
 
@@ -252,7 +253,8 @@ export default function App() {
         }
       }
       if (!content) {
-        content = safe ?? (viewportFallback && hasInset(viewportFallback) ? viewportFallback : null);
+        content =
+          safe ?? (viewportFallback && hasInset(viewportFallback) ? viewportFallback : null);
       }
 
       setInsets("--app-safe-area", safe);
@@ -284,7 +286,8 @@ export default function App() {
       setPxVar("--tg-viewport-stable-height", viewportStableHeight ?? viewportHeight);
       setPxVar("--tg-viewport-width", viewportWidth);
 
-      root.dataset.tgFullscreen = (webApp.isFullscreen ?? viewportApi?.isFullscreen) ? "true" : "false";
+      root.dataset.tgFullscreen =
+        (webApp.isFullscreen ?? viewportApi?.isFullscreen) ? "true" : "false";
       root.dataset.tgExpanded = (webApp.isExpanded ?? viewportApi?.isExpanded) ? "true" : "false";
 
       if (typeof webApp.setHeaderColor === "function") {
@@ -327,7 +330,10 @@ export default function App() {
 
     const handleViewportUpdate = () => applyMetrics();
 
-    if (typeof viewportApi?.onViewportChanged === "function" && typeof viewportApi?.offViewportChanged === "function") {
+    if (
+      typeof viewportApi?.onViewportChanged === "function" &&
+      typeof viewportApi?.offViewportChanged === "function"
+    ) {
       viewportApi.onViewportChanged(handleViewportUpdate);
       cleanup.push(() => {
         viewportApi.offViewportChanged?.(handleViewportUpdate);

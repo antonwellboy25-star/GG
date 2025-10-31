@@ -6,14 +6,8 @@
   --gold3: #f1d27a;
   --app-viewport-width: var(--tg-viewport-width, 100vw);
   --app-viewport-height: var(--tg-viewport-height, 100vh);
-  --app-viewport-stable-height: var(
-    --tg-viewport-stable-height,
-    var(--app-viewport-height, 100vh)
-  );
-  --app-body-min-height: var(
-    --app-viewport-stable-height,
-    var(--app-viewport-height, 100vh)
-  );
+  --app-viewport-stable-height: var(--tg-viewport-stable-height, var(--app-viewport-height, 100vh));
+  --app-body-min-height: var(--app-viewport-stable-height, var(--app-viewport-height, 100vh));
   /* Safe area переменные с правильными fallback значениями */
   --app-safe-area-top: var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px));
   --app-safe-area-right: var(--tg-safe-area-inset-right, env(safe-area-inset-right, 0px));
@@ -29,21 +23,21 @@
     var(--app-safe-area-bottom)
   );
   --app-content-safe-area-left: var(--tg-content-safe-area-inset-left, var(--app-safe-area-left));
-  
+
   /* Необработанные значения для точного контроля */
   --app-safe-left-raw: var(--app-content-safe-area-left, var(--app-safe-area-left, 0px));
   --app-safe-right-raw: var(--app-content-safe-area-right, var(--app-safe-area-right, 0px));
-  
+
   /* КРИТИЧНО: Верхний отступ должен быть больше для камеры и системных элементов */
   /* iPhone с Dynamic Island требуют ~59px, обычные notch ~44px */
   --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 16px);
-  
+
   /* Нижний отступ для навигации и индикатора home */
   --app-safe-bottom: max(
     var(--app-content-safe-area-bottom, var(--app-safe-area-bottom, 0px)),
     12px
   );
-  
+
   /* Боковые отступы - меньше, т.к. там нет камеры */
   --app-safe-left: max(var(--app-safe-left-raw), 12px);
   --app-safe-right: max(var(--app-safe-right-raw), 12px);
@@ -321,7 +315,7 @@ body {
       --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 20px);
     }
   }
-  
+
   @media (min-height: 900px) {
     :root {
       /* Для очень больших экранов (iPhone Pro Max) еще больше */
@@ -1018,14 +1012,7 @@ body {
   outline: none;
 }
 
-.nav-bar__button:focus-visible::after {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: calc(var(--nav-button-radius) + 3px);
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  pointer-events: none;
-}
+/* focus-visible ring объединён ниже, чтобы исключить дублирование */
 
 .nav-bar__button:hover {
   color: rgba(255, 255, 255, 0.8);
@@ -1193,11 +1180,11 @@ body {
     --nav-button-size: clamp(38px, 10vw, 44px);
     --nav-button-min-size: 36px;
   }
-  
+
   .nav-bar__icon {
     --nav-icon-size: clamp(19px, 4.8vw, 22px);
   }
-  
+
   /* На узких экранах уменьшаем индикатор */
   .nav-bar__button::after {
     --nav-indicator-width: 16px;
@@ -1237,12 +1224,12 @@ body {
   .nav-bar__icon {
     --nav-icon-size: clamp(18px, 4.5vw, 20px);
   }
-  
+
   /* На очень узких экранах scale анимация меньше */
   .nav-bar__button.is-active .nav-bar__icon svg {
     transform: scale(1.08);
   }
-  
+
   .nav-bar__button:hover .nav-bar__icon svg {
     transform: scale(1.05);
   }
@@ -1790,7 +1777,7 @@ body {
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
   }
-  
+
   .settings-fab {
     animation: none;
     opacity: 1;
