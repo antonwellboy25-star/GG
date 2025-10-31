@@ -10,6 +10,14 @@ import TasksScreen from "@/features/main/screens/TasksScreen";
 import ProfileScreen from "@/features/main/screens/ProfileScreen";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
 import { ggFormatter } from "@/shared/utils/formatters";
+import { haptics } from "@/shared/utils/haptics";
+import {
+  playMiningComplete,
+  playMiningStart,
+  playMiningStop,
+  playSettingsCue,
+  playWarningCue,
+} from "@/shared/utils/sounds";
 
 const ANIM_MS = 320;
 const SESSION_DURATION_SEC = 20;
@@ -67,6 +75,8 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
   }, [screen]);
 
   const toggleSettings = useCallback(() => {
+    haptics.selection();
+    playSettingsCue();
     if (screen === "settings") {
       const fallback = lastPrimaryRef.current === "settings" ? "main" : lastPrimaryRef.current;
       navigate(fallback);
@@ -104,11 +114,10 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
   const outgoingClass = prev && dir ? (dir === "left" ? "slide-out-left" : "slide-out-right") : "";
   const incomingClass = prev && dir ? (dir === "left" ? "slide-in-right" : "slide-in-left") : "";
   const isHome = screen === "main";
-  const hasHome = isHome || prev === "main";
   const mainBodyClass = useMemo(() => `main-body${isHome ? " main-body--home" : ""}`, [isHome]);
   const viewportClass = useMemo(
-    () => `screens-viewport${hasHome ? " screens-viewport--home" : ""}`,
-    [hasHome],
+    () => `screens-viewport${isHome ? " screens-viewport--home" : ""}`,
+    [isHome],
   );
 
   const gramsBurned = Math.min(Math.round(progress * GRAM_PER_SESSION), GRAM_PER_SESSION);
@@ -119,7 +128,9 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
     const ok = spendGram(GRAM_PER_SESSION);
     if (!ok) {
       setNotice("Недостаточно GRAM. Пополните баланс для запуска майнинга.");
-      return;
+      haptics.warning();
+      playWarningCue();
+      return false;
     }
 
     startRef.current = null;
@@ -128,6 +139,9 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
     setIsMining(true);
     setSessionStake(GRAM_PER_SESSION);
     setNotice(null);
+    haptics.impact("heavy");
+    playMiningStart();
+    return true;
   }, [spendGram]);
 
   const stopMining = useCallback(() => {
@@ -148,8 +162,14 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
   const handleToggleMining = useCallback(() => {
     if (isMining) {
       stopMining();
-    } else {
-      startMining();
+      haptics.impact("medium");
+      playMiningStop();
+      return;
+    }
+
+    const started = startMining();
+    if (!started) {
+      return;
     }
   }, [isMining, startMining, stopMining]);
 
@@ -170,6 +190,8 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
       if (nextProgress >= 1) {
         setLastReward(goldPerSession);
         recordBurn(GRAM_PER_SESSION, { goldEarned: goldPerSession, source: "mining" });
+        haptics.success();
+        playMiningComplete();
         startRef.current = null;
         setIsMining(false);
         rafRef.current = null;
@@ -260,11 +282,17 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
       <section className={mainBodyClass} aria-label="Контент">
         <div className={viewportClass}>
           {prev && prevNode && (
-            <div key={prev} className={`screen-wrapper ${outgoingClass}`}>
+            <div
+              key={prev}
+              className={`screen-wrapper ${outgoingClass}${prev === "main" ? " screen-wrapper--home" : ""}`}
+            >
               {prevNode}
             </div>
           )}
-          <div key={screen} className={`screen-wrapper screen-wrapper--active ${incomingClass}`}>
+          <div
+            key={screen}
+            className={`screen-wrapper screen-wrapper--active ${incomingClass}${isHome ? " screen-wrapper--home" : ""}`}
+          >
             {currentNode}
           </div>
         </div>

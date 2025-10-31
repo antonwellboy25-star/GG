@@ -31,6 +31,7 @@
   /* КРИТИЧНО: Верхний отступ должен быть больше для камеры и системных элементов */
   /* iPhone с Dynamic Island требуют ~59px, обычные notch ~44px */
   --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 16px);
+  --app-topbar-safe: max(var(--app-safe-top), 24px);
 
   /* Нижний отступ для навигации и индикатора home */
   --app-safe-bottom: max(
@@ -287,7 +288,7 @@ body {
   top: 0;
   z-index: 2;
   /* Увеличенные отступы сверху для камеры и системных элементов */
-  padding: calc(var(--app-safe-top) + clamp(12px, 2.5vh, 20px))
+  padding: calc(var(--app-topbar-safe) + clamp(12px, 2.5vh, 20px))
     calc(var(--app-safe-right) + clamp(12px, 4vw, 28px) + var(--settings-offset))
     clamp(10px, 2vh, 16px) calc(var(--app-safe-left) + clamp(12px, 4vw, 28px));
   background: linear-gradient(180deg, rgba(8, 8, 8, 0.82), rgba(8, 8, 8, 0));
@@ -411,7 +412,7 @@ body {
 .settings-fab {
   position: fixed;
   /* Увеличенный отступ сверху для камеры (особенно iPhone с Dynamic Island) */
-  top: calc(var(--app-safe-top) + clamp(16px, 3.5vh, 28px));
+  top: calc(var(--app-topbar-safe) + clamp(16px, 3.5vh, 28px));
   right: calc(var(--app-safe-right) + clamp(14px, 5vw, 26px));
   z-index: 6;
   display: inline-flex;
@@ -1432,7 +1433,7 @@ body {
 
 .main-screen .main-body--home {
   --body-pad-x: clamp(12px, 4vw, 28px);
-  overflow: visible;
+  overflow: hidden;
   padding: clamp(14px, 3.2vh, 28px) var(--body-pad-x) var(--nav-offset);
 }
 
@@ -1448,7 +1449,7 @@ body {
 }
 
 .main-body .screens-viewport--home {
-  overflow: visible;
+  overflow: hidden;
   border-radius: 0;
 }
 
@@ -1483,6 +1484,13 @@ body {
   opacity: 1;
   pointer-events: auto;
   z-index: 3;
+}
+
+.screen-wrapper--home {
+  overflow-x: hidden;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-x;
 }
 
 .screen {
@@ -1611,18 +1619,18 @@ body {
 
   .top-bar {
     /* В landscape компактнее, но безопасная зона всё равно учитывается */
-    padding: calc(var(--app-safe-top) + clamp(10px, 2vh, 14px))
+    padding: calc(var(--app-topbar-safe) + clamp(10px, 2vh, 14px))
       calc(var(--app-safe-right) + clamp(12px, 4vw, 20px)) clamp(8px, 1.5vh, 12px)
       calc(var(--app-safe-left) + clamp(12px, 4vw, 20px));
   }
 
   .settings-fab {
-    top: calc(var(--app-safe-top) + clamp(12px, 2.5vh, 18px));
+    top: calc(var(--app-topbar-safe) + clamp(12px, 2.5vh, 18px));
     right: calc(var(--app-safe-right) + clamp(12px, 4vw, 20px));
   }
 
   .top-bar {
-    padding: calc(var(--app-safe-top) + clamp(8px, 2vh, 12px))
+    padding: calc(var(--app-topbar-safe) + clamp(8px, 2vh, 12px))
       calc(var(--app-safe-right) + clamp(12px, 4vw, 20px)) clamp(10px, 2vh, 14px)
       calc(var(--app-safe-left) + clamp(12px, 4vw, 20px));
   }

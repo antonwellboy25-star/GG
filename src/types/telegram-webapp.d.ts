@@ -18,6 +18,12 @@ type TelegramContentSafeAreaInsets = TelegramSafeAreaInsets;
 
 type TelegramEventHandler = (...args: unknown[]) => void;
 
+interface TelegramHapticFeedback {
+  impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
+  notificationOccurred(type: "error" | "success" | "warning"): void;
+  selectionChanged(): void;
+}
+
 interface TelegramBackButton {
   show(): void;
   hide(): void;
@@ -42,6 +48,7 @@ interface TelegramWebApp {
   readonly contentSafeAreaInset?: TelegramContentSafeAreaInsets;
   readonly viewportStable?: TelegramViewportStableFlag;
   readonly viewport?: TelegramViewport;
+  readonly HapticFeedback?: TelegramHapticFeedback;
 
   ready(): void;
   expand(): void;

@@ -1,4 +1,6 @@
 import { memo, type JSX } from "react";
+import { haptics } from "@/shared/utils/haptics";
+import { playNavTap } from "@/shared/utils/sounds";
 
 export type Screen =
   | "main"
@@ -114,7 +116,15 @@ function NavBarComponent({ current, onNavigate }: NavBarProps) {
               <button
                 type="button"
                 className={classNames.join(" ")}
-                onClick={() => onNavigate(screen)}
+                onClick={() => {
+                  if (isActive) {
+                    haptics.impact("light");
+                  } else {
+                    haptics.selection();
+                  }
+                  playNavTap();
+                  onNavigate(screen);
+                }}
                 aria-current={isActive ? "page" : undefined}
                 aria-label={LABELS[screen]}
               >
