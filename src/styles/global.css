@@ -675,6 +675,10 @@ body {
   --nav-pad-bottom-extra: 10px;
   padding-bottom: calc(var(--app-safe-bottom) + var(--nav-pad-bottom-extra));
   pointer-events: none;
+  /* Центрируем содержимое */
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
 }
 
 .nav-bar__surface {
@@ -983,6 +987,10 @@ body {
   padding: 0 clamp(12px, 5vw, 24px) calc(var(--app-safe-bottom) + clamp(6px, 2vh, 16px));
   pointer-events: none;
   z-index: 9;
+  /* Обеспечиваем центрирование */
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
 }
 
 .nav-bar__surface {
@@ -1001,6 +1009,8 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   pointer-events: auto;
   transform: translateZ(0);
+  /* Гарантируем центрирование контента */
+  justify-content: center;
 }
 
 .nav-bar__item {
@@ -1157,7 +1167,10 @@ body {
   flex: 1;
   display: flex;
   min-height: 0;
+  /* Обеспечиваем симметричные отступы */
   padding: clamp(18px, 4vh, 38px) var(--body-pad-x) calc(max(40px, var(--nav-offset) * 0.35));
+  padding-left: calc(var(--app-safe-left) + var(--body-pad-x));
+  padding-right: calc(var(--app-safe-right) + var(--body-pad-x));
 }
 
 .main-body::after {
@@ -1192,6 +1205,9 @@ body {
   --body-pad-x: clamp(12px, 4vw, 28px);
   overflow: hidden;
   padding: clamp(14px, 3.2vh, 28px) var(--body-pad-x) var(--nav-offset);
+  /* Добавляем симметричные safe area отступы */
+  padding-left: calc(var(--app-safe-left) + var(--body-pad-x));
+  padding-right: calc(var(--app-safe-right) + var(--body-pad-x));
 }
 
 .screens-viewport {
@@ -1353,16 +1369,46 @@ body {
   :root {
     --app-safe-left: max(var(--app-safe-left-raw), 16px);
     --app-safe-right: max(var(--app-safe-right-raw), 16px);
+    /* Обеспечиваем симметричные отступы для центрирования */
+    --app-safe-bottom: max(var(--app-content-safe-area-bottom, var(--app-safe-area-bottom, 0px)), 16px);
+  }
+  
+  .top-bar {
+    /* Симметричные горизонтальные отступы */
+    padding-left: calc(var(--app-safe-left) + 16px);
+    padding-right: calc(var(--app-safe-right) + 16px + var(--settings-offset));
+  }
+  
+  .nav-bar {
+    /* Точное центрирование навигации */
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
   }
   
   .nav-bar__surface {
-    --nav-surface-pad-x: clamp(8px, 3vw, 16px);
-    --nav-surface-gap: clamp(2px, 0.6vw, 3px);
+    --nav-surface-pad-x: clamp(10px, 3.5vw, 18px);
+    --nav-surface-gap: clamp(3px, 0.8vw, 5px);
+    /* Гарантируем центрирование через auto margins */
+    margin-left: auto;
+    margin-right: auto;
   }
   
   .nav-bar__button {
-    width: clamp(36px, 9vw, 56px);
-    height: clamp(36px, 9vw, 56px);
+    width: clamp(38px, 9.5vw, 58px);
+    height: clamp(38px, 9.5vw, 58px);
+  }
+  
+  /* Точное центрирование контента */
+  .screen-stack {
+    padding-left: calc(var(--app-safe-left) + 16px);
+    padding-right: calc(var(--app-safe-right) + 16px);
+  }
+  
+  .main-body {
+    --body-pad-x: calc(var(--app-safe-left) + 16px);
+    padding-left: var(--body-pad-x);
+    padding-right: calc(var(--app-safe-right) + 16px);
   }
 }
 
@@ -1560,7 +1606,44 @@ body {
   }
 
   .nav-bar {
-    width: min(440px, calc(100% - var(--app-safe-left) - var(--app-safe-right) - 12px));
+    /* Улучшенное центрирование навигации на узких экранах */
+    display: flex;
+    justify-content: center;
+  }
+  
+  .nav-bar__surface {
+    /* Адаптивная ширина с автоматическим центрированием */
+    margin: 0 auto;
+  }
+}
+
+/* Дополнительная оптимизация для очень узких экранов */
+@media (max-width: 380px) {
+  :root {
+    --app-safe-left: max(var(--app-safe-left-raw), 12px);
+    --app-safe-right: max(var(--app-safe-right-raw), 12px);
+  }
+  
+  .nav-bar__surface {
+    --nav-surface-pad-x: clamp(8px, 2.5vw, 14px);
+    --nav-surface-gap: clamp(2px, 0.5vw, 3px);
+    /* Максимальное использование ширины экрана */
+    max-width: calc(100vw - 24px);
+  }
+  
+  .nav-bar__button {
+    width: clamp(34px, 8.5vw, 52px);
+    height: clamp(34px, 8.5vw, 52px);
+    --nav-radius: clamp(8px, 2.5vw, 14px);
+  }
+  
+  .top-bar {
+    --settings-offset: clamp(44px, 16vw, 54px);
+  }
+  
+  .settings-fab {
+    width: 40px;
+    height: 40px;
   }
 }
 
