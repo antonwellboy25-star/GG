@@ -7,6 +7,7 @@ let audioElement: HTMLAudioElement | null = null;
 let resumePending = false;
 let boundResumeHandler: (() => void) | null = null;
 let initialized = false;
+let autoPlayUnlocked = false;
 
 const ensureAudio = () => {
   if (!audioElement) {
@@ -110,6 +111,7 @@ export const playBackgroundMusic = async () => {
     pauseBackgroundMusic();
     return;
   }
+  autoPlayUnlocked = true;
   const element = ensureAudio();
 
   try {
@@ -153,6 +155,10 @@ const applyMusicPreference = () => {
     return;
   }
 
+  if (!autoPlayUnlocked) {
+    return;
+  }
+
   const element = ensureAudio();
   if (element.paused && !resumePending) {
     void playBackgroundMusic();
@@ -163,6 +169,10 @@ export const initBackgroundMusic = () => {
   if (initialized || typeof window === "undefined") return;
   initialized = true;
   ensureAudio();
+};
+
+export const enableBackgroundMusicAutoplay = () => {
+  autoPlayUnlocked = true;
   applyMusicPreference();
 };
 

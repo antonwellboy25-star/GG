@@ -31,7 +31,10 @@
   /* КРИТИЧНО: Верхний отступ должен быть больше для камеры и системных элементов */
   /* iPhone с Dynamic Island требуют ~59px, обычные notch ~44px */
   --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 16px);
-  --app-topbar-safe: max(var(--app-safe-top), 36px);
+  
+  /* По умолчанию - базовый отступ для обычных веб-приложений */
+  --app-top-padding-base: var(--app-safe-top);
+  --app-topbar-safe: max(var(--app-top-padding-base), 16px);
 
   /* Нижний отступ для навигации и индикатора home */
   --app-safe-bottom: max(
@@ -42,6 +45,26 @@
   /* Боковые отступы - меньше, т.к. там нет камеры */
   --app-safe-left: max(var(--app-safe-left-raw), 12px);
   --app-safe-right: max(var(--app-safe-right-raw), 12px);
+}
+
+/* КРИТИЧНО: Только в Telegram WebApp увеличиваем верхний отступ */
+/* На обычном ПК/браузере этот отступ НЕ применяется */
+:root[data-telegram="true"]:not([data-tg-fullscreen="true"]) {
+  /* Для iOS устройств в Telegram (iPhone с notch/Dynamic Island) */
+  --app-top-padding-base: max(var(--app-safe-top), 78px);
+  --app-topbar-safe: max(var(--app-top-padding-base), 88px);
+}
+
+:root[data-telegram="true"][data-tg-platform="android"]:not([data-tg-fullscreen="true"]) {
+  /* Для Android устройств в Telegram */
+  --app-top-padding-base: max(var(--app-safe-top), 64px);
+  --app-topbar-safe: max(var(--app-top-padding-base), 72px);
+}
+
+/* В fullscreen режиме используем только реальные safe area без добавок */
+:root[data-telegram="true"][data-tg-fullscreen="true"] {
+  --app-top-padding-base: var(--app-safe-top);
+  --app-topbar-safe: max(var(--app-top-padding-base), 16px);
 }
 
 * {
@@ -1596,7 +1619,7 @@ body {
     padding-left: calc(var(--app-safe-left) + clamp(12px, 4vw, 20px));
     padding-right: calc(var(--app-safe-right) + clamp(12px, 4vw, 20px));
     /* В landscape режиме меньше места по вертикали, но всё равно учитываем камеру */
-    padding-top: calc(var(--app-safe-top) + clamp(10px, 2.5vh, 18px));
+    padding-top: calc(var(--app-top-padding-base) + clamp(10px, 2.5vh, 18px));
     padding-bottom: calc(var(--nav-offset, 120px) + clamp(24px, 6vh, 40px));
     gap: var(--screen-gap, clamp(18px, 4vh, 28px));
   }
@@ -1692,7 +1715,7 @@ body {
   padding-left: calc(var(--app-safe-left) + clamp(16px, 4vw, 24px));
   padding-right: calc(var(--app-safe-right) + clamp(16px, 4vw, 24px));
   /* Увеличенный верхний отступ для безопасной зоны */
-  padding-top: calc(var(--app-safe-top) + clamp(16px, 3.5vh, 28px));
+  padding-top: calc(var(--app-top-padding-base) + clamp(16px, 3.5vh, 28px));
   padding-bottom: calc(var(--nav-offset, 120px) + clamp(32px, 7vh, 56px));
   display: flex;
   flex-direction: column;

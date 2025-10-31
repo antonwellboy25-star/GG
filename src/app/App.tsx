@@ -1,6 +1,10 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import MainScreen from "@/features/main/components/MainScreen";
-import { initBackgroundMusic, playBackgroundMusic } from "@/shared/utils/backgroundMusic";
+import {
+  enableBackgroundMusicAutoplay,
+  initBackgroundMusic,
+  playBackgroundMusic,
+} from "@/shared/utils/backgroundMusic";
 
 type Insets = {
   top: number;
@@ -17,6 +21,7 @@ export default function App() {
   const [fadeOut, setFadeOut] = useState(false);
 
   const handleLoaderDone = useCallback(() => {
+    enableBackgroundMusicAutoplay();
     setBooting(false);
     setFadeOut(true);
   }, []);
@@ -137,6 +142,14 @@ export default function App() {
     if (!webApp) return;
 
     const root = document.documentElement;
+    const platform = String(webApp.platform ?? "").toLowerCase();
+    
+    // Помечаем что мы в Telegram WebApp
+    root.dataset.telegram = "true";
+    if (platform) {
+      root.dataset.tgPlatform = platform;
+    }
+    
     const viewportApi = (webApp as unknown as { viewport?: unknown }).viewport as
       | {
           height?: number;
@@ -302,9 +315,10 @@ export default function App() {
       setPxVar("--tg-viewport-stable-height", viewportStableHeight ?? viewportHeight);
       setPxVar("--tg-viewport-width", viewportWidth);
 
-      root.dataset.tgFullscreen =
-        (webApp.isFullscreen ?? viewportApi?.isFullscreen) ? "true" : "false";
-      root.dataset.tgExpanded = (webApp.isExpanded ?? viewportApi?.isExpanded) ? "true" : "false";
+      const isFullscreen = Boolean(webApp.isFullscreen ?? viewportApi?.isFullscreen);
+      const isExpanded = Boolean(webApp.isExpanded ?? viewportApi?.isExpanded);
+      root.dataset.tgFullscreen = isFullscreen ? "true" : "false";
+      root.dataset.tgExpanded = isExpanded ? "true" : "false";
 
       if (typeof webApp.setHeaderColor === "function") {
         webApp.setHeaderColor("#000000");
@@ -442,6 +456,8 @@ export default function App() {
       ].forEach((varName) => {
         root.style.removeProperty(varName);
       });
+      delete root.dataset.telegram;
+      delete root.dataset.tgPlatform;
       delete root.dataset.tgFullscreen;
       delete root.dataset.tgExpanded;
     };
