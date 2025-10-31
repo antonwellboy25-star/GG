@@ -1167,10 +1167,11 @@ body {
   flex: 1;
   display: flex;
   min-height: 0;
-  /* Обеспечиваем симметричные отступы */
-  padding: clamp(18px, 4vh, 38px) var(--body-pad-x) calc(max(40px, var(--nav-offset) * 0.35));
-  padding-left: calc(var(--app-safe-left) + var(--body-pad-x));
+  /* Symmetric padding including safe areas */
+  padding-top: clamp(18px, 4vh, 38px);
   padding-right: calc(var(--app-safe-right) + var(--body-pad-x));
+  padding-bottom: calc(max(40px, var(--nav-offset) * 0.35));
+  padding-left: calc(var(--app-safe-left) + var(--body-pad-x));
 }
 
 .main-body::after {
@@ -1204,10 +1205,11 @@ body {
 .main-screen .main-body--home {
   --body-pad-x: clamp(12px, 4vw, 28px);
   overflow: hidden;
-  padding: clamp(14px, 3.2vh, 28px) var(--body-pad-x) var(--nav-offset);
-  /* Добавляем симметричные safe area отступы */
-  padding-left: calc(var(--app-safe-left) + var(--body-pad-x));
+  /* Symmetric padding including safe areas */
+  padding-top: clamp(14px, 3.2vh, 28px);
   padding-right: calc(var(--app-safe-right) + var(--body-pad-x));
+  padding-bottom: var(--nav-offset);
+  padding-left: calc(var(--app-safe-left) + var(--body-pad-x));
 }
 
 .screens-viewport {
@@ -1378,11 +1380,14 @@ body {
   }
   
   .nav-bar__surface {
+    /* Увеличенные отступы для лучшего касания на мобильных: 10-18px вместо 8-16px */
     --nav-surface-pad-x: clamp(10px, 3.5vw, 18px);
+    /* Увеличенный промежуток между кнопками для предотвращения случайных нажатий */
     --nav-surface-gap: clamp(3px, 0.8vw, 5px);
   }
   
   .nav-bar__button {
+    /* Увеличенные размеры для лучшего UX: минимум 38px для удобного касания */
     width: clamp(38px, 9.5vw, 58px);
     height: clamp(38px, 9.5vw, 58px);
   }
