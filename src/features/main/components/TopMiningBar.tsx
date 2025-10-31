@@ -51,11 +51,13 @@ export default function TopMiningBar({
     ? `+${goldFormatter.format(session.lastReward)} GOLD`
     : "—";
   const buttonDisabled = disabled || (!session.active && !canMine);
-  const buttonLabel = session.active
-    ? "Остановить"
-    : canMine
-      ? `Запустить майнинг · ${numberFormatter.format(session.gramsTarget)} GRAM`
-      : "Недостаточно GRAM";
+  const buttonLabel = disabled 
+    ? "Загрузка..."
+    : session.active
+      ? "Остановить"
+      : canMine
+        ? `Запустить майнинг · ${numberFormatter.format(session.gramsTarget)} GRAM`
+        : "Недостаточно GRAM";
 
   return (
     <header className="top-bar" aria-live="polite">

@@ -223,7 +223,6 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
         className="settings-fab"
         onClick={toggleSettings}
         aria-label="Открыть настройки"
-        disabled={loading}
       >
         <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <path

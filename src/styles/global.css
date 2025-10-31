@@ -14,6 +14,7 @@
     --app-viewport-stable-height,
     var(--app-viewport-height, 100vh)
   );
+  /* Safe area переменные с правильными fallback значениями */
   --app-safe-area-top: var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px));
   --app-safe-area-right: var(--tg-safe-area-inset-right, env(safe-area-inset-right, 0px));
   --app-safe-area-bottom: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
@@ -28,45 +29,83 @@
     var(--app-safe-area-bottom)
   );
   --app-content-safe-area-left: var(--tg-content-safe-area-inset-left, var(--app-safe-area-left));
+  
+  /* Необработанные значения для точного контроля */
   --app-safe-left-raw: var(--app-content-safe-area-left, var(--app-safe-area-left, 0px));
   --app-safe-right-raw: var(--app-content-safe-area-right, var(--app-safe-area-right, 0px));
-  --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 12px);
+  
+  /* КРИТИЧНО: Верхний отступ должен быть больше для камеры и системных элементов */
+  /* iPhone с Dynamic Island требуют ~59px, обычные notch ~44px */
+  --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 16px);
+  
+  /* Нижний отступ для навигации и индикатора home */
   --app-safe-bottom: max(
     var(--app-content-safe-area-bottom, var(--app-safe-area-bottom, 0px)),
     12px
   );
+  
+  /* Боковые отступы - меньше, т.к. там нет камеры */
   --app-safe-left: max(var(--app-safe-left-raw), 12px);
   --app-safe-right: max(var(--app-safe-right-raw), 12px);
 }
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
+
 html,
 body,
 #root {
-  min-height: max(100vh, var(--app-body-min-height, 0px));
-}
-body {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
   margin: 0;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
   background: var(--bg);
   color: #fff;
-  overflow-x: visible;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#root {
+  overflow: hidden;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
 }
 
 .app-root,
 .app-main {
-  min-height: max(100vh, var(--app-body-min-height, 0px));
+  width: 100%;
+  min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 @supports (height: 100dvh) {
+  html,
   body,
   #root,
   .app-root,
   .app-main {
-    min-height: max(100dvh, var(--app-body-min-height, 0px));
+    min-height: 100dvh;
   }
 }
 
@@ -227,14 +266,24 @@ body {
 .main-screen {
   position: relative;
   flex: 1;
-  min-height: 100%;
+  width: 100%;
+  min-height: 100vh;
+  height: 100%;
   background: #000;
   color: #fff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  --nav-offset-base: 108px;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  --nav-offset-base: 92px;
   --nav-offset: calc(var(--nav-offset-base) + var(--app-safe-bottom));
+}
+
+@supports (height: 100dvh) {
+  .main-screen {
+    min-height: 100dvh;
+  }
 }
 
 .top-bar {
@@ -242,9 +291,10 @@ body {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: calc(var(--app-safe-top) + clamp(12px, 2.6vh, 20px))
-    calc(var(--app-safe-right) + clamp(16px, 5vw, 32px) + var(--settings-offset))
-    clamp(12px, 2vh, 18px) calc(var(--app-safe-left) + clamp(16px, 5vw, 32px));
+  /* Увеличенные отступы сверху для камеры и системных элементов */
+  padding: calc(var(--app-safe-top) + clamp(12px, 2.5vh, 20px))
+    calc(var(--app-safe-right) + clamp(12px, 4vw, 28px) + var(--settings-offset))
+    clamp(10px, 2vh, 16px) calc(var(--app-safe-left) + clamp(12px, 4vw, 28px));
   background: linear-gradient(180deg, rgba(8, 8, 8, 0.82), rgba(8, 8, 8, 0));
   backdrop-filter: saturate(160%) blur(18px);
   opacity: 1;
@@ -260,6 +310,23 @@ body {
 @media (min-width: 768px) {
   .top-bar {
     --settings-offset: 72px;
+  }
+}
+
+/* Специальные правила для устройств с большими вырезами (Dynamic Island, Notch) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  @media (min-height: 800px) {
+    :root {
+      /* Для больших устройств с Dynamic Island увеличиваем минимальный отступ */
+      --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 20px);
+    }
+  }
+  
+  @media (min-height: 900px) {
+    :root {
+      /* Для очень больших экранов (iPhone Pro Max) еще больше */
+      --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 24px);
+    }
   }
 }
 
@@ -347,8 +414,9 @@ body {
 
 .settings-fab {
   position: fixed;
-  top: calc(var(--app-safe-top) + clamp(14px, 3vh, 26px));
-  right: calc(var(--app-safe-right) + clamp(12px, 5vw, 24px));
+  /* Увеличенный отступ сверху для камеры (особенно iPhone с Dynamic Island) */
+  top: calc(var(--app-safe-top) + clamp(16px, 3.5vh, 28px));
+  right: calc(var(--app-safe-right) + clamp(14px, 5vw, 26px));
   z-index: 6;
   display: inline-flex;
   align-items: center;
@@ -360,11 +428,26 @@ body {
   background: rgba(18, 18, 18, 0.88);
   color: #fff;
   cursor: pointer;
+  /* Плавное появление при загрузке */
+  opacity: 0;
+  animation: fadeInSettings 400ms ease 300ms forwards;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
-    transform 160ms ease;
+    transform 160ms ease,
+    opacity 160ms ease;
   backdrop-filter: blur(12px) saturate(140%);
+}
+
+@keyframes fadeInSettings {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .settings-fab svg {
@@ -382,7 +465,9 @@ body {
   transform: translateY(0);
 }
 
-.settings-fab:disabled {
+/* Убираем disabled стиль, т.к. кнопка теперь всегда активна */
+.settings-fab[disabled] {
+  /* Этот стиль больше не используется */
   opacity: 0.55;
   pointer-events: none;
 }
@@ -542,11 +627,11 @@ body {
 }
 
 .nav-bar__surface {
-  --nav-surface-pad-y: clamp(8px, 1.8vh, 12px);
-  --nav-surface-pad-x: clamp(18px, 6vw, 26px);
-  --nav-surface-gap: 4px;
-  --nav-surface-max-reduction: 20px;
-  --nav-surface-radius: 20px;
+  --nav-surface-pad-y: clamp(6px, 1.5vh, 10px);
+  --nav-surface-pad-x: clamp(12px, 4vw, 22px);
+  --nav-surface-gap: clamp(2px, 0.8vw, 4px);
+  --nav-surface-max-reduction: 16px;
+  --nav-surface-radius: clamp(16px, 4vw, 20px);
   margin: 0 auto;
   padding: var(--nav-surface-pad-y) var(--nav-surface-pad-x);
   width: fit-content;
@@ -568,7 +653,11 @@ body {
   backdrop-filter: blur(20px) saturate(140%);
   border-radius: var(--nav-surface-radius);
   position: relative;
-  overflow: hidden;
+  /* КРИТИЧНО: visible для корректной анимации крайних иконок */
+  overflow: visible;
+  /* Улучшенный рендеринг для идеальной симметрии */
+  transform: translateZ(0);
+  backface-visibility: hidden;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.06),
@@ -836,23 +925,9 @@ body {
   font-size: 14px;
 }
 
-/* Тонкий акцентный штрих сверху */
-.nav-bar__surface::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40%;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.15) 50%,
-    transparent 100%
-  );
-  border-radius: var(--nav-surface-radius) var(--nav-surface-radius) 0 0;
-}
+/* Ранее здесь был тонкий акцентный штрих сверху (.nav-bar__surface::before).
+   Он давал визуальный артефакт (небольшой «блик» слева) на некоторых устройствах.
+   Удалено для чистого и симметричного вида. */
 @media (max-height: 520px) and (orientation: landscape) {
   .main-screen {
     --nav-offset-base: 78px;
@@ -862,15 +937,17 @@ body {
 .nav-bar__item {
   flex: 0 0 auto;
   min-width: 0;
+  /* Позволяем элементам выходить за границы для анимации */
+  overflow: visible;
 }
 
 .nav-bar__button {
   -webkit-tap-highlight-color: transparent;
   appearance: none;
   position: relative;
-  --nav-button-size: 52px;
-  --nav-button-min-size: 44px;
-  --nav-button-radius: 14px;
+  --nav-button-size: clamp(42px, 11vw, 52px);
+  --nav-button-min-size: 40px;
+  --nav-button-radius: clamp(12px, 3vw, 14px);
   --nav-button-gap: 3px;
   width: var(--nav-button-size);
   height: var(--nav-button-size);
@@ -888,6 +965,9 @@ body {
   padding: 0;
   font-family: inherit;
   cursor: pointer;
+  /* Улучшение рендеринга для идеальной симметрии */
+  transform: translateZ(0);
+  backface-visibility: hidden;
   transition:
     color 250ms cubic-bezier(0.4, 0, 0.2, 1),
     transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -896,10 +976,14 @@ body {
 .nav-bar__button::before {
   content: "";
   position: absolute;
-  inset: 2px;
-  border-radius: inherit;
+  /* Исправлено: симметричный отступ с учетом border-radius */
+  inset: 1px;
+  /* border-radius немного меньше родительского для идеальной симметрии */
+  border-radius: calc(var(--nav-button-radius) - 1px);
   background: transparent;
   opacity: 0;
+  /* z-index для правильного слоя */
+  z-index: -1;
   transition:
     opacity 250ms cubic-bezier(0.4, 0, 0.2, 1),
     background 250ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -969,10 +1053,11 @@ body {
     rgba(255, 255, 255, 0.06) 100%
   );
   opacity: 1;
+  /* Исправлено: симметричная обводка без искажений */
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.2),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.1),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    inset 0 0.5px 0.5px rgba(255, 255, 255, 0.18),
+    inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
 
 /* Показываем индикатор для активной кнопки */
@@ -987,7 +1072,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  --nav-icon-size: 26px;
+  --nav-icon-size: clamp(22px, 5.5vw, 26px);
   width: var(--nav-icon-size);
   height: var(--nav-icon-size);
 }
@@ -1018,6 +1103,24 @@ body {
   overflow: hidden;
 }
 
+/* Специальная обработка для крайних кнопок */
+.nav-bar__item:first-child .nav-bar__button,
+.nav-bar__item:last-child .nav-bar__button {
+  /* Дополнительное пространство для анимации */
+  position: relative;
+}
+
+/* Focus ring должен быть видимым даже на краях */
+.nav-bar__button:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: calc(var(--nav-button-radius) + 3px);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  z-index: 10;
+}
+
 /* Главная кнопка - такого же размера, но с акцентным цветом при активации */
 .nav-bar__button--main.is-active::before {
   background: linear-gradient(
@@ -1026,10 +1129,11 @@ body {
     rgba(80, 120, 220, 0.16) 50%,
     rgba(60, 100, 200, 0.1) 100%
   );
+  /* Исправлено: симметричная обводка для главной кнопки */
   box-shadow:
-    inset 0 1px 1px rgba(150, 180, 255, 0.25),
-    inset 0 -1px 1px rgba(0, 0, 50, 0.15),
-    inset 0 0 0 1px rgba(100, 150, 255, 0.2);
+    inset 0 0.5px 0.5px rgba(150, 180, 255, 0.22),
+    inset 0 -0.5px 0.5px rgba(0, 0, 50, 0.12),
+    inset 0 0 0 0.5px rgba(100, 150, 255, 0.18);
 }
 
 .nav-bar__button--main.is-active {
@@ -1048,55 +1152,7 @@ body {
 
 @media (max-width: 380px) {
   .main-screen {
-    --nav-offset-base: 98px;
-  }
-
-  .nav-bar {
-    --nav-pad-bottom-extra: 8px;
-  }
-
-  .nav-bar__surface {
-    --nav-surface-pad-y: 6px;
-    --nav-surface-pad-x: clamp(16px, 7vw, 20px);
-    --nav-surface-gap: 3px;
-    --nav-surface-max-reduction: 16px;
-    --nav-surface-radius: 18px;
-  }
-
-  .nav-bar__button {
-    --nav-button-size: 46px;
-    --nav-button-min-size: 42px;
-    --nav-button-radius: 12px;
-  }
-
-  .nav-bar__button::after {
-    --nav-indicator-bottom: 4px;
-    --nav-indicator-width: 16px;
-  }
-
-  .nav-bar__icon {
-    --nav-icon-size: 24px;
-  }
-}
-
-@media (max-width: 360px) {
-  .nav-bar {
-    --nav-pad-bottom-extra: 7px;
-  }
-
-  .nav-bar__surface {
-    --nav-surface-pad-x: clamp(14px, 7vw, 18px);
-  }
-
-  .nav-bar__button {
-    --nav-button-size: 44px;
-    --nav-button-min-size: 40px;
-  }
-}
-
-@media (max-width: 320px) {
-  .main-screen {
-    --nav-offset-base: 90px;
+    --nav-offset-base: 88px;
   }
 
   .nav-bar {
@@ -1105,17 +1161,71 @@ body {
 
   .nav-bar__surface {
     --nav-surface-pad-y: 5px;
-    --nav-surface-pad-x: clamp(12px, 8vw, 16px);
+    --nav-surface-pad-x: clamp(10px, 5vw, 16px);
     --nav-surface-gap: 2px;
     --nav-surface-max-reduction: 12px;
-    --nav-surface-radius: 16px;
+    /* Даем больше места для анимации на узких экранах */
+    overflow: visible;
   }
 
   .nav-bar__button {
-    --nav-button-size: 42px;
+    --nav-button-size: clamp(40px, 10.5vw, 46px);
     --nav-button-min-size: 38px;
+  }
+
+  .nav-bar__icon {
+    --nav-icon-size: clamp(20px, 5vw, 24px);
+  }
+}
+
+@media (max-width: 360px) {
+  .nav-bar {
+    --nav-pad-bottom-extra: 5px;
+  }
+
+  .nav-bar__surface {
+    --nav-surface-pad-x: clamp(8px, 4.5vw, 14px);
+    --nav-surface-gap: 1px;
+    overflow: visible;
+  }
+
+  .nav-bar__button {
+    --nav-button-size: clamp(38px, 10vw, 44px);
+    --nav-button-min-size: 36px;
+  }
+  
+  .nav-bar__icon {
+    --nav-icon-size: clamp(19px, 4.8vw, 22px);
+  }
+  
+  /* На узких экранах уменьшаем индикатор */
+  .nav-bar__button::after {
+    --nav-indicator-width: 16px;
+  }
+}
+
+@media (max-width: 320px) {
+  .main-screen {
+    --nav-offset-base: 82px;
+  }
+
+  .nav-bar {
+    --nav-pad-bottom-extra: 4px;
+  }
+
+  .nav-bar__surface {
+    --nav-surface-pad-y: 4px;
+    --nav-surface-pad-x: clamp(6px, 4vw, 12px);
+    --nav-surface-gap: 1px;
+    --nav-surface-max-reduction: 8px;
+    --nav-surface-radius: 14px;
+    overflow: visible;
+  }
+
+  .nav-bar__button {
+    --nav-button-size: clamp(36px, 9.5vw, 42px);
+    --nav-button-min-size: 34px;
     --nav-button-radius: 10px;
-    --nav-button-gap: 2px;
   }
 
   .nav-bar__button::after {
@@ -1125,32 +1235,40 @@ body {
   }
 
   .nav-bar__icon {
-    --nav-icon-size: 22px;
+    --nav-icon-size: clamp(18px, 4.5vw, 20px);
+  }
+  
+  /* На очень узких экранах scale анимация меньше */
+  .nav-bar__button.is-active .nav-bar__icon svg {
+    transform: scale(1.08);
+  }
+  
+  .nav-bar__button:hover .nav-bar__icon svg {
+    transform: scale(1.05);
   }
 }
 
 @media (max-width: 280px) {
   .main-screen {
-    --nav-offset-base: 82px;
+    --nav-offset-base: 78px;
   }
 
   .nav-bar {
-    --nav-pad-bottom-extra: 5px;
+    --nav-pad-bottom-extra: 4px;
   }
 
   .nav-bar__surface {
     --nav-surface-pad-y: 4px;
-    --nav-surface-pad-x: clamp(10px, 9vw, 14px);
-    --nav-surface-gap: 1px;
-    --nav-surface-max-reduction: 10px;
-    --nav-surface-radius: 14px;
+    --nav-surface-pad-x: clamp(5px, 3.5vw, 10px);
+    --nav-surface-gap: 0px;
+    --nav-surface-max-reduction: 6px;
+    --nav-surface-radius: 12px;
   }
 
   .nav-bar__button {
-    --nav-button-size: 38px;
-    --nav-button-min-size: 36px;
+    --nav-button-size: clamp(34px, 9vw, 38px);
+    --nav-button-min-size: 32px;
     --nav-button-radius: 9px;
-    --nav-button-gap: 1px;
   }
 
   .nav-bar__button::after {
@@ -1160,31 +1278,31 @@ body {
   }
 
   .nav-bar__icon {
-    --nav-icon-size: 20px;
+    --nav-icon-size: clamp(17px, 4.2vw, 19px);
   }
 }
 
 @media (max-width: 240px) {
   .main-screen {
-    --nav-offset-base: 76px;
+    --nav-offset-base: 72px;
   }
 
   .nav-bar {
-    --nav-pad-bottom-extra: 4px;
+    --nav-pad-bottom-extra: 3px;
   }
 
   .nav-bar__surface {
     --nav-surface-pad-y: 3px;
-    --nav-surface-pad-x: clamp(8px, 10vw, 12px);
-    --nav-surface-max-reduction: 8px;
-    --nav-surface-radius: 12px;
+    --nav-surface-pad-x: clamp(4px, 3vw, 8px);
+    --nav-surface-gap: 0px;
+    --nav-surface-max-reduction: 4px;
+    --nav-surface-radius: 10px;
   }
 
   .nav-bar__button {
-    --nav-button-size: 36px;
-    --nav-button-min-size: 36px;
+    --nav-button-size: clamp(32px, 8.5vw, 36px);
+    --nav-button-min-size: 30px;
     --nav-button-radius: 8px;
-    --nav-button-gap: 0px;
   }
 
   .nav-bar__button::after {
@@ -1194,7 +1312,7 @@ body {
   }
 
   .nav-bar__icon {
-    --nav-icon-size: 18px;
+    --nav-icon-size: clamp(16px, 4vw, 18px);
   }
 }
 
@@ -1342,8 +1460,12 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  /* КРИТИЧНО: Предотвращает pull-to-refresh и закрытие бота */
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   will-change: transform, opacity;
@@ -1478,7 +1600,8 @@ body {
   .screen-stack {
     padding-left: calc(var(--app-safe-left) + clamp(12px, 4vw, 20px));
     padding-right: calc(var(--app-safe-right) + clamp(12px, 4vw, 20px));
-    padding-top: calc(var(--app-safe-top) + clamp(8px, 2.5vh, 18px));
+    /* В landscape режиме меньше места по вертикали, но всё равно учитываем камеру */
+    padding-top: calc(var(--app-safe-top) + clamp(10px, 2.5vh, 18px));
     padding-bottom: calc(var(--nav-offset, 120px) + clamp(24px, 6vh, 40px));
     gap: var(--screen-gap, clamp(18px, 4vh, 28px));
   }
@@ -1486,6 +1609,18 @@ body {
   .screen-header {
     text-align: left;
     align-items: flex-start;
+  }
+
+  .top-bar {
+    /* В landscape компактнее, но безопасная зона всё равно учитывается */
+    padding: calc(var(--app-safe-top) + clamp(10px, 2vh, 14px))
+      calc(var(--app-safe-right) + clamp(12px, 4vw, 20px)) clamp(8px, 1.5vh, 12px)
+      calc(var(--app-safe-left) + clamp(12px, 4vw, 20px));
+  }
+
+  .settings-fab {
+    top: calc(var(--app-safe-top) + clamp(12px, 2.5vh, 18px));
+    right: calc(var(--app-safe-right) + clamp(12px, 4vw, 20px));
   }
 
   .top-bar {
@@ -1561,7 +1696,8 @@ body {
   margin: 0 auto;
   padding-left: calc(var(--app-safe-left) + clamp(16px, 4vw, 24px));
   padding-right: calc(var(--app-safe-right) + clamp(16px, 4vw, 24px));
-  padding-top: calc(var(--app-safe-top) + clamp(12px, 3vh, 24px));
+  /* Увеличенный верхний отступ для безопасной зоны */
+  padding-top: calc(var(--app-safe-top) + clamp(16px, 3.5vh, 28px));
   padding-bottom: calc(var(--nav-offset, 120px) + clamp(32px, 7vh, 56px));
   display: flex;
   flex-direction: column;
@@ -1633,11 +1769,16 @@ body {
 
 @media (max-width: 540px) {
   .main-screen {
-    --nav-offset-base: 104px;
+    --nav-offset-base: 90px;
+  }
+
+  .screen-stack {
+    padding-left: calc(var(--app-safe-left) + clamp(12px, 3.5vw, 18px));
+    padding-right: calc(var(--app-safe-right) + clamp(12px, 3.5vw, 18px));
   }
 
   .nav-bar {
-    width: min(440px, calc(100% - var(--app-safe-left) - var(--app-safe-right) - 18px));
+    width: min(440px, calc(100% - var(--app-safe-left) - var(--app-safe-right) - 12px));
   }
 }
 
@@ -1648,6 +1789,12 @@ body {
   .slide-out-right {
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
+  }
+  
+  .settings-fab {
+    animation: none;
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

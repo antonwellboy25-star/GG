@@ -20,23 +20,99 @@ export default function App() {
     return () => window.clearTimeout(fadeTimer);
   }, [loading]);
 
+  // КРИТИЧНО: Защита от pull-to-refresh и закрытия бота
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Блокируем pull-to-refresh на уровне document
+    const preventPullToRefresh = (e: Event) => {
+      const touchEvent = e as TouchEvent;
+      const target = touchEvent.target as HTMLElement;
+      const scrollable = target.closest('.screen-wrapper');
+      
+      if (scrollable && scrollable.scrollTop === 0 && touchEvent.touches) {
+        const touch = touchEvent.touches[0];
+        const startY = touch.clientY;
+
+        const handleMove = (moveEvent: Event) => {
+          const moveTouchEvent = moveEvent as TouchEvent;
+          if (!moveTouchEvent.touches) return;
+          
+          const moveTouch = moveTouchEvent.touches[0];
+          const currentY = moveTouch.clientY;
+          const diff = currentY - startY;
+
+          // Если тянем вниз от верха - блокируем (это pull-to-refresh)
+          if (diff > 0 && scrollable.scrollTop === 0) {
+            moveEvent.preventDefault();
+          }
+        };
+
+        document.addEventListener('touchmove', handleMove, { passive: false });
+        
+        const cleanup = () => {
+          document.removeEventListener('touchmove', handleMove);
+        };
+
+        document.addEventListener('touchend', cleanup, { once: true });
+        document.addEventListener('touchcancel', cleanup, { once: true });
+      }
+    };
+
+    document.addEventListener('touchstart', preventPullToRefresh, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchstart', preventPullToRefresh);
+    };
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const webApp = window.Telegram?.WebApp;
     if (!webApp) return;
 
     try {
+      // 1. Инициализация WebApp
       webApp.ready();
-    } catch (_error) {
-      // Ignore errors from optional Telegram init step.
-    }
-
-    if (typeof webApp.expand === "function") {
-      try {
+      
+      // 2. Раскрываем на весь экран
+      if (typeof webApp.expand === "function") {
         webApp.expand();
-      } catch (_error) {
-        // Swallow expansion errors, Telegram may block it in some contexts.
       }
+      
+      // 3. КРИТИЧНО: Запрашиваем fullscreen режим (новый API)
+      if (typeof webApp.requestFullscreen === "function") {
+        webApp.requestFullscreen();
+      }
+      
+      // 4. Блокируем вертикальные свайпы (предотвращаем закрытие)
+      if (typeof webApp.disableVerticalSwipes === "function") {
+        webApp.disableVerticalSwipes();
+      }
+      
+      // 5. Включаем подтверждение закрытия
+      if (typeof webApp.enableClosingConfirmation === "function") {
+        webApp.enableClosingConfirmation();
+      }
+      
+      // 6. Устанавливаем цвета для максимального погружения
+      if (typeof webApp.setHeaderColor === "function") {
+        webApp.setHeaderColor("#000000");
+      }
+      if (typeof webApp.setBackgroundColor === "function") {
+        webApp.setBackgroundColor("#000000");
+      }
+      if (typeof webApp.setBottomBarColor === "function") {
+        webApp.setBottomBarColor("#000000");
+      }
+      
+      // 7. Скрываем клавиатуру если открыта
+      if (typeof webApp.hideKeyboard === "function") {
+        webApp.hideKeyboard();
+      }
+      
+    } catch (_error) {
+      // Игнорируем ошибки, если API недоступны
     }
   }, []);
 
