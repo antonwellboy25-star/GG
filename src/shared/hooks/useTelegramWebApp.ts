@@ -50,7 +50,9 @@ export function useTelegramWebApp() {
         webApp.hideKeyboard();
       }
     } catch (_error) {
-      // Ignore errors if APIs are unavailable
+      // Intentionally swallow errors - these are optional Telegram WebApp APIs
+      // that may not be available in all environments (e.g., development, old clients)
+      // The app should continue to function even if these APIs fail
     }
   }, []);
 
@@ -380,17 +382,24 @@ export function usePreventPullToRefresh() {
     if (typeof window === "undefined") return;
 
     const preventPullToRefresh = (e: Event) => {
-      const touchEvent = e as TouchEvent;
-      const target = touchEvent.target as HTMLElement;
+      // Type guard: ensure this is a TouchEvent
+      if (!(e instanceof TouchEvent)) return;
+      
+      const touchEvent = e;
+      const target = touchEvent.target;
+      if (!(target instanceof HTMLElement)) return;
+      
       const scrollable = target.closest(".screen-wrapper");
 
-      if (scrollable && scrollable.scrollTop === 0 && touchEvent.touches) {
+      if (scrollable && scrollable.scrollTop === 0 && touchEvent.touches && touchEvent.touches.length > 0) {
         const touch = touchEvent.touches[0];
         const startY = touch.clientY;
 
         const handleMove = (moveEvent: Event) => {
-          const moveTouchEvent = moveEvent as TouchEvent;
-          if (!moveTouchEvent.touches) return;
+          // Type guard for move event
+          if (!(moveEvent instanceof TouchEvent)) return;
+          const moveTouchEvent = moveEvent;
+          if (!moveTouchEvent.touches || moveTouchEvent.touches.length === 0) return;
 
           const moveTouch = moveTouchEvent.touches[0];
           const currentY = moveTouch.clientY;
