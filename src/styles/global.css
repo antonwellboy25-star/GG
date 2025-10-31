@@ -1037,10 +1037,11 @@ body {
 }
 
 .nav-bar__button.is-active::before {
+  /* Симметричная подсветка без диагонального сдвига */
   background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
+    180deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
     rgba(255, 255, 255, 0.06) 100%
   );
   opacity: 1;
@@ -1116,7 +1117,7 @@ body {
 /* Главная кнопка - такого же размера, но с акцентным цветом при активации */
 .nav-bar__button--main.is-active::before {
   background: linear-gradient(
-    135deg,
+    180deg,
     rgba(100, 150, 255, 0.22) 0%,
     rgba(80, 120, 220, 0.16) 50%,
     rgba(60, 100, 200, 0.1) 100%
@@ -1140,6 +1141,11 @@ body {
     rgba(150, 180, 255, 0.9) 50%,
     transparent 100%
   );
+}
+
+/* Для главной кнопки меняем цвет свечения и уменьшаем влияние белого блика */
+.nav-bar__button--main.is-active .nav-bar__icon svg {
+  filter: drop-shadow(0 0 6px rgba(130, 170, 255, 0.35));
 }
 
 @media (max-width: 380px) {
