@@ -1,5 +1,4 @@
-import type { CSSProperties } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -24,9 +23,9 @@ import {
 } from "three";
 import type { Texture } from "three";
 import ggLogoUrl from "@/assets/images/GG.png";
+import { loadInitialResources } from "@/shared/utils/assetLoader";
 
 type LoadingScreenProps = {
-  durationMs?: number;
   onDone?: () => void;
 };
 
@@ -46,7 +45,15 @@ type DustField = {
   baseOpacity: number;
 };
 
-const DEFAULT_DURATION = 5000;
+const ASSET_WEIGHT = 0.82;
+const SCENE_WEIGHT = 1 - ASSET_WEIGHT;
+const DISPLAY_LERP = 0.18;
+const PROGRESS_EPSILON = 0.002;
+const FADE_OUT_WINDOW = 0.7;
+const FALLBACK_RADIUS = 52;
+const FALLBACK_CIRCUMFERENCE = 2 * Math.PI * FALLBACK_RADIUS;
+const MIN_INTRO_DURATION = 5000;
+const getNow = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -370,25 +377,137 @@ const usePrefersReducedMotion = () => {
   return reduceMotion;
 };
 
-export default function LoadingScreen({
-  durationMs = DEFAULT_DURATION,
-  onDone,
-}: LoadingScreenProps) {
+export default function LoadingScreen({ onDone }: LoadingScreenProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [texture, setTexture] = useState<Texture | null>(null);
   const [visible, setVisible] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
   const [fallback, setFallback] = useState(false);
   const [canRender, setCanRender] = useState<boolean | null>(null);
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const [fallbackProgressState, setFallbackProgressState] = useState(0);
   const startTimeRef = useRef<number | null>(null);
   const tierRef = useRef<PerfTier>("mid");
+  const assetProgressRef = useRef(0);
+  const targetProgressRef = useRef(0);
+  const displayProgressRef = useRef(0);
+  const readyTimestampRef = useRef<number | null>(null);
+  const sceneReadyRef = useRef(false);
+  const assetsLoadedRef = useRef(false);
+  const doneRef = useRef(false);
+  const fallbackActiveRef = useRef(false);
+  const fallbackProgressRef = useRef(0);
+  const visibleAtRef = useRef<number | null>(null);
   const reduceMotion = usePrefersReducedMotion();
-  const fallbackStyle = { ["--loader-duration" as const]: `${durationMs}ms` } as CSSProperties;
+
+  const commitFallbackProgress = useCallback((value: number) => {
+    const next = clamp(value, 0, 1);
+    let limited = next;
+    const visibleSince = visibleAtRef.current;
+    if (visibleSince != null) {
+      const elapsed = getNow() - visibleSince;
+      const timeGate = clamp(elapsed / MIN_INTRO_DURATION, 0, 1);
+      limited = Math.min(next, timeGate);
+    }
+    if (Math.abs(fallbackProgressRef.current - limited) < PROGRESS_EPSILON) return;
+    fallbackProgressRef.current = limited;
+    setFallbackProgressState(limited);
+  }, []);
+
+  const computeTargetProgress = useCallback(
+    (assetValue: number, sceneValue: boolean) =>
+      clamp(assetValue * ASSET_WEIGHT + (sceneValue ? SCENE_WEIGHT : 0), 0, 1),
+    [],
+  );
+
+  const updateTargetProgress = useCallback(
+    (assetValue = assetProgressRef.current, sceneValue = sceneReadyRef.current) => {
+      const next = computeTargetProgress(assetValue, sceneValue);
+      targetProgressRef.current = next;
+      if (fallbackActiveRef.current) {
+        commitFallbackProgress(next);
+      }
+      return next;
+    },
+    [commitFallbackProgress, computeTargetProgress],
+  );
+
+  useEffect(() => {
+    sceneReadyRef.current = sceneReady;
+    updateTargetProgress();
+  }, [sceneReady, updateTargetProgress]);
+
+  useEffect(() => {
+    assetsLoadedRef.current = assetsLoaded;
+  }, [assetsLoaded]);
+
+  useEffect(() => {
+    fallbackActiveRef.current = fallback || canRender === false;
+    if (fallbackActiveRef.current) {
+      commitFallbackProgress(targetProgressRef.current);
+    }
+  }, [fallback, canRender, commitFallbackProgress]);
+
+  useEffect(() => {
+    const fallbackActive = fallback || canRender === false;
+    if (!fallbackActive) return;
+    if (typeof window === "undefined") return;
+
+    let raf = 0;
+    const step = () => {
+      if (doneRef.current) return;
+      const visibleSince = visibleAtRef.current;
+      if (visibleSince != null) {
+        const elapsed = getNow() - visibleSince;
+        const timeGate = clamp(elapsed / MIN_INTRO_DURATION, 0, 1);
+        const limited = Math.min(targetProgressRef.current, timeGate);
+        if (Math.abs(fallbackProgressRef.current - limited) >= PROGRESS_EPSILON) {
+          fallbackProgressRef.current = limited;
+          setFallbackProgressState(limited);
+        }
+      }
+      raf = window.requestAnimationFrame(step);
+    };
+
+    raf = window.requestAnimationFrame(step);
+    return () => window.cancelAnimationFrame(raf);
+  }, [fallback, canRender]);
 
   useEffect(() => {
     tierRef.current = detectPerfTier();
     setCanRender(isWebGLAvailable());
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const controller = new AbortController();
+
+    loadInitialResources(
+      (value) => {
+        if (controller.signal.aborted) return;
+        assetProgressRef.current = value;
+        const next = computeTargetProgress(value, sceneReadyRef.current);
+        targetProgressRef.current = next;
+        if (fallbackActiveRef.current) {
+          commitFallbackProgress(next);
+        }
+      },
+      { signal: controller.signal },
+    )
+      .then(() => {
+        if (!controller.signal.aborted) {
+          setAssetsLoaded(true);
+        }
+      })
+      .catch((error) => {
+        if ((error as DOMException)?.name === "AbortError" || controller.signal.aborted) {
+          return;
+        }
+        setAssetsLoaded(true);
+      });
+
+    return () => controller.abort();
+  }, [commitFallbackProgress, computeTargetProgress]);
 
   useEffect(() => {
     let cancelled = false;
@@ -433,23 +552,39 @@ export default function LoadingScreen({
   }, [sceneReady]);
 
   useEffect(() => {
-    if (!sceneReady) return;
+    if (!visible) return;
+    if (visibleAtRef.current != null) return;
+    const now = getNow();
+    visibleAtRef.current = now;
+    displayProgressRef.current = 0;
+    fallbackProgressRef.current = 0;
+    if (fallbackActiveRef.current) {
+      setFallbackProgressState(0);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (!assetsLoaded || !sceneReady || doneRef.current) return;
+    const now = getNow();
+    const visibleSince = visibleAtRef.current ?? now;
+    if (visibleAtRef.current == null) {
+      visibleAtRef.current = visibleSince;
+    }
+    const remaining = Math.max(0, MIN_INTRO_DURATION - (now - visibleSince));
+    const delay = Math.max(remaining, 120);
     const timer = window.setTimeout(() => {
+      doneRef.current = true;
       onDone?.();
-    }, durationMs);
+    }, delay);
     return () => window.clearTimeout(timer);
-  }, [sceneReady, durationMs, onDone]);
+  }, [assetsLoaded, sceneReady, onDone]);
 
   useEffect(() => {
     if (fallback || !containerRef.current || !texture || canRender !== true) return;
 
     const container = containerRef.current;
     const tier = tierRef.current;
-    const durationSeconds = durationMs / 1000;
-    const safeDuration = Math.max(durationSeconds, 0.001);
-    const progressLead = Math.min(0.35, safeDuration * 0.1);
-    const fadeOutWindow = Math.min(0.6, safeDuration * 0.18);
-    const fadeOutStart = Math.max(0, safeDuration - fadeOutWindow + progressLead * 0.75);
+    const fadeOutSeconds = FADE_OUT_WINDOW;
 
     const renderer = new WebGLRenderer({
       antialias: true,
@@ -611,14 +746,44 @@ export default function LoadingScreen({
       }
 
       const elapsed = (timestamp - startTimeRef.current) / 1000;
-      const clampedElapsed = clamp(elapsed, 0, safeDuration);
-      const progress = clamp((clampedElapsed + progressLead) / safeDuration, 0, 1);
       const fadeIn = easeOutQuint(clamp(elapsed / 1.05, 0, 1));
-      const fadeOut =
-        elapsed < fadeOutStart
-          ? 1
-          : easeOutQuint(clamp(1 - (elapsed - fadeOutStart) / fadeOutWindow, 0, 1));
-      const intensity = fadeIn * fadeOut;
+
+      const visibleSince = visibleAtRef.current;
+      const nowStamp = getNow();
+      const timeGate =
+        visibleSince != null ? clamp((nowStamp - visibleSince) / MIN_INTRO_DURATION, 0, 1) : 0;
+      const target =
+        visibleSince != null
+          ? Math.min(targetProgressRef.current, timeGate)
+          : targetProgressRef.current;
+      const previous = displayProgressRef.current;
+      const delta = target - previous;
+      let next = previous + delta * DISPLAY_LERP;
+      if (Math.abs(delta) < PROGRESS_EPSILON) {
+        next = target;
+      }
+      next = clamp(next, 0, 1);
+      displayProgressRef.current = next;
+      const progress = next;
+
+      if (
+        assetsLoadedRef.current &&
+        sceneReadyRef.current &&
+        readyTimestampRef.current == null &&
+        visibleSince != null &&
+        timeGate >= 1
+      ) {
+        readyTimestampRef.current = timestamp;
+      }
+
+      const fadeOutElapsed =
+        readyTimestampRef.current != null ? (timestamp - readyTimestampRef.current) / 1000 : 0;
+      const fadeOutFactor =
+        readyTimestampRef.current != null
+          ? easeOutQuint(clamp(1 - fadeOutElapsed / fadeOutSeconds, 0, 1))
+          : 1;
+
+      const intensity = fadeIn * fadeOutFactor;
 
       const updateDust = (df: ReturnType<typeof buildDustField>, speedScale = 1) => {
         const { positions, baseAngles, radii, yOffsets, zOffsets, speed, wobble } = df;
@@ -641,17 +806,18 @@ export default function LoadingScreen({
       updateDust(dustFar, 0.7);
       updateDust(dustNear, 1);
 
-      // Анимация кольца без пульсации масштаба
       ringUniforms.progress.value = progress;
-      ringUniforms.glow.value = 0.5 + Math.sin(elapsed * 4.2) * 0.2; // Легкое свечение
+      ringUniforms.glow.value = 0.5 + Math.sin(elapsed * 4.2) * 0.2;
       ringUniforms.opacity.value = intensity;
 
-      // Плавная пульсация яркости монеты
       logoMaterial.opacity = 0.95 + Math.sin(elapsed * 2.8) * 0.05;
 
       renderer.render(scene, camera);
 
-      if (elapsed < safeDuration + 0.8) {
+      const shouldContinue =
+        !assetsLoadedRef.current || !sceneReadyRef.current || progress < 0.999 || intensity > 0.02;
+
+      if (shouldContinue) {
         rafId = window.requestAnimationFrame(renderFrame);
       }
     };
@@ -665,6 +831,8 @@ export default function LoadingScreen({
       window.cancelAnimationFrame(rafId);
       window.removeEventListener("resize", handleResize);
       startTimeRef.current = null;
+      readyTimestampRef.current = null;
+      displayProgressRef.current = targetProgressRef.current;
       container.removeChild(renderer.domElement);
       renderer.dispose();
       dustNear.material.map?.dispose();
@@ -678,13 +846,15 @@ export default function LoadingScreen({
       ringGeometry.dispose();
       ringMaterial.dispose();
     };
-  }, [fallback, texture, canRender, durationMs, reduceMotion]);
+  }, [fallback, texture, canRender, reduceMotion]);
+
+  const fallbackStrokeOffset = FALLBACK_CIRCUMFERENCE * (1 - clamp(fallbackProgressState, 0, 1));
 
   return (
     <div className={`loader-root ${visible ? "loader-root--visible" : ""}`} aria-hidden>
       <div ref={containerRef} className="loader-stage" />
       {(fallback || canRender === false) && (
-        <div className="loader-fallback" style={fallbackStyle}>
+        <div className="loader-fallback">
           <svg className="loader-fallback__ring" viewBox="0 0 120 120" aria-hidden>
             <title>Loading indicator</title>
             <defs>
@@ -695,7 +865,13 @@ export default function LoadingScreen({
               </linearGradient>
             </defs>
             <circle className="loader-fallback__track" cx="60" cy="60" r="52" />
-            <circle className="loader-fallback__progress" cx="60" cy="60" r="52" />
+            <circle
+              className="loader-fallback__progress"
+              cx="60"
+              cy="60"
+              r="52"
+              style={{ strokeDashoffset: fallbackStrokeOffset }}
+            />
           </svg>
           <img src={ggLogoUrl} alt="" className="loader-fallback__logo" draggable={false} />
         </div>

@@ -118,9 +118,9 @@ function NavBarComponent({ current, onNavigate }: NavBarProps) {
                 className={classNames.join(" ")}
                 onClick={() => {
                   if (isActive) {
-                    haptics.impact("light");
-                  } else {
                     haptics.selection();
+                  } else {
+                    haptics.impact("light");
                   }
                   playNavTap();
                   onNavigate(screen);

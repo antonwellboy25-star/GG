@@ -8,6 +8,26 @@ type HapticModule = {
   selectionChanged: () => void;
 };
 
+const now = () => {
+  if (typeof performance !== "undefined" && typeof performance.now === "function") {
+    return performance.now();
+  }
+  return Date.now();
+};
+
+const HAPTIC_COOLDOWN_MS = 70;
+const lastTrigger: Record<string, number> = {};
+
+const shouldTrigger = (key: string) => {
+  const current = now();
+  const previous = lastTrigger[key] ?? 0;
+  if (current - previous < HAPTIC_COOLDOWN_MS) {
+    return false;
+  }
+  lastTrigger[key] = current;
+  return true;
+};
+
 const supportsNavigatorVibrate = () =>
   typeof window !== "undefined" &&
   "vibrate" in window.navigator &&
@@ -55,35 +75,38 @@ const impactFallback = (style: ImpactStyle) => {
   switch (style) {
     case "heavy":
     case "rigid":
-      vibrate([0, 26, 14, 18]);
+      vibrate([0, 12, 18]);
       return;
     case "medium":
-      vibrate([0, 18]);
+      vibrate([0, 10]);
       return;
     case "soft":
     case "light":
-      vibrate([0, 12]);
+      vibrate([0, 6]);
       return;
   }
-  vibrate([0, 12]);
+  vibrate([0, 6]);
 };
 
 const notificationFallback = (type: NotificationType) => {
   switch (type) {
     case "success":
-      vibrate([0, 18, 30, 12]);
+      vibrate([0, 12, 32, 10]);
       return;
     case "warning":
-      vibrate([0, 24, 40, 16]);
+      vibrate([0, 16, 36, 12]);
       return;
   }
-  vibrate([0, 28, 22, 28]);
+  vibrate([0, 18, 24, 18]);
 };
 
-const selectionFallback = () => vibrate(10);
+const selectionFallback = () => vibrate(6);
 
 export const haptics = {
   impact(style: ImpactStyle = "light") {
+    if (!shouldTrigger(`impact:${style}`)) {
+      return;
+    }
     const module = getTelegramHaptics();
     if (module) {
       invoke(module.impactOccurred, style);
@@ -92,6 +115,9 @@ export const haptics = {
     }
   },
   success() {
+    if (!shouldTrigger("notify:success")) {
+      return;
+    }
     const module = getTelegramHaptics();
     if (module) {
       invoke(module.notificationOccurred, "success");
@@ -100,6 +126,9 @@ export const haptics = {
     }
   },
   warning() {
+    if (!shouldTrigger("notify:warning")) {
+      return;
+    }
     const module = getTelegramHaptics();
     if (module) {
       invoke(module.notificationOccurred, "warning");
@@ -108,6 +137,9 @@ export const haptics = {
     }
   },
   error() {
+    if (!shouldTrigger("notify:error")) {
+      return;
+    }
     const module = getTelegramHaptics();
     if (module) {
       invoke(module.notificationOccurred, "error");
@@ -116,6 +148,9 @@ export const haptics = {
     }
   },
   selection() {
+    if (!shouldTrigger("selection")) {
+      return;
+    }
     const module = getTelegramHaptics();
     if (module) {
       invoke(module.selectionChanged);

@@ -139,7 +139,7 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
     setIsMining(true);
     setSessionStake(GRAM_PER_SESSION);
     setNotice(null);
-    haptics.impact("heavy");
+    haptics.impact("light");
     playMiningStart();
     return true;
   }, [spendGram]);
@@ -162,7 +162,7 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
   const handleToggleMining = useCallback(() => {
     if (isMining) {
       stopMining();
-      haptics.impact("medium");
+      haptics.impact("soft");
       playMiningStop();
       return;
     }

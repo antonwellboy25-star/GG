@@ -1,3 +1,26 @@
+interface TelegramWebAppUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  is_premium?: boolean;
+  allows_write_to_pm?: boolean;
+  photo_url?: string;
+}
+
+interface TelegramWebAppInitDataUnsafe {
+  query_id?: string;
+  user?: TelegramWebAppUser;
+  receiver?: TelegramWebAppUser;
+  start_param?: string;
+  auth_date?: number;
+  hash?: string;
+  chat?: unknown;
+  chat_type?: "sender" | "private" | "group" | "supergroup" | "channel";
+  chat_instance?: string;
+}
+
 interface TelegramThemeParams {
   [key: string]: string | undefined;
 }
@@ -33,6 +56,7 @@ interface TelegramBackButton {
 
 interface TelegramWebApp {
   readonly initData: string;
+  readonly initDataUnsafe: TelegramWebAppInitDataUnsafe;
   readonly colorScheme: "light" | "dark";
   readonly platform: string;
   readonly viewportStableHeight: number;

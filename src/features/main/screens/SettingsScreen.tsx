@@ -1,12 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
 import { goldFormatter, numberFormatter } from "@/shared/utils/formatters";
+import { useAudioPreferences } from "@/shared/hooks/useAudioPreferences";
+import { setMusicEnabled, setSoundEnabled } from "@/shared/state/audioPreferences";
+import { useTelegramInfo } from "@/shared/hooks/useTelegramInfo";
 
 export default function SettingsScreen() {
   const [devMode, setDevMode] = useState(false);
   const [devMessage, setDevMessage] = useState<string | null>(null);
   const { balances, runtime, addGram, resetAll } = useUserRuntime();
+  const audioPreferences = useAudioPreferences();
+  const { profile } = useTelegramInfo();
+
+  const displayName = useMemo(() => {
+    if (!profile) return "Гость Telegram";
+    const parts = [profile.firstName, profile.lastName].filter(Boolean);
+    return parts.length > 0
+      ? parts.join(" ")
+      : profile.username
+        ? `@${profile.username}`
+        : "Пользователь";
+  }, [profile]);
+
+  const subtitle = useMemo(() => {
+    if (!profile) return "Управление аккаунтом и режимами";
+    const usernamePart = profile.username ? ` · @${profile.username}` : "";
+    return `${displayName}${usernamePart}`;
+  }, [displayName, profile]);
 
   const handleAddFunds = () => {
     const amount = 1_000;
@@ -28,7 +49,7 @@ export default function SettingsScreen() {
   return (
     <section className="screen settings" aria-label="Настройки">
       <div className="settings-container screen-stack">
-        <ScreenHeader title="Настройки" subtitle="Управление аккаунтом и режимами" />
+        <ScreenHeader title="Настройки" subtitle={subtitle} />
 
         <div className="settings-sections">
           {/* Dev Mode */}
@@ -94,8 +115,18 @@ export default function SettingsScreen() {
             </div>
             <div className="settings-card__content">
               <div className="settings-field">
+                <span className="settings-field__label">Имя</span>
+                <div className="settings-value">{displayName}</div>
+              </div>
+              <div className="settings-field">
+                <span className="settings-field__label">Username</span>
+                <div className="settings-value">
+                  {profile?.username ? `@${profile.username}` : "—"}
+                </div>
+              </div>
+              <div className="settings-field">
                 <span className="settings-field__label">Telegram ID</span>
-                <div className="settings-value">Не подключён</div>
+                <div className="settings-value">{profile ? profile.id : "—"}</div>
               </div>
               <div className="settings-field">
                 <span className="settings-field__label">TON Wallet</span>
@@ -107,20 +138,28 @@ export default function SettingsScreen() {
           {/* Interface */}
           <div className="settings-card">
             <div className="settings-card__header">
-              <h2>🎨 Интерфейс</h2>
+              <h2>� Звук</h2>
             </div>
             <div className="settings-card__content">
               <div className="settings-field">
-                <span className="settings-field__label">Анимации</span>
+                <span className="settings-field__label">Фоновая музыка</span>
                 <label className="settings-toggle settings-toggle--inline">
-                  <input type="checkbox" defaultChecked />
+                  <input
+                    type="checkbox"
+                    checked={audioPreferences.musicEnabled}
+                    onChange={(event) => setMusicEnabled(event.target.checked)}
+                  />
                   <span className="settings-toggle__slider" />
                 </label>
               </div>
               <div className="settings-field">
                 <span className="settings-field__label">Звуковые эффекты</span>
                 <label className="settings-toggle settings-toggle--inline">
-                  <input type="checkbox" />
+                  <input
+                    type="checkbox"
+                    checked={audioPreferences.soundEnabled}
+                    onChange={(event) => setSoundEnabled(event.target.checked)}
+                  />
                   <span className="settings-toggle__slider" />
                 </label>
               </div>

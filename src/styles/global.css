@@ -31,7 +31,7 @@
   /* КРИТИЧНО: Верхний отступ должен быть больше для камеры и системных элементов */
   /* iPhone с Dynamic Island требуют ~59px, обычные notch ~44px */
   --app-safe-top: max(var(--app-content-safe-area-top, var(--app-safe-area-top, 0px)), 16px);
-  --app-topbar-safe: max(var(--app-safe-top), 24px);
+  --app-topbar-safe: max(var(--app-safe-top), 36px);
 
   /* Нижний отступ для навигации и индикатора home */
   --app-safe-bottom: max(
@@ -195,10 +195,9 @@ body {
   stroke: url(#loader-ring-gradient);
   stroke-width: 2.8;
   stroke-linecap: round;
-  stroke-dasharray: 326;
-  stroke-dashoffset: 326;
-  animation: loader-fallback-progress var(--loader-duration, 5s) cubic-bezier(0.4, 0, 0.2, 1)
-    forwards;
+  stroke-dasharray: 326.73;
+  stroke-dashoffset: 326.73;
+  transition: stroke-dashoffset 260ms cubic-bezier(0.4, 0, 0.2, 1);
   filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5))
     drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
   /* Гладкие края с антиалиасингом */
@@ -218,16 +217,6 @@ body {
   backface-visibility: hidden;
   transform: translateZ(0);
 }
-
-@keyframes loader-fallback-progress {
-  0% {
-    stroke-dashoffset: 326;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
 @keyframes loader-fallback-pulse {
   0%,
   100% {
@@ -2540,6 +2529,23 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.referral-list.empty {
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 28px 18px;
+  align-items: center;
+  justify-content: center;
+}
+
+.referral-empty {
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .referral-item {

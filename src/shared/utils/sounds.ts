@@ -1,3 +1,4 @@
+import { isSoundEnabled } from "@/shared/state/audioPreferences";
 type ToneShape = {
   frequency: number;
   frequencyEnd?: number;
@@ -196,11 +197,12 @@ const scheduleNoise = (
 };
 
 const playLayers = (layers: Layer[], options?: PlaybackOptions) => {
+  if (!isSoundEnabled()) return;
   const context = ensureContext();
   if (!context) return;
 
   const master = context.createGain();
-  const baseGain = options?.gain ?? 0.22;
+  const baseGain = options?.gain ?? 0.05;
   master.gain.value = baseGain;
   master.connect(context.destination);
 
@@ -236,24 +238,29 @@ export const playNavTap = () => {
         kind: "tone",
         spec: {
           type: "sine",
-          frequency: 800,
-          duration: 0.045,
-          gain: 0.32,
-          attack: 0.002,
-          decay: 0.025,
-          release: 0.018,
+          frequency: 820,
+          duration: 0.05,
+          gain: 0.1,
+          attack: 0.0018,
+          decay: 0.024,
+          release: 0.02,
         },
       },
       {
-        kind: "noise",
+        kind: "tone",
         spec: {
-          duration: 0.035,
-          gain: 0.12,
-          filter: { type: "highpass", frequency: 4000, Q: 1.2 },
+          type: "sine",
+          frequency: 1200,
+          duration: 0.045,
+          delay: 0.01,
+          gain: 0.065,
+          attack: 0.0015,
+          decay: 0.022,
+          release: 0.018,
         },
       },
     ],
-    { gain: 0.14 },
+    { gain: 0.04 },
   );
 };
 
@@ -264,25 +271,42 @@ export const playSettingsCue = () => {
         kind: "tone",
         spec: {
           type: "sine",
-          frequency: 1200,
-          duration: 0.055,
-          gain: 0.28,
-          attack: 0.003,
-          decay: 0.03,
+          frequency: 940,
+          duration: 0.06,
+          gain: 0.12,
+          attack: 0.0025,
+          decay: 0.028,
           release: 0.022,
         },
       },
       {
-        kind: "noise",
+        kind: "tone",
         spec: {
-          duration: 0.04,
-          delay: 0.008,
-          gain: 0.1,
-          filter: { type: "bandpass", frequency: 3500, Q: 2.5 },
+          type: "sine",
+          frequency: 1350,
+          duration: 0.055,
+          delay: 0.012,
+          gain: 0.075,
+          attack: 0.002,
+          decay: 0.026,
+          release: 0.02,
+        },
+      },
+      {
+        kind: "tone",
+        spec: {
+          type: "sine",
+          frequency: 1750,
+          duration: 0.05,
+          delay: 0.022,
+          gain: 0.06,
+          attack: 0.0018,
+          decay: 0.024,
+          release: 0.02,
         },
       },
     ],
-    { gain: 0.16 },
+    { gain: 0.05 },
   );
 };
 
@@ -293,29 +317,29 @@ export const playWarningCue = () => {
         kind: "tone",
         spec: {
           type: "sine",
-          frequency: 600,
-          duration: 0.065,
-          gain: 0.26,
-          attack: 0.004,
-          decay: 0.035,
-          release: 0.026,
+          frequency: 560,
+          duration: 0.07,
+          gain: 0.1,
+          attack: 0.0035,
+          decay: 0.034,
+          release: 0.024,
         },
       },
       {
         kind: "tone",
         spec: {
           type: "sine",
-          frequency: 450,
-          duration: 0.07,
-          delay: 0.012,
-          gain: 0.18,
-          attack: 0.004,
-          decay: 0.04,
-          release: 0.026,
+          frequency: 420,
+          duration: 0.075,
+          delay: 0.014,
+          gain: 0.075,
+          attack: 0.0032,
+          decay: 0.036,
+          release: 0.024,
         },
       },
     ],
-    { gain: 0.18 },
+    { gain: 0.055 },
   );
 };
 
@@ -326,38 +350,42 @@ export const playMiningStart = () => {
         kind: "tone",
         spec: {
           type: "sine",
-          frequency: 1000,
-          duration: 0.08,
-          gain: 0.34,
-          attack: 0.004,
-          decay: 0.045,
-          release: 0.031,
+          frequency: 920,
+          duration: 0.085,
+          gain: 0.12,
+          attack: 0.0035,
+          decay: 0.04,
+          release: 0.028,
         },
       },
       {
         kind: "tone",
         spec: {
           type: "sine",
-          frequency: 1400,
-          duration: 0.075,
-          delay: 0.015,
-          gain: 0.22,
+          frequency: 1280,
+          duration: 0.078,
+          delay: 0.012,
+          gain: 0.085,
           attack: 0.003,
-          decay: 0.042,
-          release: 0.03,
+          decay: 0.036,
+          release: 0.028,
         },
       },
       {
-        kind: "noise",
+        kind: "tone",
         spec: {
-          duration: 0.05,
-          delay: 0.01,
-          gain: 0.08,
-          filter: { type: "highpass", frequency: 5000, Q: 1.5 },
+          type: "sine",
+          frequency: 1560,
+          duration: 0.07,
+          delay: 0.022,
+          gain: 0.075,
+          attack: 0.0025,
+          decay: 0.032,
+          release: 0.026,
         },
       },
     ],
-    { gain: 0.2 },
+    { gain: 0.06 },
   );
 };
 
@@ -368,25 +396,29 @@ export const playMiningStop = () => {
         kind: "tone",
         spec: {
           type: "sine",
-          frequency: 700,
-          duration: 0.055,
-          gain: 0.28,
-          attack: 0.003,
-          decay: 0.032,
-          release: 0.02,
+          frequency: 640,
+          duration: 0.06,
+          gain: 0.1,
+          attack: 0.0025,
+          decay: 0.03,
+          release: 0.022,
         },
       },
       {
-        kind: "noise",
+        kind: "tone",
         spec: {
-          duration: 0.04,
-          delay: 0.006,
-          gain: 0.08,
-          filter: { type: "highpass", frequency: 4500, Q: 1.3 },
+          type: "sine",
+          frequency: 460,
+          duration: 0.058,
+          delay: 0.012,
+          gain: 0.065,
+          attack: 0.0023,
+          decay: 0.028,
+          release: 0.022,
         },
       },
     ],
-    { gain: 0.15 },
+    { gain: 0.045 },
   );
 };
 
@@ -397,11 +429,11 @@ export const playMiningComplete = () => {
         kind: "tone",
         spec: {
           type: "sine",
-          frequency: 1100,
-          duration: 0.065,
-          gain: 0.32,
-          attack: 0.003,
-          decay: 0.038,
+          frequency: 1020,
+          duration: 0.07,
+          gain: 0.11,
+          attack: 0.0028,
+          decay: 0.034,
           release: 0.024,
         },
       },
@@ -409,25 +441,29 @@ export const playMiningComplete = () => {
         kind: "tone",
         spec: {
           type: "sine",
-          frequency: 1500,
-          duration: 0.07,
-          delay: 0.012,
-          gain: 0.24,
-          attack: 0.003,
-          decay: 0.042,
-          release: 0.025,
+          frequency: 1340,
+          duration: 0.072,
+          delay: 0.014,
+          gain: 0.085,
+          attack: 0.0026,
+          decay: 0.032,
+          release: 0.024,
         },
       },
       {
-        kind: "noise",
+        kind: "tone",
         spec: {
-          duration: 0.045,
-          delay: 0.015,
-          gain: 0.1,
-          filter: { type: "bandpass", frequency: 4200, Q: 2.8 },
+          type: "sine",
+          frequency: 1680,
+          duration: 0.07,
+          delay: 0.026,
+          gain: 0.065,
+          attack: 0.0022,
+          decay: 0.03,
+          release: 0.024,
         },
       },
     ],
-    { gain: 0.2 },
+    { gain: 0.06 },
   );
 };

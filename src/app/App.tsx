@@ -1,5 +1,6 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import MainScreen from "@/features/main/components/MainScreen";
+import { initBackgroundMusic, playBackgroundMusic } from "@/shared/utils/backgroundMusic";
 
 type Insets = {
   top: number;
@@ -11,14 +12,29 @@ type Insets = {
 const LazyLoadingScreen = lazy(() => import("@/features/loading/components/LoadingScreen"));
 
 export default function App() {
-  const [loading, setLoading] = useState(true);
+  const [booting, setBooting] = useState(true);
+  const [showOverlay, setShowOverlay] = useState(true);
   const [fadeOut, setFadeOut] = useState(false);
 
+  const handleLoaderDone = useCallback(() => {
+    setBooting(false);
+    setFadeOut(true);
+  }, []);
+
   useEffect(() => {
-    if (!loading) return;
-    const fadeTimer = window.setTimeout(() => setFadeOut(true), 4700);
-    return () => window.clearTimeout(fadeTimer);
-  }, [loading]);
+    initBackgroundMusic();
+  }, []);
+
+  useEffect(() => {
+    if (!fadeOut) return;
+    const timer = window.setTimeout(() => setShowOverlay(false), 420);
+    return () => window.clearTimeout(timer);
+  }, [fadeOut]);
+
+  useEffect(() => {
+    if (booting) return;
+    void playBackgroundMusic();
+  }, [booting]);
 
   // КРИТИЧНО: Защита от pull-to-refresh и закрытия бота
   useEffect(() => {
@@ -433,16 +449,16 @@ export default function App() {
 
   return (
     <div className="app-root">
-      {loading && (
+      {showOverlay && (
         <div className={`overlay ${fadeOut ? "overlay--fade-out" : ""}`}>
           <Suspense fallback={null}>
-            <LazyLoadingScreen durationMs={5000} onDone={() => setLoading(false)} />
+            <LazyLoadingScreen onDone={handleLoaderDone} />
           </Suspense>
         </div>
       )}
 
       <main className="app-main app-main--visible" aria-label="Application">
-        <MainScreen loading={loading} showNav={fadeOut || !loading} />
+        <MainScreen loading={booting} showNav={fadeOut || !showOverlay} />
       </main>
     </div>
   );
