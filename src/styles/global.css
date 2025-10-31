@@ -1348,6 +1348,24 @@ body {
   }
 }
 
+/* Оптимизация для портретного режима на мобильных */
+@media (max-width: 480px) and (orientation: portrait) {
+  :root {
+    --app-safe-left: max(var(--app-safe-left-raw), 16px);
+    --app-safe-right: max(var(--app-safe-right-raw), 16px);
+  }
+  
+  .nav-bar__surface {
+    --nav-surface-pad-x: clamp(8px, 3vw, 16px);
+    --nav-surface-gap: clamp(2px, 0.6vw, 3px);
+  }
+  
+  .nav-bar__button {
+    width: clamp(36px, 9vw, 56px);
+    height: clamp(36px, 9vw, 56px);
+  }
+}
+
 @media (max-height: 600px) and (orientation: landscape) {
   .screen.home,
   .maining-canvas {
