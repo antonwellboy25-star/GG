@@ -37,7 +37,9 @@ const ICONS: Record<Screen, JSX.Element> = {
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path
         fill="currentColor"
-        d="M14.5 3.5l-9 5.19v10.38l9 5.19 9-5.19V8.69l-9-5.19zm0 2.31l6.5 3.75v7.5l-6.5 3.75-6.5-3.75v-7.5l6.5-3.75zM12 10v8l6-4-6-4z"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2.75a1 1 0 0 1 .5.134l7 4a1 1 0 0 1 .5.866v8a1 1 0 0 1-.5.866l-7 4a1 1 0 0 1-1 0l-7-4A1 1 0 0 1 4 15.75v-8a1 1 0 0 1 .5-.866l7-4A1 1 0 0 1 12 2.75Zm0 1.658-6 3.429v6.326l6 3.429 6-3.429V7.837l-6-3.429Zm-1.75 5.09a.75.75 0 0 1 1.125-.66l3.5 2a.75.75 0 0 1 0 1.32l-3.5 2A.75.75 0 0 1 10.25 13.5v-4.002Z"
       />
     </svg>
   ),
