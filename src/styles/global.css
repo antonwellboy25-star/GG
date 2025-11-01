@@ -1,5 +1,6 @@
 :root {
   color-scheme: dark;
+
   --bg: #000;
   --gold1: #c59b24;
   --gold2: #d4af37;
@@ -140,10 +141,6 @@ body {
   }
 }
 
-.app-main {
-  flex: 1;
-}
-
 /* Overlay for loading */
 .overlay {
   position: fixed;
@@ -153,6 +150,7 @@ body {
   transition: opacity 300ms ease;
   will-change: opacity;
 }
+
 .overlay--fade-out {
   opacity: 0;
   pointer-events: none;
@@ -211,6 +209,7 @@ body {
 .loader-fallback__ring {
   width: 100%;
   height: 100%;
+
   /* Улучшенное качество рендеринга SVG */
   shape-rendering: geometricprecision;
   image-rendering: crisp-edges;
@@ -220,6 +219,7 @@ body {
   fill: none;
   stroke: rgba(255, 255, 255, 0.08);
   stroke-width: 2.5;
+
   /* Гладкие края */
   vector-effect: non-scaling-stroke;
 }
@@ -234,6 +234,7 @@ body {
   transition: stroke-dashoffset 260ms cubic-bezier(0.4, 0, 0.2, 1);
   filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5))
     drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
+
   /* Гладкие края с антиалиасингом */
   vector-effect: non-scaling-stroke;
   paint-order: stroke;
@@ -245,18 +246,21 @@ body {
   filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.25)) drop-shadow(0 0 6px rgba(255, 215, 0, 0.15));
   user-select: none;
   animation: loader-fallback-pulse 2.5s ease-in-out infinite;
+
   /* Улучшенное качество рендеринга изображения */
   image-rendering: crisp-edges;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   transform: translateZ(0);
 }
+
 @keyframes loader-fallback-pulse {
   0%,
   100% {
     opacity: 0.95;
     transform: scale(1);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.02);
@@ -266,6 +270,7 @@ body {
 /* Main area after loading */
 .app-main {
   position: relative;
+  flex: 1;
   height: 100%;
   background: transparent;
   opacity: 1;
@@ -292,6 +297,7 @@ body {
   flex-direction: column;
   overflow: hidden;
   overscroll-behavior: none;
+
   --nav-offset-base: clamp(90px, 17vh, 132px);
   --nav-offset: calc(var(--nav-offset-base) + var(--app-safe-bottom));
 }
@@ -313,6 +319,7 @@ body {
 
 .top-bar {
   --settings-offset: clamp(52px, 13vw, 68px);
+
   position: sticky;
   top: 0;
   z-index: 2;
@@ -374,6 +381,7 @@ body {
   gap: 12px;
   min-width: 0;
 }
+
 .mining-balance {
   display: flex;
   flex-direction: column;
@@ -474,6 +482,7 @@ body {
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -619,6 +628,7 @@ body {
   100% {
     box-shadow: 0 0 6px 1px rgba(0, 214, 143, 0.5);
   }
+
   50% {
     box-shadow: 0 0 12px 3px rgba(0, 214, 143, 0.8);
   }
@@ -671,17 +681,16 @@ body {
 /* Navigation - Modern Clean Design */
 .nav-bar {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: auto 0 0;
   z-index: 9;
   padding-top: 0;
-  padding-left: var(--app-safe-left);
-  padding-right: var(--app-safe-right);
-  --nav-pad-bottom-extra: 10px;
+  padding-right: max(var(--app-safe-right), clamp(12px, 5vw, 24px));
+  padding-left: max(var(--app-safe-left), clamp(12px, 5vw, 24px));
+
+  --nav-pad-bottom-extra: clamp(6px, 2vh, 16px);
+
   padding-bottom: calc(var(--app-safe-bottom) + var(--nav-pad-bottom-extra));
   pointer-events: none;
-  /* Центрируем содержимое */
   display: flex;
   justify-content: center;
   align-items: flex-end;
@@ -689,10 +698,11 @@ body {
 
 .nav-bar__surface {
   --nav-surface-pad-y: clamp(8px, 1.8vh, 12px);
-  --nav-surface-pad-x: clamp(14px, 4.5vw, 24px);
-  --nav-surface-gap: clamp(4px, 1.2vw, 8px);
+  --nav-surface-pad-x: clamp(14px, 4.5vw, 28px);
+  --nav-surface-gap: clamp(4px, 1.5vw, 10px);
   --nav-surface-max-reduction: 24px;
-  --nav-surface-radius: clamp(18px, 4.5vw, 22px);
+  --nav-surface-radius: clamp(18px, 4.5vw, 24px);
+
   margin: 0 auto;
   padding: var(--nav-surface-pad-y) var(--nav-surface-pad-x);
   width: fit-content;
@@ -710,7 +720,7 @@ body {
   gap: var(--nav-surface-gap);
   pointer-events: auto;
   box-sizing: border-box;
-  background: linear-gradient(180deg, rgba(30, 30, 30, 0.85), rgba(15, 15, 15, 0.9));
+  background: var(--surface-glass);
   backdrop-filter: blur(20px) saturate(140%);
   border-radius: var(--nav-surface-radius);
   position: relative;
@@ -718,7 +728,7 @@ body {
   transform: translateZ(0);
   backface-visibility: hidden;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.6),
+    var(--shadow-soft, 0 8px 32px rgba(0, 0, 0, 0.6)),
     0 0 0 1px rgba(255, 255, 255, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
@@ -989,55 +999,6 @@ body {
   }
 }
 
-/* Stats helpers */
-.stats-note {
-  margin-top: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: clamp(13px, 3.2vw, 15px);
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.stats-note__icon {
-  font-size: clamp(14px, 3.5vw, 16px);
-}
-
-.nav-bar {
-  position: fixed;
-  inset: auto 0 0;
-  padding-top: 0;
-  padding-right: max(var(--app-safe-right), clamp(12px, 5vw, 24px));
-  padding-bottom: calc(var(--app-safe-bottom) + clamp(6px, 2vh, 16px));
-  padding-left: max(var(--app-safe-left), clamp(12px, 5vw, 24px));
-  pointer-events: none;
-  z-index: 9;
-  /* Обеспечиваем центрирование */
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-}
-
-.nav-bar__surface {
-  margin: 0 auto;
-  padding: clamp(5px, 1.4vh, 10px) clamp(12px, 4vw, 28px);
-  display: flex;
-  align-items: center;
-  gap: clamp(4px, 1.8vw, 10px);
-  list-style: none;
-  background: var(--surface-glass);
-  backdrop-filter: blur(20px) saturate(140%);
-  border-radius: clamp(16px, 4vw, 24px);
-  box-shadow:
-    var(--shadow-soft),
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  pointer-events: auto;
-  transform: translateZ(0);
-  /* Гарантируем центрирование контента */
-  justify-content: center;
-}
-
 .nav-bar__item {
   flex: 0 0 auto;
   min-width: 0;
@@ -1046,6 +1007,7 @@ body {
 
 .nav-bar__button {
   --nav-radius: clamp(12px, 3.5vw, 18px);
+
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1189,6 +1151,7 @@ body {
 
 .main-body {
   --body-pad-x: clamp(14px, 4vw, 32px);
+
   position: relative;
   flex: 1;
   display: flex;
@@ -1230,9 +1193,11 @@ body {
 .main-screen .main-body--home {
   /* Для 3D-сцены убираем горизонтальные отступы, чтобы исключить «обрезание» слева/справа. */
   --body-pad-x: 0px;
+
   overflow: hidden;
   padding-top: 0;
   padding-right: max(var(--app-safe-right), 0px);
+
   /* Увеличен padding-bottom для предотвращения обрезания анимации навигацией */
   padding-bottom: calc(var(--nav-offset) + clamp(20px, 5vh, 40px));
   padding-left: max(var(--app-safe-left), 0px);
@@ -1273,6 +1238,7 @@ body {
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+
   /* КРИТИЧНО: Предотвращает pull-to-refresh и закрытие бота */
   overscroll-behavior: none;
   overscroll-behavior-y: none;
@@ -1551,6 +1517,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: var(--screen-header-gap, 8px);
+
   /* Добавлен отступ сверху для предотвращения перекрытия с settings-fab */
   padding-top: clamp(8px, 2vh, 16px);
 }
@@ -1561,36 +1528,43 @@ body {
     transform: translateX(-18%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
   }
 }
+
 @keyframes slideInRight {
   from {
     transform: translateX(18%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
   }
 }
+
 @keyframes slideOutLeft {
   from {
     transform: translateX(0);
     opacity: 1;
   }
+
   to {
     transform: translateX(-18%);
     opacity: 0;
   }
 }
+
 @keyframes slideOutRight {
   from {
     transform: translateX(0);
     opacity: 1;
   }
+
   to {
     transform: translateX(18%);
     opacity: 0;
@@ -1600,12 +1574,15 @@ body {
 .slide-in-left {
   animation: slideInLeft 320ms ease forwards;
 }
+
 .slide-in-right {
   animation: slideInRight 320ms ease forwards;
 }
+
 .slide-out-left {
   animation: slideOutLeft 320ms ease forwards;
 }
+
 .slide-out-right {
   animation: slideOutRight 320ms ease forwards;
 }
@@ -1630,12 +1607,14 @@ body {
   .nav-bar__surface {
     --nav-surface-pad-x: clamp(10px, 3vw, 16px);
     --nav-surface-gap: clamp(4px, 1vw, 6px);
+
     max-width: calc(100vw - 20px);
   }
 
   .nav-bar__button {
     width: clamp(40px, 10vw, 56px);
     height: clamp(40px, 10vw, 56px);
+
     --nav-radius: clamp(10px, 3vw, 16px);
   }
 
@@ -2158,29 +2137,16 @@ body {
 .stats-section {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  width: 100%;
-}
-
-.stats-section__title {
-  margin: 0;
-  font-size: clamp(19px, 4.8vw, 24px);
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
-  padding-left: 4px;
-}
-
-.stats-section {
-  display: flex;
-  flex-direction: column;
   gap: 20px;
+  width: 100%;
 }
 
 .stats-section__title {
   margin: 0;
   font-size: clamp(20px, 4.5vw, 24px);
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
+  padding-left: 4px;
 }
 
 .stats-timeline {
