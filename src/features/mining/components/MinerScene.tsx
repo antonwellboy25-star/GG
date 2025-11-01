@@ -103,6 +103,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
   const streamFieldRef = useRef<StreamField | null>(null);
   const coinMeshesRef = useRef<CoinMeshes | null>(null);
   const haloRef = useRef<Halo | null>(null);
+  const rootGroupRef = useRef<THREE.Group | null>(null);
   const particleTextureRef = useRef<THREE.Texture | null>(null);
   const timelineRef = useRef<TimelineState>({
     progress: 0,
@@ -736,7 +737,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       container.appendChild(renderer.domElement);
 
       const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 60);
-      camera.position.set(0, 0.2, 6.4);
+      camera.position.set(0, 0, 6.4);
       camera.lookAt(0, 0, 0);
       cameraRef.current = camera;
 
@@ -749,6 +750,12 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       rim.position.set(-2.3, -1.7, -2.4);
       scene.add(rim);
 
+      const rootGroup = new THREE.Group();
+      rootGroup.name = "miner-root";
+      rootGroup.position.set(0, 0.52, 0);
+      scene.add(rootGroup);
+      rootGroupRef.current = rootGroup;
+
       if (!particleTextureRef.current) {
         particleTextureRef.current = createParticleTexture(160);
       }
@@ -760,20 +767,20 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       }
 
       const particleField = createParticleField(particleTexture);
-      scene.add(particleField.points);
+      rootGroup.add(particleField.points);
       particleFieldRef.current = particleField;
 
       const streamField = createStreamField(particleTexture);
-      scene.add(streamField.points);
+      rootGroup.add(streamField.points);
       streamFieldRef.current = streamField;
 
       const coins = createCoinMeshes();
-      scene.add(coins.gram);
-      scene.add(coins.gg);
+      rootGroup.add(coins.gram);
+      rootGroup.add(coins.gg);
       coinMeshesRef.current = coins;
 
       const halo = createHaloSprite(createHaloTexture(256));
-      scene.add(halo.sprite);
+      rootGroup.add(halo.sprite);
       haloRef.current = halo;
 
       const resize = () => {
@@ -797,6 +804,14 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         const entryX = -worldWidth * exitCoeff;
         const exitX = worldWidth * exitCoeff;
         viewportRef.current = { width: worldWidth, height: worldHeight, entryX, exitX };
+
+        const rootGroup = rootGroupRef.current;
+        if (rootGroup) {
+          // Опускаем сферу ниже для симметричного вида
+          const baseOffset = worldHeight * -0.12;
+          const clampedOffset = THREE.MathUtils.clamp(baseOffset, -0.5, 0);
+          rootGroup.position.setY(clampedOffset);
+        }
 
         const sphereRadius = Math.min(1.42, Math.max(0.88, worldHeight * 0.18));
         const baseCoinScale = Math.min(1.32, Math.max(0.78, worldHeight / 5.6));
@@ -847,6 +862,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         streamFieldRef.current = null;
         coinMeshesRef.current = null;
         haloRef.current = null;
+        rootGroupRef.current = null;
         rendererRef.current = null;
         sceneRef.current = null;
         renderer?.setAnimationLoop(null);
@@ -884,6 +900,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       streamFieldRef.current = null;
       coinMeshesRef.current = null;
       haloRef.current = null;
+      rootGroupRef.current = null;
       if (renderer) {
         renderer.setAnimationLoop(null);
         if (renderer.domElement.parentElement === container) {

@@ -2,9 +2,17 @@ import { useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { tasks as defaultTasks, type Task } from "@/features/main/data/tasks";
 import { ggFormatter } from "@/shared/utils/formatters";
+import { haptics } from "@/shared/utils/haptics";
 
 export default function TasksScreen() {
-  const [tasks] = useState<Task[]>(defaultTasks);
+  const [tasks, setTasks] = useState<Task[]>(defaultTasks);
+
+  const handleClaim = (taskId: string) => {
+    setTasks((prev) =>
+      prev.map((task) => (task.id === taskId ? { ...task, completed: true } : task)),
+    );
+    haptics.success();
+  };
 
   const tasksByType = {
     onboarding: tasks.filter((t) => t.type === "onboarding"),
@@ -47,7 +55,7 @@ export default function TasksScreen() {
           <h2 className="tasks-section__title">🚀 Начало работы</h2>
           <div className="tasks-list">
             {tasksByType.onboarding.map((task) => (
-              <TaskCard key={task.id} task={task} formatter={ggFormatter} />
+              <TaskCard key={task.id} task={task} formatter={ggFormatter} onClaim={handleClaim} />
             ))}
           </div>
         </div>
@@ -57,7 +65,7 @@ export default function TasksScreen() {
           <h2 className="tasks-section__title">📅 Ежедневные задания</h2>
           <div className="tasks-list">
             {tasksByType.daily.map((task) => (
-              <TaskCard key={task.id} task={task} formatter={ggFormatter} />
+              <TaskCard key={task.id} task={task} formatter={ggFormatter} onClaim={handleClaim} />
             ))}
           </div>
         </div>
@@ -67,7 +75,7 @@ export default function TasksScreen() {
           <h2 className="tasks-section__title">💬 Социальные задания</h2>
           <div className="tasks-list">
             {tasksByType.social.map((task) => (
-              <TaskCard key={task.id} task={task} formatter={ggFormatter} />
+              <TaskCard key={task.id} task={task} formatter={ggFormatter} onClaim={handleClaim} />
             ))}
           </div>
         </div>
@@ -76,7 +84,15 @@ export default function TasksScreen() {
   );
 }
 
-function TaskCard({ task, formatter }: { task: Task; formatter: Intl.NumberFormat }) {
+function TaskCard({
+  task,
+  formatter,
+  onClaim,
+}: {
+  task: Task;
+  formatter: Intl.NumberFormat;
+  onClaim: (taskId: string) => void;
+}) {
   return (
     <div className={`task-card ${task.completed ? "task-card--completed" : ""}`}>
       <div className="task-card__icon">{task.completed ? "✅" : "⭕"}</div>
@@ -88,6 +104,14 @@ function TaskCard({ task, formatter }: { task: Task; formatter: Intl.NumberForma
         <div className="task-card__reward-value">+{formatter.format(task.reward)}</div>
         <div className="task-card__reward-label">GG</div>
       </div>
+      <button
+        type="button"
+        className={`task-card__action ${task.completed ? "task-card__action--completed" : ""}`}
+        onClick={() => !task.completed && onClaim(task.id)}
+        disabled={task.completed}
+      >
+        {task.completed ? "Получено" : "Получить"}
+      </button>
     </div>
   );
 }

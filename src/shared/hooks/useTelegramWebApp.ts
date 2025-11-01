@@ -19,7 +19,7 @@ export function useTelegramWebApp() {
 
     try {
       webApp.ready();
-      
+
       if (typeof webApp.expand === "function") {
         webApp.expand();
       }
@@ -101,9 +101,7 @@ export function useTelegramWebApp() {
       const right =
         typeof raw.right === "number" && Number.isFinite(raw.right) ? Math.max(0, raw.right) : 0;
       const bottom =
-        typeof raw.bottom === "number" && Number.isFinite(raw.bottom)
-          ? Math.max(0, raw.bottom)
-          : 0;
+        typeof raw.bottom === "number" && Number.isFinite(raw.bottom) ? Math.max(0, raw.bottom) : 0;
       const left =
         typeof raw.left === "number" && Number.isFinite(raw.left) ? Math.max(0, raw.left) : 0;
       return { top, right, bottom, left };
@@ -384,14 +382,19 @@ export function usePreventPullToRefresh() {
     const preventPullToRefresh = (e: Event) => {
       // Type guard: ensure this is a TouchEvent
       if (!(e instanceof TouchEvent)) return;
-      
+
       const touchEvent = e;
       const target = touchEvent.target;
       if (!(target instanceof HTMLElement)) return;
-      
+
       const scrollable = target.closest(".screen-wrapper");
 
-      if (scrollable && scrollable.scrollTop === 0 && touchEvent.touches && touchEvent.touches.length > 0) {
+      if (
+        scrollable &&
+        scrollable.scrollTop === 0 &&
+        touchEvent.touches &&
+        touchEvent.touches.length > 0
+      ) {
         const touch = touchEvent.touches[0];
         const startY = touch.clientY;
 
