@@ -164,16 +164,12 @@ body {
   place-items: center;
   background: transparent;
   opacity: 0;
-  transform: scale(1.02);
-  transition:
-    opacity 600ms ease,
-    transform 1200ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 600ms ease;
   pointer-events: none;
 }
 
 .loader-root--visible {
   opacity: 1;
-  transform: scale(1);
 }
 
 .loader-stage {
@@ -226,12 +222,11 @@ body {
 
 .loader-fallback__progress {
   fill: none;
-  stroke: url('#loader-ring-gradient');
+  stroke: url("#loader-ring-gradient");
   stroke-width: 2.8;
   stroke-linecap: round;
   stroke-dasharray: 326.73;
   stroke-dashoffset: 326.73;
-  transition: stroke-dashoffset 260ms cubic-bezier(0.4, 0, 0.2, 1);
   filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.5))
     drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
 
@@ -245,7 +240,7 @@ body {
   height: auto;
   filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.25)) drop-shadow(0 0 6px rgba(255, 215, 0, 0.15));
   user-select: none;
-  animation: loader-fallback-pulse 2.5s ease-in-out infinite;
+  animation: loader-fallback-pulse 2.8s ease-in-out infinite;
 
   /* Улучшенное качество рендеринга изображения */
   image-rendering: crisp-edges;
@@ -1163,30 +1158,6 @@ body {
 }
 
 .main-body::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: calc(var(--nav-offset) + 64px);
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.02) 14%,
-    rgba(0, 0, 0, 0.06) 26%,
-    rgba(0, 0, 0, 0.12) 38%,
-    rgba(0, 0, 0, 0.22) 50%,
-    rgba(0, 0, 0, 0.36) 62%,
-    rgba(0, 0, 0, 0.54) 74%,
-    rgba(0, 0, 0, 0.74) 86%,
-    rgba(0, 0, 0, 0.9) 96%,
-    #000 100%
-  );
-  pointer-events: none;
-  z-index: 5;
-}
-
-.main-screen .main-body--home::after {
   content: none;
 }
 
@@ -1214,6 +1185,29 @@ body {
   z-index: 1;
 }
 
+/* Мягкие градиентные затемнения по краям области прокрутки для всех экранов */
+.screens-viewport::before,
+.screens-viewport::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.screens-viewport::before {
+  top: 0;
+  height: clamp(24px, 7vh, 72px);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0));
+}
+
+.screens-viewport::after {
+  bottom: 0;
+  height: calc(var(--nav-offset) + clamp(16px, 6vh, 80px));
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0));
+}
+
 .main-body .screens-viewport--home {
   overflow: hidden;
   border-radius: 0;
@@ -1221,6 +1215,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* На домашнем экране градиенты отключаем, чтобы не мешать 3D-сцене */
+.screens-viewport--home::before,
+.screens-viewport--home::after {
+  content: none;
 }
 
 .screens-viewport--home .screen.home,
@@ -1243,6 +1243,9 @@ body {
   overscroll-behavior: none;
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
+
+  /* Явно разрешаем вертикальную прокрутку в WebView Telegram */
+  touch-action: pan-y;
   scrollbar-width: none;
   will-change: transform, opacity;
   transform: translateZ(0);
@@ -1305,6 +1308,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Смещаем сцену чуть ниже на мобильных, чтобы визуально сократить пустое пространство
+   между блоком майнинга и нижней навигацией в Telegram WebApp */
+@media (max-width: 540px) {
+  .screens-viewport--home .maining-canvas {
+    transform: translateY(4vh);
+  }
 }
 
 .maining-canvas canvas {

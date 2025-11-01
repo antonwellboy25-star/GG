@@ -47,7 +47,7 @@ type DustField = {
 
 const ASSET_WEIGHT = 0.82;
 const SCENE_WEIGHT = 1 - ASSET_WEIGHT;
-const DISPLAY_LERP = 0.18;
+const DISPLAY_LERP = 0.16;
 const PROGRESS_EPSILON = 0.002;
 const FADE_OUT_WINDOW = 0.7;
 const FALLBACK_RADIUS = 52;
@@ -483,10 +483,15 @@ export default function LoadingScreen({ onDone }: LoadingScreenProps) {
     let raf = 0;
     const step = () => {
       if (doneRef.current) return;
-      const limited = gateProgress(targetProgressRef.current);
-      if (Math.abs(fallbackProgressRef.current - limited) >= PROGRESS_EPSILON) {
-        fallbackProgressRef.current = limited;
-        setFallbackProgressState(limited);
+      const target = gateProgress(targetProgressRef.current);
+      const prev = fallbackProgressRef.current;
+      const delta = target - prev;
+      let next = prev + delta * DISPLAY_LERP;
+      if (Math.abs(delta) < PROGRESS_EPSILON) next = target;
+      next = MathUtils.clamp(next, 0, 1);
+      if (Math.abs(fallbackProgressRef.current - next) >= PROGRESS_EPSILON) {
+        fallbackProgressRef.current = next;
+        setFallbackProgressState(next);
       }
       raf = window.requestAnimationFrame(step);
     };
@@ -581,21 +586,25 @@ export default function LoadingScreen({ onDone }: LoadingScreenProps) {
     }
   }, [visible]);
 
+  // Monitor completion for the fallback path as well and finish only when visually complete
   useEffect(() => {
-    if (!assetsLoaded || !sceneReady || doneRef.current) return;
-    const now = getNow();
-    const visibleSince = visibleAtRef.current ?? now;
-    if (visibleAtRef.current == null) {
-      visibleAtRef.current = visibleSince;
-    }
-    const remaining = Math.max(0, MIN_INTRO_DURATION - (now - visibleSince));
-    const delay = Math.max(remaining, 120);
-    const timer = window.setTimeout(() => {
-      doneRef.current = true;
-      onDone?.();
-    }, delay);
-    return () => window.clearTimeout(timer);
-  }, [assetsLoaded, sceneReady, onDone]);
+    if (!fallbackActive) return;
+    let raf = 0;
+    const poll = () => {
+      if (doneRef.current) return;
+      const gate = getGateFactor();
+      const isReady = assetsLoadedRef.current && sceneReadyRef.current && gate >= 1;
+      const visual = MathUtils.clamp(fallbackProgressRef.current, 0, 1);
+      if (isReady && visual >= 0.999) {
+        doneRef.current = true;
+        setTimeout(() => onDone?.(), 0);
+        return;
+      }
+      raf = window.requestAnimationFrame(poll);
+    };
+    raf = window.requestAnimationFrame(poll);
+    return () => window.cancelAnimationFrame(raf);
+  }, [fallbackActive, getGateFactor, onDone]);
 
   useEffect(() => {
     if (fallbackActive || !containerRef.current || !texture || canRender !== true) return;
@@ -787,6 +796,9 @@ export default function LoadingScreen({ onDone }: LoadingScreenProps) {
 
       if (shouldContinue) {
         rafId = window.requestAnimationFrame(renderFrame);
+      } else if (!doneRef.current) {
+        doneRef.current = true;
+        setTimeout(() => onDone?.(), 0);
       }
     };
 
@@ -814,7 +826,7 @@ export default function LoadingScreen({ onDone }: LoadingScreenProps) {
       ringGeometry.dispose();
       ringMaterial.dispose();
     };
-  }, [fallbackActive, texture, canRender, reduceMotion, getGateFactor]);
+  }, [fallbackActive, texture, canRender, reduceMotion, getGateFactor, onDone]);
 
   const fallbackStrokeOffset =
     FALLBACK_CIRCUMFERENCE * (1 - MathUtils.clamp(fallbackProgressState, 0, 1));
