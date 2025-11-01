@@ -803,7 +803,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         const worldWidth = worldHeight * camera.aspect;
 
         // Adaptive coefficient pushes coins further on wider screens
-  const exitCoeff = Math.min(1.2, 0.72 + camera.aspect * 0.15);
+        const exitCoeff = Math.min(1.2, 0.72 + camera.aspect * 0.15);
         const entryX = -worldWidth * exitCoeff;
         const exitX = worldWidth * exitCoeff;
         viewportRef.current = { width: worldWidth, height: worldHeight, entryX, exitX };

@@ -63,7 +63,7 @@
 :root[data-telegram="true"][data-tg-platform="ios"]:not([data-tg-fullscreen="true"]) {
   /* На iOS Telegram верхняя панель выше, особенно на Pro/Max.
      Даем запас + используем content safe area из JS-хука, если она больше. */
-  --app-telegram-top-padding: 92px;
+  --app-telegram-top-padding: 100px;
 }
 
 @media (pointer: fine) and (min-width: 768px) {
@@ -317,11 +317,9 @@ body {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding:
-    calc(var(--app-topbar-safe) + clamp(10px, 2.5vh, 20px))
+  padding: calc(var(--app-topbar-safe) + clamp(10px, 2.5vh, 20px))
     calc(max(var(--app-safe-right), clamp(12px, 3.5vw, 24px)) + var(--settings-offset))
-    clamp(10px, 2vh, 16px)
-    max(var(--app-safe-left), clamp(12px, 3.5vw, 24px));
+    clamp(10px, 2vh, 16px) max(var(--app-safe-left), clamp(12px, 3.5vw, 24px));
   background: none;
   backdrop-filter: none;
   opacity: 1;
