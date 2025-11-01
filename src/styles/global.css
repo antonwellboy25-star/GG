@@ -61,7 +61,9 @@
 }
 
 :root[data-telegram="true"][data-tg-platform="ios"]:not([data-tg-fullscreen="true"]) {
-  --app-telegram-top-padding: 78px;
+  /* На iOS Telegram верхняя панель выше, особенно на Pro/Max.
+     Даем запас + используем content safe area из JS-хука, если она больше. */
+  --app-telegram-top-padding: 92px;
 }
 
 @media (pointer: fine) and (min-width: 768px) {
@@ -315,9 +317,11 @@ body {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: calc(var(--app-topbar-safe) + clamp(10px, 2.5vh, 20px))
-    calc(clamp(12px, 3.5vw, 24px) + var(--settings-offset)) clamp(10px, 2vh, 16px)
-    clamp(12px, 3.5vw, 24px);
+  padding:
+    calc(var(--app-topbar-safe) + clamp(10px, 2.5vh, 20px))
+    calc(max(var(--app-safe-right), clamp(12px, 3.5vw, 24px)) + var(--settings-offset))
+    clamp(10px, 2vh, 16px)
+    max(var(--app-safe-left), clamp(12px, 3.5vw, 24px));
   background: none;
   backdrop-filter: none;
   opacity: 1;
@@ -446,7 +450,7 @@ body {
 .settings-fab {
   position: fixed;
   top: calc(var(--app-topbar-safe) + clamp(12px, 3.2vh, 24px));
-  right: clamp(14px, 4.5vw, 24px);
+  right: max(var(--app-safe-right), clamp(14px, 4.5vw, 24px));
   z-index: 10;
   display: inline-flex;
   align-items: center;
@@ -1005,7 +1009,10 @@ body {
 .nav-bar {
   position: fixed;
   inset: auto 0 0;
-  padding: 0 clamp(12px, 5vw, 24px) calc(var(--app-safe-bottom) + clamp(6px, 2vh, 16px));
+  padding-top: 0;
+  padding-right: max(var(--app-safe-right), clamp(12px, 5vw, 24px));
+  padding-bottom: calc(var(--app-safe-bottom) + clamp(6px, 2vh, 16px));
+  padding-left: max(var(--app-safe-left), clamp(12px, 5vw, 24px));
   pointer-events: none;
   z-index: 9;
   /* Обеспечиваем центрирование */
@@ -1223,13 +1230,14 @@ body {
 }
 
 .main-screen .main-body--home {
-  --body-pad-x: clamp(12px, 3.5vw, 24px);
+  /* Для 3D-сцены убираем горизонтальные отступы, чтобы исключить «обрезание» слева/справа. */
+  --body-pad-x: 0px;
   overflow: hidden;
   padding-top: 0;
-  padding-right: var(--body-pad-x);
+  padding-right: max(var(--app-safe-right), 0px);
   /* Увеличен padding-bottom для предотвращения обрезания анимации навигацией */
   padding-bottom: calc(var(--nav-offset) + clamp(20px, 5vh, 40px));
-  padding-left: var(--body-pad-x);
+  padding-left: max(var(--app-safe-left), 0px);
 }
 
 .screens-viewport {

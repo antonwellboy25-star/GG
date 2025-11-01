@@ -16,9 +16,12 @@ export type TelegramInfo = {
   incomingReferral: ReferralContext;
 };
 
-const BOT_USERNAME = "GGmainer_bot";
+// Bot username and Mini App short name are configurable via env.
+// VITE_TG_BOT: bot username without @ (e.g., "MyCoolBot")
+// VITE_TG_MINIAPP: Mini App short name set in @BotFather (optional)
+const BOT_USERNAME = import.meta.env.VITE_TG_BOT ?? "GGmainer_bot";
 const BOT_LINK = `https://t.me/${BOT_USERNAME}`;
-const BOT_WEBAPP_PATH = "app";
+const MINIAPP_SHORT_NAME: string = import.meta.env.VITE_TG_MINIAPP ?? "";
 
 const REFERRAL_PREFIX = "ref";
 const REFERRAL_CAMPAIGN_PREFIX = "cmp";
@@ -107,10 +110,9 @@ const buildLinkWithQuery = (base: string, key: "start" | "startapp", payload: st
 };
 
 const resolveWebAppBaseLink = () => {
-  if (!BOT_WEBAPP_PATH) {
-    return BOT_LINK;
-  }
-  return `${BOT_LINK}/${BOT_WEBAPP_PATH}`;
+  // Prefer explicit Mini App short name (https://t.me/<bot>/<miniapp>) when provided.
+  // Fallback to base bot link; startapp will still work: https://t.me/<bot>?startapp=...
+  return MINIAPP_SHORT_NAME ? `${BOT_LINK}/${MINIAPP_SHORT_NAME}` : BOT_LINK;
 };
 
 export const buildReferralLinks = (
@@ -120,14 +122,16 @@ export const buildReferralLinks = (
   const payload = composeReferralPayload({ code, campaign: options?.campaign });
   const botLink = buildLinkWithQuery(BOT_LINK, "start", payload);
   const webAppBase = resolveWebAppBaseLink();
+  // Always use startapp for Mini App deep links (latest Telegram Web Apps docs)
   const webAppLink = buildLinkWithQuery(webAppBase, "startapp", payload);
 
-  const nativeLink = payload
-    ? `tg://resolve?domain=${BOT_USERNAME}&start=${encodeURIComponent(payload)}`
-    : `tg://resolve?domain=${BOT_USERNAME}`;
+  // Native tg:// link: prefer startapp (opens Mini App directly). If MINIAPP_SHORT_NAME is known,
+  // you can also pass &appname=<short_name>, but it's optional for the primary app.
+  const nativeBase = `tg://resolve?domain=${BOT_USERNAME}`;
+  const nativeLink = buildLinkWithQuery(nativeBase, "startapp", payload);
 
-  // Share the web app deep-link when possible to deliver users directly into the Mini App.
-  const universal = payload ? webAppLink : botLink;
+  // Universal: prefer Mini App deep link when payload is present, otherwise simple bot link
+  const universal = payload ? buildLinkWithQuery(BOT_LINK, "startapp", payload) : botLink;
 
   return {
     universal,
@@ -184,7 +188,18 @@ export const getTelegramInfo = (): TelegramInfo => {
   const webApp = readWebApp();
   const profile = mapUser(webApp?.initDataUnsafe?.user);
   const referralCode = buildReferralCode(profile);
-  const startParam = webApp?.initDataUnsafe?.start_param ?? null;
+  // start_param from initData is primary; fallback to URL param in cases when opened outside Telegram
+  // or via testing. See https://core.telegram.org/bots/webapps#launch-parameters
+  const urlStartParam = (() => {
+    try {
+      if (typeof window === "undefined") return null;
+      const sp = new URLSearchParams(window.location.search);
+      return sp.get("tgWebAppStartParam");
+    } catch {
+      return null;
+    }
+  })();
+  const startParam = webApp?.initDataUnsafe?.start_param ?? urlStartParam ?? null;
   const incomingReferral = parseReferralPayload(startParam);
   const referralLinks = buildReferralLinks(referralCode);
 

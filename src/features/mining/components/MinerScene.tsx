@@ -784,10 +784,13 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
       haloRef.current = halo;
 
       const resize = () => {
-        const width = container.clientWidth || window.innerWidth;
-        const height = container.clientHeight || window.innerHeight;
+        // Используем getBoundingClientRect для большей точности в iOS Telegram/WebView
+        const rect = container.getBoundingClientRect();
+        const width = Math.max(0, Math.floor(rect.width)) || window.innerWidth;
+        const height = Math.max(0, Math.floor(rect.height)) || window.innerHeight;
         if (width <= 0 || height <= 0) return;
 
+        // Ограничиваем DPR, чтобы избежать лишнего масштабирования и клиппинга на высоких DPI
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         renderer?.setPixelRatio(dpr);
         renderer?.setSize(width, height, false);
@@ -800,7 +803,7 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         const worldWidth = worldHeight * camera.aspect;
 
         // Adaptive coefficient pushes coins further on wider screens
-        const exitCoeff = Math.min(1.2, 0.72 + camera.aspect * 0.15);
+  const exitCoeff = Math.min(1.2, 0.72 + camera.aspect * 0.15);
         const entryX = -worldWidth * exitCoeff;
         const exitX = worldWidth * exitCoeff;
         viewportRef.current = { width: worldWidth, height: worldHeight, entryX, exitX };
