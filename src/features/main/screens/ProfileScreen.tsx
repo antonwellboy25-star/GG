@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { SendTransactionRequest } from "@tonconnect/sdk";
 import {
   TonConnectButton,
@@ -6,6 +5,7 @@ import {
   useTonConnectUI,
   useTonWallet,
 } from "@tonconnect/ui-react";
+import { useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
 import { GRAM_DECIMALS, GRAM_TOPUP_ADDRESS } from "@/shared/config/ton";

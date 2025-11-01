@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
-import { goldFormatter, numberFormatter } from "@/shared/utils/formatters";
 import { useAudioPreferences, useTelegramInfo } from "@/shared/hooks";
 import { setMusicEnabled, setSoundEnabled } from "@/shared/state/audioPreferences";
+import { goldFormatter, numberFormatter } from "@/shared/utils/formatters";
 
 export default function SettingsScreen() {
   const [devMode, setDevMode] = useState(false);

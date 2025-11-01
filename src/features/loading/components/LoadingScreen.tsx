@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Texture } from "three";
 import {
   AdditiveBlending,
   BufferAttribute,
@@ -15,13 +16,12 @@ import {
   PlaneGeometry,
   Points,
   PointsMaterial,
+  Scene,
   ShaderMaterial,
   SRGBColorSpace,
-  Scene,
   TextureLoader,
   WebGLRenderer,
 } from "three";
-import type { Texture } from "three";
 import ggLogoUrl from "@/assets/images/GG.png";
 import { loadInitialResources } from "@/shared/utils/assetLoader";
 

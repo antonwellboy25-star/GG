@@ -1,8 +1,8 @@
 import { useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
-import { copyToClipboard, openTelegramShare } from "@/shared/utils/utilities";
 import { useTelegramInfo } from "@/shared/hooks";
 import { buildReferralLinks } from "@/shared/utils/telegram";
+import { copyToClipboard, openTelegramShare } from "@/shared/utils/utilities";
 
 export default function ReferralsScreen() {
   const [copied, setCopied] = useState(false);

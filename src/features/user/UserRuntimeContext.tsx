@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import type { RecentSession, StatisticsSummary } from "@/features/main/data/statistics";
 import { recentSessions as baseSessions } from "@/features/main/data/statistics";
-import type { StatisticsSummary, RecentSession } from "@/features/main/data/statistics";
 
 const GRAM_PER_GOLD = 1000;
 const MAX_HISTORY_RECORDS = 20;

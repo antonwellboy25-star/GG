@@ -1380,11 +1380,6 @@ body {
   text-align: center;
 }
 
-/* Адаптивность для маленьких экранов */
-@media (max-width: 540px) {
-  /* Удалено дублирующее правило для screen.home */
-}
-
 /* Оптимизация для портретного режима на мобильных */
 @media (max-width: 480px) and (orientation: portrait) {
   :root {
