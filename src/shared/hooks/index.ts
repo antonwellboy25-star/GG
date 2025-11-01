@@ -3,9 +3,9 @@
  */
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
+  type AudioPreferences,
   getAudioPreferences,
   subscribeAudioPreferences,
-  type AudioPreferences,
 } from "@/shared/state/audioPreferences";
 import { getTelegramInfo, type TelegramInfo } from "@/shared/utils/telegram";
 

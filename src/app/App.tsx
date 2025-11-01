@@ -1,11 +1,11 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import MainScreen from "@/features/main/components/MainScreen";
+import { usePreventPullToRefresh, useTelegramWebApp } from "@/shared/hooks/useTelegramWebApp";
 import {
   enableBackgroundMusicAutoplay,
   initBackgroundMusic,
   playBackgroundMusic,
 } from "@/shared/utils/backgroundMusic";
-import { useTelegramWebApp, usePreventPullToRefresh } from "@/shared/hooks/useTelegramWebApp";
 
 const LazyLoadingScreen = lazy(() => import("@/features/loading/components/LoadingScreen"));
 

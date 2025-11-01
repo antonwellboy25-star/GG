@@ -1,4 +1,4 @@
-import { memo, type JSX } from "react";
+import { type JSX, memo } from "react";
 import { haptics } from "@/shared/utils/haptics";
 import { playNavTap } from "@/shared/utils/sounds";
 

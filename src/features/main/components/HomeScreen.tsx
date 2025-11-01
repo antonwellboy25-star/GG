@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { lazy, Suspense } from "react";
 import ggLogoUrl from "@/assets/images/GG.png";
 
 const MinerScene = lazy(() => import("@/features/mining/components/MinerScene"));
