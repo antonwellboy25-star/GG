@@ -153,7 +153,7 @@ const createRingMaterial = (): RingBundle => {
     vertexShader: `
       varying vec2 vUv;
       varying vec2 vPosition;
-      void main() {
+  void main() {
         vUv = uv;
         vPosition = position.xy;
         vec4 worldPosition = modelMatrix * vec4(position, 1.0);
@@ -193,19 +193,27 @@ const createRingMaterial = (): RingBundle => {
           discard;
         }
 
-        float angle = atan(centered.y, centered.x);
-        angle = (angle + PI) / (2.0 * PI);
+  float angle = atan(centered.y, centered.x);
+  angle = (angle + PI) / (2.0 * PI);
+
+  // Лёгкое «оверфилл» на субпиксель, чтобы гарантированно закрыть шов
+  float p = min(progress + 0.003, 1.0);
 
         float angleDeriv = length(vec2(dFdx(angle), dFdy(angle)));
         float angleAA = angleDeriv * 4.0;
-        float progressEdge = 1.0 - smoothstep(progress - angleAA, progress + angleAA, angle);
+        float progressEdge = 1.0 - smoothstep(p - angleAA, p + angleAA, angle);
 
-        if (progressEdge < 0.005 && progress < 0.999) {
+        // Когда прогресс близок к 100%, убираем щель стыка и рисуем полный круг
+        if (p >= 0.975) {
+          progressEdge = 1.0;
+        }
+
+        if (progressEdge < 0.005 && p < 0.999) {
           discard;
         }
 
-        float headWidth = 0.18;
-        float angleDistance = progress - angle;
+  float headWidth = 0.16;
+        float angleDistance = p - angle;
 
         float normalizedDist = angleDistance / headWidth;
 
@@ -214,7 +222,7 @@ const createRingMaterial = (): RingBundle => {
         float band = 1.0 - smoothstep(0.0, 0.85, radialDist);
         band = pow(band, 4.0);
 
-        if (angleDistance < 0.0 || angleDistance > headWidth) {
+        if (p >= 0.97 || angleDistance < 0.0 || angleDistance > headWidth) {
           band = 0.0;
         }
 
@@ -228,7 +236,10 @@ const createRingMaterial = (): RingBundle => {
         float edgeMask = innerEdge * outerEdge;
         edgeMask = pow(edgeMask, 1.5);
 
-        vec3 baseColor = mix(colorA, colorB, angle * 0.5 + 0.2);
+  // Периодическая цветовая модуляция, чтобы не было скачка по цвету на стыке (angle=0 ~ angle=1)
+  float cyc = 0.5 + 0.5 * cos(angle * 2.0 * PI);
+  float hueMix = 0.35 + 0.45 * cyc; // диапазон [0.35, 0.80]
+  vec3 baseColor = mix(colorA, colorB, hueMix);
 
         vec3 glowColor = vec3(1.0, 1.0, 1.0);
         vec3 color = mix(baseColor, glowColor, band * 0.5);
@@ -828,8 +839,9 @@ export default function LoadingScreen({ onDone }: LoadingScreenProps) {
     };
   }, [fallbackActive, texture, canRender, reduceMotion, getGateFactor, onDone]);
 
-  const fallbackStrokeOffset =
-    FALLBACK_CIRCUMFERENCE * (1 - MathUtils.clamp(fallbackProgressState, 0, 1));
+  const clampedFallbackProgress = MathUtils.clamp(fallbackProgressState, 0, 1);
+  const fallbackAlmostFull = clampedFallbackProgress >= 0.975;
+  const fallbackStrokeOffset = FALLBACK_CIRCUMFERENCE * (1 - clampedFallbackProgress);
 
   return (
     <div className={`loader-root ${visible ? "loader-root--visible" : ""}`} aria-hidden>
@@ -851,7 +863,11 @@ export default function LoadingScreen({ onDone }: LoadingScreenProps) {
               cx="60"
               cy="60"
               r="52"
-              style={{ strokeDashoffset: fallbackStrokeOffset }}
+              strokeLinecap={fallbackAlmostFull ? "butt" : "round"}
+              style={{
+                strokeDasharray: FALLBACK_CIRCUMFERENCE,
+                strokeDashoffset: fallbackAlmostFull ? 0 : fallbackStrokeOffset,
+              }}
             />
           </svg>
           <img src={ggLogoUrl} alt="" className="loader-fallback__logo" draggable={false} />

@@ -449,7 +449,9 @@ body {
 
 .settings-fab {
   position: fixed;
-  top: calc(var(--app-topbar-safe) + clamp(16px, 3.5vh, 28px));
+
+  /* Выравниваем FAB по вертикали с верхним внутренним отступом .top-bar */
+  top: calc(var(--app-topbar-safe) + clamp(12px, 3vh, 24px));
   right: max(var(--app-safe-right), clamp(14px, 4.5vw, 24px));
   z-index: 10;
   display: inline-flex;
@@ -713,7 +715,6 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--nav-surface-gap);
-  pointer-events: auto;
   box-sizing: border-box;
   background: var(--surface-glass);
   backdrop-filter: blur(20px) saturate(140%);
@@ -726,6 +727,10 @@ body {
     var(--shadow-soft, 0 8px 32px rgba(0, 0, 0, 0.6)),
     0 0 0 1px rgba(255, 255, 255, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  /* Включаем взаимодействия для кнопок навигации внутри,
+     так как контейнер .nav-bar имеет pointer-events: none */
+  pointer-events: auto;
 }
 
 /* Profile screen */
@@ -1169,8 +1174,8 @@ body {
   padding-top: 0;
   padding-right: max(var(--app-safe-right), 0px);
 
-  /* Увеличен padding-bottom для предотвращения обрезания анимации навигацией */
-  padding-bottom: calc(var(--nav-offset) + clamp(20px, 5vh, 40px));
+  /* На главной не добавляем нижний внутренний отступ — сцена должна идти под навбар */
+  padding-bottom: 0;
   padding-left: max(var(--app-safe-left), 0px);
 }
 
@@ -1186,6 +1191,7 @@ body {
 }
 
 /* Мягкие градиентные затемнения по краям области прокрутки для всех экранов */
+
 /* Применяем фейды только когда это НЕ домашний экран */
 .screens-viewport:not(.screens-viewport--home)::before,
 .screens-viewport:not(.screens-viewport--home)::after {
@@ -1210,7 +1216,8 @@ body {
 }
 
 .main-body .screens-viewport--home {
-  overflow: hidden;
+  /* Чтобы частицы/сфера не обрезались контейнером на главной */
+  overflow: visible;
   border-radius: 0;
   min-height: 100%;
   display: flex;
@@ -1268,8 +1275,8 @@ body {
 }
 
 .screen-wrapper--home {
-  overflow-x: hidden;
-  overflow-y: hidden;
+  /* Не скроллим, но и не обрезаем 3D-сцену */
+  overflow: visible;
   overscroll-behavior: contain;
   touch-action: pan-x;
 }
@@ -1703,6 +1710,17 @@ body {
 
 /* Десктоп и большие экраны */
 @media (min-width: 1024px) {
+  /* Метрики под прогрессом в один ряд на десктопе */
+  .mining-progress__metrics {
+    flex-wrap: nowrap;
+    gap: 8px 24px;
+  }
+
+  .mining-metric {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
   .screen-stack {
     max-width: 900px;
     padding-left: 40px;
@@ -2308,6 +2326,16 @@ body {
 @media (max-width: 640px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Если карточек нечётное количество — последнюю растягиваем на всю ширину,
+     чтобы ряд не выглядел «незавершённым» на мобильных */
+  .stats-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .referrals-stats > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 
   .timeline-item {
