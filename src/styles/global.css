@@ -193,7 +193,6 @@ body {
   height: 100%;
   display: block;
   background: transparent;
-  image-rendering: high-quality;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   transform: translateZ(0);
@@ -213,7 +212,7 @@ body {
   width: 100%;
   height: 100%;
   /* Улучшенное качество рендеринга SVG */
-  shape-rendering: geometricPrecision;
+  shape-rendering: geometricprecision;
   image-rendering: crisp-edges;
 }
 
@@ -227,7 +226,7 @@ body {
 
 .loader-fallback__progress {
   fill: none;
-  stroke: url(#loader-ring-gradient);
+  stroke: url('#loader-ring-gradient');
   stroke-width: 2.8;
   stroke-linecap: round;
   stroke-dasharray: 326.73;
@@ -1167,8 +1166,9 @@ body {
   padding: 0;
   margin: -1px;
   border: 0;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   overflow: hidden;
+  white-space: nowrap;
 }
 
 .nav-bar__button--main.is-active::before {
@@ -2110,7 +2110,6 @@ body {
   font-weight: 700;
   color: #fff;
   line-height: 1.1;
-  word-break: break-word;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

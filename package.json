@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview --port 5173",
     "lint": "biome lint src",
-    "format": "biome format --write src"
+    "format": "biome format --write src",
+    "stylelint": "stylelint 'src/**/*.css'",
+    "stylelint:fix": "stylelint 'src/**/*.css' --fix"
   },
   "dependencies": {
     "@tonconnect/sdk": "^3.0.2",
@@ -23,6 +25,8 @@
     "@types/react-dom": "19.2.2",
     "@types/three": "^0.180.0",
     "@vitejs/plugin-react-swc": "4.2.0",
+    "stylelint": "^16.25.0",
+    "stylelint-config-standard": "^39.0.1",
     "typescript": "5.9.3",
     "vite": "7.1.12"
   }

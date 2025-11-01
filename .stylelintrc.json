@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/stylelintrc",
+  "extends": [
+    "stylelint-config-standard"
+  ],
+  "rules": {
+    "no-descending-specificity": null,
+    "selector-pseudo-class-no-unknown": [true, { "ignorePseudoClasses": ["global"] }],
+    "at-rule-no-unknown": [true, { "ignoreAtRules": ["supports"] }],
+    "selector-class-pattern": [
+      "^[a-z0-9]+(?:[-_][a-z0-9]+)*(?:__(?:[a-z0-9]+(?:[-_][a-z0-9]+)*))?(?:--(?:[a-z0-9]+(?:[-_][a-z0-9]+)*))?$",
+      {
+        "message": "Expected class selector to follow BEM (block[__element][--modifier]) with kebab/underscore segments"
+      }
+    ],
+    "keyframes-name-pattern": "^[a-zA-Z][a-zA-Z0-9-_]*$",
+    "media-feature-range-notation": null,
+    "color-function-notation": "legacy",
+    "color-function-alias-notation": null,
+    "alpha-value-notation": "number",
+    "declaration-block-no-redundant-longhand-properties": null,
+    "comment-empty-line-before": null,
+    "rule-empty-line-before": null,
+    "at-rule-empty-line-before": null,
+    "declaration-empty-line-before": null,
+    "custom-property-empty-line-before": null,
+    "property-no-vendor-prefix": null,
+    "no-duplicate-selectors": null,
+    "font-family-name-quotes": null
+  }
+}
