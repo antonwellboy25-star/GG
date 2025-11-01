@@ -1186,8 +1186,9 @@ body {
 }
 
 /* Мягкие градиентные затемнения по краям области прокрутки для всех экранов */
-.screens-viewport::before,
-.screens-viewport::after {
+/* Применяем фейды только когда это НЕ домашний экран */
+.screens-viewport:not(.screens-viewport--home)::before,
+.screens-viewport:not(.screens-viewport--home)::after {
   content: "";
   position: absolute;
   left: 0;
@@ -1196,13 +1197,13 @@ body {
   z-index: 3;
 }
 
-.screens-viewport::before {
+.screens-viewport:not(.screens-viewport--home)::before {
   top: 0;
   height: clamp(24px, 7vh, 72px);
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0));
 }
 
-.screens-viewport::after {
+.screens-viewport:not(.screens-viewport--home)::after {
   bottom: 0;
   height: calc(var(--nav-offset) + clamp(16px, 6vh, 80px));
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0));
