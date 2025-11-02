@@ -662,19 +662,18 @@ html[data-telegram="true"] #root {
   justify-content: center;
   width: clamp(42px, 11vw, 48px);
   height: clamp(42px, 11vw, 48px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: clamp(14px, 3.5vw, 16px);
-  background: rgba(18, 18, 18, 0.88);
-  color: #fff;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
   cursor: pointer;
   opacity: 0;
   animation: fadeInSettings 400ms ease 300ms forwards;
   transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
+    color 160ms ease,
     transform 160ms ease,
     opacity 160ms ease;
-  backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: none;
 }
 
 @keyframes fadeInSettings {
@@ -690,22 +689,21 @@ html[data-telegram="true"] #root {
 }
 
 .settings-fab svg {
-  width: clamp(20px, 5.5vw, 24px);
-  height: clamp(20px, 5.5vw, 24px);
+  width: clamp(22px, 6vw, 26px);
+  height: clamp(22px, 6vw, 26px);
 }
 
 .settings-fab:hover {
-  border-color: rgba(255, 255, 255, 0.26);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.32);
-  transform: translateY(-1px);
+  color: #fff;
+  transform: scale(1.05);
 }
 
 .settings-fab:active {
-  transform: translateY(0);
+  transform: scale(0.95);
 }
 
 .settings-fab[disabled] {
-  opacity: 0.55;
+  opacity: 0.4;
   pointer-events: none;
 }
 
