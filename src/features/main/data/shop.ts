@@ -1,13 +1,13 @@
 /**
  * Shop Items Data Model
- * 
+ *
  * Defines the in-app shop items and their boost configurations.
  * Items can provide various boost effects:
  * - Session multipliers: Increase rewards for a fixed number of sessions
  * - Timed multipliers: Increase rewards for a time duration
  * - Auto-collect: Passive reward collection
  * - Instant gold: Immediate random GOLD bonus
- * 
+ *
  * @module features/main/data/shop
  */
 

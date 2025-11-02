@@ -8,15 +8,24 @@ import {
 import { useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
+import { useTelegramStarsPurchase } from "@/shared/hooks";
 import { GRAM_DECIMALS, GRAM_TOPUP_ADDRESS } from "@/shared/config/ton";
 import { goldFormatter, numberFormatter } from "@/shared/utils/formatters";
+import { confirmStarsTopUpInvoice, createStarsTopUpInvoice } from "@/shared/utils/payments";
 
 export default function ProfileScreen() {
   const wallet = useTonWallet();
   const walletAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
-  const { runtime, difficulty, addGram, balances } = useUserRuntime();
+  const { runtime, addGram, balances } = useUserRuntime();
+  const {
+    supportsStars,
+    reason: starsRestrictionReason,
+    starsBalance,
+    openInvoice: openStarsInvoice,
+  } = useTelegramStarsPurchase();
 
+  const [paymentMethod, setPaymentMethod] = useState<"ton" | "stars">("ton");
   const [gramInput, setGramInput] = useState("1000");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +36,14 @@ export default function ProfileScreen() {
     setError(null);
     setSuccess(null);
 
+    if (paymentMethod === "ton") {
+      await handleTonTopUp();
+    } else {
+      await handleStarsTopUp();
+    }
+  };
+
+  const handleTonTopUp = async () => {
     if (!wallet) {
       setError("Подключите кошелёк Ton Connect перед операцией");
       return;
@@ -73,6 +90,64 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleStarsTopUp = async () => {
+    const normalized = Number(gramInput.replace(",", "."));
+    if (!Number.isFinite(normalized) || normalized <= 0) {
+      setError("Введите корректную сумму GRAM");
+      return;
+    }
+
+    if (!Number.isInteger(normalized)) {
+      setError("Укажите целое количество GRAM");
+      return;
+    }
+
+    if (!supportsStars) {
+      setError(starsRestrictionReason ?? "Telegram Stars недоступны в этом окружении.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const invoice = await createStarsTopUpInvoice(normalized);
+      const result = await openStarsInvoice(invoice.invoice);
+
+      if (result.status !== "paid") {
+        const message =
+          result.status === "failed"
+            ? "Telegram не подтвердил оплату. Повторите попытку."
+            : "Платёж отменён.";
+        setError(message);
+        return;
+      }
+
+      try {
+        await confirmStarsTopUpInvoice(invoice.invoiceId, {
+          status: result.status,
+          telegramPaymentChargeId: result.telegramPaymentChargeId,
+          providerPaymentChargeId: result.providerPaymentChargeId,
+          invoiceSlug: result.slug,
+        });
+      } catch (confirmError) {
+        console.warn("Failed to confirm Stars top-up", confirmError);
+      }
+
+      addGram(invoice.grams);
+      setSuccess(
+        `Начислено ${numberFormatter.format(invoice.grams)} GRAM. Списано ${numberFormatter.format(invoice.stars)} ⭐️.`,
+      );
+      setGramInput(String(invoice.grams));
+    } catch (starsTopUpError) {
+      if (starsTopUpError instanceof Error) {
+        setError(starsTopUpError.message);
+      } else {
+        setError("Не удалось создать счёт для оплаты звёздами.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="screen profile" aria-label="Профиль">
       <div className="profile-container screen-stack">
@@ -112,27 +187,34 @@ export default function ProfileScreen() {
           </div>
         </div>
 
-        <form className="profile-card profile-card--burn" onSubmit={handleTopUp}>
+        <form className="profile-card" onSubmit={handleTopUp}>
           <div className="profile-card__header">
             <h2>Пополнение баланса</h2>
-            <p>
-              Переведите GRAM на игровой счёт. Сжигание происходит автоматически во время майнинга.
-            </p>
-            <p className="profile-card__hint">
-              Текущий курс:{" "}
-              <strong>1 GRAM → {goldFormatter.format(difficulty.goldPerGram)} GOLD</strong>.{" "}
-              Следующий пересчёт{" "}
-              {difficulty.nextUpdate.toLocaleString("ru-RU", {
-                day: "2-digit",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-              .
-            </p>
+            <p>Пополните GRAM через TON Connect или купите GRAM за звёзды Telegram.</p>
           </div>
 
           <div className="profile-card__body">
+            <div className="profile-payment-methods">
+              <button
+                type="button"
+                className={`profile-payment-method ${paymentMethod === "ton" ? "profile-payment-method--active" : ""}`}
+                onClick={() => setPaymentMethod("ton")}
+              >
+                TON Connect
+              </button>
+              <button
+                type="button"
+                className={`profile-payment-method ${paymentMethod === "stars" ? "profile-payment-method--active" : ""}`}
+                onClick={() => setPaymentMethod("stars")}
+                disabled={!supportsStars}
+              >
+                Telegram Stars
+                {starsBalance != null &&
+                  supportsStars &&
+                  ` (${numberFormatter.format(starsBalance)} ⭐️)`}
+              </button>
+            </div>
+
             <label className="profile-input-label" htmlFor="gramAmount">
               Сумма GRAM
             </label>
@@ -148,11 +230,36 @@ export default function ProfileScreen() {
                 className="profile-input"
                 placeholder="1000"
                 required
+                disabled={loading}
               />
+              {paymentMethod === "stars" && supportsStars && (
+                <span className="profile-preview">
+                  Оплата пройдёт внутри Telegram, сумма в звёздах покажется перед подтверждением.
+                </span>
+              )}
+              {paymentMethod === "stars" && !supportsStars && (
+                <span className="profile-preview">
+                  {starsRestrictionReason ?? "Telegram Stars недоступны."}
+                </span>
+              )}
             </div>
 
-            <button type="submit" className="profile-submit" disabled={loading}>
-              {loading ? "Отправка..." : "Пополнить баланс"}
+            <button
+              type="submit"
+              className="profile-submit"
+              disabled={
+                loading ||
+                (paymentMethod === "ton" && !wallet) ||
+                (paymentMethod === "stars" && !supportsStars)
+              }
+            >
+              {loading
+                ? paymentMethod === "stars"
+                  ? "Ожидание оплаты…"
+                  : "Отправка..."
+                : paymentMethod === "stars"
+                  ? "Оплатить звёздами"
+                  : "Пополнить через TON"}
             </button>
 
             {error && <p className="profile-alert profile-alert--error">{error}</p>}

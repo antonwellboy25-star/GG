@@ -1,8 +1,8 @@
 /**
  * Background Music Manager
- * 
+ *
  * Manages background music playback for the application with intelligent autoplay handling.
- * 
+ *
  * Features:
  * - Automatic autoplay unlock after user interaction
  * - Respects user music preferences
@@ -10,13 +10,13 @@
  * - Volume control
  * - Visibility change handling
  * - Clean event listener management
- * 
+ *
  * The system works around browser autoplay policies by:
  * 1. Preloading music during boot sequence
  * 2. Waiting for explicit user interaction before playing
  * 3. Installing resume listeners if autoplay is blocked
  * 4. Removing listeners once playback starts successfully
- * 
+ *
  * @module shared/utils/backgroundMusic
  */
 

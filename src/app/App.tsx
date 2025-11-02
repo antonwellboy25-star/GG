@@ -1,9 +1,9 @@
 /**
  * Main Application Component
- * 
+ *
  * Handles the application boot sequence with loading screen and background music initialization.
  * Manages the transition from loading state to main application state with smooth fade effects.
- * 
+ *
  * @module app/App
  */
 

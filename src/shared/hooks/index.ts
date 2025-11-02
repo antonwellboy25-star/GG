@@ -9,6 +9,10 @@ import {
 } from "@/shared/state/audioPreferences";
 import { getTelegramInfo, type TelegramInfo } from "@/shared/utils/telegram";
 export { useBoosts } from "@/shared/state/boosts";
+export {
+  useTelegramStarsPurchase,
+  type StarsInvoiceResult,
+} from "@/shared/hooks/useTelegramPayments";
 
 const noop = () => getAudioPreferences();
 

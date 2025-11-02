@@ -10,11 +10,16 @@
     "lint": "biome lint src",
     "format": "biome format --write src",
     "stylelint": "stylelint 'src/**/*.css'",
-    "stylelint:fix": "stylelint 'src/**/*.css' --fix"
+    "stylelint:fix": "stylelint 'src/**/*.css' --fix",
+    "server": "node server/index.js"
   },
   "dependencies": {
     "@tonconnect/sdk": "^3.0.2",
     "@tonconnect/ui-react": "^2.0.11",
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "three": "^0.181.0"

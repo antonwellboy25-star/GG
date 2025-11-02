@@ -1,13 +1,13 @@
 /**
  * Navigation Bar Component
- * 
+ *
  * Provides the main navigation interface for the application.
  * Features:
  * - Modern glass-morphism design
  * - Smooth transitions and haptic feedback
  * - Accessible with proper ARIA labels
  * - Responsive icon sizing
- * 
+ *
  * @module features/navigation/NavBar
  */
 

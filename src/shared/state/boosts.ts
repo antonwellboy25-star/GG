@@ -1,25 +1,25 @@
 /**
  * Boosts State Management
- * 
+ *
  * Comprehensive boost system for mining multipliers and auto-collect features.
- * 
+ *
  * Boost Types:
  * - Session Multipliers: Increase rewards for N sessions
  * - Timed Multipliers: Increase rewards for duration
  * - Auto-Collect: Passive reward collection
  * - Instant Gold: Immediate random GOLD reward
- * 
+ *
  * Stack Policies:
  * - stack: Multiple boosts stack additively
  * - extend: Extends existing boost duration
  * - replace: Replaces existing boost
- * 
+ *
  * Features:
  * - Automatic expiration cleanup
  * - Session consumption tracking
  * - Multiple multipliers combine multiplicatively
  * - React integration with useSyncExternalStore
- * 
+ *
  * @module shared/state/boosts
  */
 

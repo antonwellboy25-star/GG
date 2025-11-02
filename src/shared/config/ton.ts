@@ -1,14 +1,14 @@
 /**
  * TON Blockchain Configuration
- * 
+ *
  * Smart contract addresses and configuration for TON blockchain integration.
- * 
+ *
  * IMPORTANT: Replace placeholder addresses with actual deployed contract addresses.
- * 
+ *
  * Addresses:
  * - GRAM_BURN_ADDRESS: Contract for burning GRAM tokens
  * - GRAM_TOPUP_ADDRESS: Contract for purchasing/topping up GRAM
- * 
+ *
  * @module shared/config/ton
  */
 

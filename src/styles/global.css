@@ -1,6 +1,6 @@
 /**
  * GG Mining App - Global Styles
- * 
+ *
  * TABLE OF CONTENTS:
  * 1. CSS Custom Properties (Design Tokens)
  * 2. Base Styles & Resets
@@ -423,11 +423,10 @@ html[data-telegram="true"] #root {
 }
 
 .top-bar__header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: clamp(12px, 4vw, 28px);
-  flex-wrap: wrap;
+  gap: clamp(16px, 4vw, 32px);
 }
 
 .mining-info {
@@ -435,50 +434,72 @@ html[data-telegram="true"] #root {
   align-items: center;
   gap: 12px;
   min-width: 0;
+  flex-shrink: 0;
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .mining-balance {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: max(160px, 32%);
-  flex: 1;
+  min-width: 0;
   align-items: flex-start;
+  flex-shrink: 0;
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .mining-difficulty {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: clamp(10px, 2.8vw, 14px) clamp(12px, 3vw, 16px);
-  border-radius: clamp(12px, 3vw, 16px);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  min-width: max(180px, 32%);
-  align-items: flex-end;
-  backdrop-filter: blur(16px) saturate(140%);
+  gap: clamp(3px, 0.8vh, 5px);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  min-width: 0;
+  align-items: center;
+  backdrop-filter: none;
+  flex-shrink: 0;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: center;
+}
+
+.top-bar__actions {
+  grid-column: 4;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .mining-difficulty__label {
-  font-size: clamp(11px, 2.8vw, 13px);
+  font-size: clamp(10px, 2.5vw, 12px);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.56);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .mining-difficulty__rate {
-  font-size: clamp(15px, 3.6vw, 17px);
-  font-weight: 600;
-  color: #fff;
+  font-size: clamp(15px, 3.6vw, 18px);
+  font-weight: 700;
+  background: linear-gradient(135deg, #f1d27a 0%, #d4af37 50%, #c59b24 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   font-variant-numeric: tabular-nums;
   font-feature-settings:
     "tnum" 1,
     "lnum" 1;
+  letter-spacing: -0.01em;
 }
 
 .mining-difficulty__countdown {
-  font-size: clamp(12px, 3vw, 14px);
-  color: rgba(255, 255, 255, 0.68);
+  font-size: clamp(10px, 2.5vw, 12px);
+  color: rgba(255, 255, 255, 0.48);
   font-variant-numeric: tabular-nums;
   font-feature-settings:
     "tnum" 1,
@@ -503,10 +524,33 @@ html[data-telegram="true"] #root {
     "lnum" 1;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 767px) {
+  .top-bar__header {
+    grid-template-columns: 1fr;
+    gap: clamp(12px, 3vh, 16px);
+  }
+
+  .mining-info {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
   .mining-balance {
+    grid-column: 1;
+    grid-row: 3;
     width: 100%;
-    min-width: 0;
+  }
+
+  .mining-difficulty {
+    grid-column: 1;
+    grid-row: 1;
+    align-items: flex-start;
+  }
+
+  .top-bar__actions {
+    grid-column: 1;
+    grid-row: 4;
+    justify-content: flex-start;
   }
 
   .mining-balance__value {
@@ -891,6 +935,41 @@ html[data-telegram="true"] #root {
   display: flex;
   flex-direction: column;
   gap: clamp(16px, 3.5vw, 20px);
+}
+
+.profile-payment-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(10px, 2.5vw, 12px);
+  margin-bottom: clamp(6px, 1.5vw, 8px);
+}
+
+.profile-payment-method {
+  padding: clamp(12px, 3vw, 14px) clamp(14px, 3.5vw, 16px);
+  border-radius: clamp(10px, 2.2vw, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: clamp(13px, 3.2vw, 15px);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-payment-method:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.profile-payment-method--active {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.5);
+  color: #f1d27a;
+}
+
+.profile-payment-method:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .profile-card--wallet {
@@ -2648,33 +2727,6 @@ html[data-telegram="true"] .screen-wrapper {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-.referral-link-card__hint {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: clamp(14px, 3vw, 18px);
-  padding: clamp(18px, 4vw, 24px) clamp(20px, 4.5vw, 26px);
-  display: flex;
-  flex-direction: column;
-  gap: clamp(12px, 2.5vw, 16px);
-  font-size: clamp(14px, 3vw, 16px);
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.6;
-}
-
-.referral-link-card__hint p {
-  margin: 0;
-}
-
-.referral-link-card__hint-link {
-  font-family:
-    "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
-    monospace;
-  font-size: clamp(13px, 2.8vw, 15px);
-  color: var(--gold2);
-  word-break: break-all;
-  font-weight: 500;
-}
-
 .referral-action-btn--primary {
   background: linear-gradient(135deg, #4b77ff, #3b5fd1);
   border-color: #4b77ff;
@@ -2820,6 +2872,7 @@ html[data-telegram="true"] .screen-wrapper {
   gap: clamp(18px, 4.5vw, 24px);
   align-items: flex-start;
   box-shadow: 0 8px 24px rgba(255, 200, 100, 0.08);
+  width: 100%;
 }
 
 .referral-info-box__icon {

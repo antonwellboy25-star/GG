@@ -6,6 +6,7 @@ interface TelegramWebAppUser {
   language_code?: string;
   is_premium?: boolean;
   allows_write_to_pm?: boolean;
+  stars?: number;
   photo_url?: string;
 }
 
@@ -41,6 +42,18 @@ type TelegramContentSafeAreaInsets = TelegramSafeAreaInsets;
 
 type TelegramEventHandler = (...args: unknown[]) => void;
 
+type TelegramInvoiceStatus = "paid" | "cancelled" | "failed";
+
+type TelegramInvoiceClosedPayload = {
+  status: TelegramInvoiceStatus;
+  slug?: string;
+  telegram_payment_charge_id?: string;
+  provider_payment_charge_id?: string;
+  total_amount?: number;
+  currency?: string;
+  is_test?: boolean;
+};
+
 interface TelegramHapticFeedback {
   impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
   notificationOccurred(type: "error" | "success" | "warning"): void;
@@ -65,7 +78,9 @@ interface TelegramWebApp {
   readonly themeParams: TelegramThemeParams;
   readonly isExpanded: boolean;
   readonly version: string;
+  readonly platformVersion?: string;
   readonly isFullscreen?: boolean;
+  readonly isStarSubscriptionAvailable?: boolean;
   readonly safeAreaInsets?: TelegramSafeAreaInsets;
   readonly safeAreaInset?: TelegramSafeAreaInsets;
   readonly contentSafeAreaInsets?: TelegramContentSafeAreaInsets;
@@ -92,14 +107,28 @@ interface TelegramWebApp {
   disableVerticalSwipes?(): void;
   hideKeyboard?(): void;
 
-  onEvent(event: string, handler: TelegramEventHandler): void;
-  offEvent(event: string, handler: TelegramEventHandler): void;
-
   showAlert(message: string, callback?: () => void): void;
   showConfirm(message: string, callback: (confirmed: boolean) => void): void;
   openLink(url: string, options?: { try_instant_view?: boolean }): void;
+  openInvoice(
+    invoice:
+      | string
+      | {
+          slug: string;
+          access_token?: string;
+          bot_username?: string;
+          subscription_id?: string;
+          payload?: string;
+        },
+    callback?: (status: TelegramInvoiceStatus) => void,
+  ): boolean;
 
   BackButton: TelegramBackButton;
+
+  onEvent(event: "invoice_closed", handler: (payload: TelegramInvoiceClosedPayload) => void): void;
+  onEvent(event: string, handler: TelegramEventHandler): void;
+  offEvent(event: "invoice_closed", handler: (payload: TelegramInvoiceClosedPayload) => void): void;
+  offEvent(event: string, handler: TelegramEventHandler): void;
 }
 
 interface TelegramViewport {

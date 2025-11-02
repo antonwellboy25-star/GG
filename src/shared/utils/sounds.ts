@@ -1,9 +1,9 @@
 /**
  * Sound Effects System
- * 
+ *
  * Procedural audio synthesis for UI sound effects using the Web Audio API.
  * Generates all sounds dynamically without audio files, creating a unified sonic experience.
- * 
+ *
  * Features:
  * - Pure Web Audio API synthesis (no audio files)
  * - Layered tone generation with ADSR envelopes
@@ -12,7 +12,7 @@
  * - Stereo panning support
  * - Automatic audio node cleanup
  * - Respects user audio preferences
- * 
+ *
  * Sound Presets:
  * - navTap: Navigation button tap feedback
  * - settingsCue: Settings screen transition
@@ -20,7 +20,7 @@
  * - miningStart: Mining session start
  * - miningStop: Mining session stop
  * - miningComplete: Mining session completion
- * 
+ *
  * @module shared/utils/sounds
  */
 

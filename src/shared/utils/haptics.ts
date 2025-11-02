@@ -1,16 +1,16 @@
 /**
  * Haptic Feedback Utilities
- * 
+ *
  * Provides cross-platform haptic feedback with automatic fallback:
  * - Primary: Uses Telegram WebApp HapticFeedback API when available
  * - Fallback: Uses Navigator Vibration API for non-Telegram environments
- * 
+ *
  * Features:
  * - Automatic cooldown to prevent excessive haptic triggers
  * - Multiple impact styles (light, medium, heavy, rigid, soft)
  * - Notification types (success, warning, error)
  * - Selection feedback
- * 
+ *
  * @module shared/utils/haptics
  */
 

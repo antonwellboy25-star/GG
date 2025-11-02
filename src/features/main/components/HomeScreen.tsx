@@ -1,9 +1,9 @@
 /**
  * Home Screen Component
- * 
+ *
  * Displays the main 3D mining scene with lazy-loaded MinerScene component.
  * Shows a fallback loading state while the 3D scene is being initialized.
- * 
+ *
  * @module features/main/components/HomeScreen
  */
 
