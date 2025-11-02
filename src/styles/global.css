@@ -1,3 +1,28 @@
+/**
+ * GG Mining App - Global Styles
+ * 
+ * TABLE OF CONTENTS:
+ * 1. CSS Custom Properties (Design Tokens)
+ * 2. Base Styles & Resets
+ * 3. Loading & Overlay
+ * 4. Main Application Layout
+ * 5. Top Mining Bar
+ * 6. Navigation Bar
+ * 7. Screen Layouts & Containers
+ * 8. Profile Screen
+ * 9. Statistics Screen
+ * 10. Referrals Screen
+ * 11. Tasks Screen
+ * 12. Shop Screen
+ * 13. Settings Screen
+ * 14. Animations & Transitions
+ * 15. Media Queries & Responsive Design
+ */
+
+/* ============================================================================
+   1. CSS CUSTOM PROPERTIES (Design Tokens)
+   ============================================================================ */
+
 :root {
   color-scheme: dark;
 
@@ -51,6 +76,7 @@
   --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Telegram WebApp - specific top padding adjustments for non-fullscreen mode */
 :root[data-telegram="true"]:not([data-tg-fullscreen="true"]) {
   --app-telegram-top-padding: 68px;
   --app-top-padding-base: max(var(--app-safe-top), var(--app-telegram-top-padding));
@@ -75,6 +101,7 @@
   }
 }
 
+/* Telegram WebApp - fullscreen mode adjustments */
 :root[data-telegram="true"][data-tg-fullscreen="true"] {
   --app-top-padding-base: var(--app-safe-top);
   --app-topbar-safe: max(var(--app-top-padding-base), 16px);
@@ -89,6 +116,10 @@
   --app-top-padding-base: max(var(--app-safe-top), 56px);
   --app-topbar-safe: max(var(--app-top-padding-base), 64px);
 }
+
+/* ============================================================================
+   2. BASE STYLES & RESETS
+   ============================================================================ */
 
 * {
   box-sizing: border-box;
@@ -121,6 +152,10 @@ body {
   user-select: none;
 }
 
+/* ============================================================================
+   Telegram WebApp - Layout Adjustments
+   ============================================================================ */
+
 /* Telegram WebApp: разрешаем нормальную работу внутренних скроллеров.
    На некоторых версиях WebView сочетание fixed-корня и вложенных абсолютных
    скроллеров блокирует прокрутку. В режиме Telegram снимаем fixed c body/#root,
@@ -137,6 +172,10 @@ html[data-telegram="true"] #root {
   min-height: 100vh;
   overflow: hidden;
 }
+
+/* ============================================================================
+   3. LOADING & OVERLAY
+   ============================================================================ */
 
 .app-root,
 .app-main {
@@ -278,6 +317,10 @@ html[data-telegram="true"] #root {
     transform: scale(1.02);
   }
 }
+
+/* ============================================================================
+   4. MAIN APPLICATION LAYOUT
+   ============================================================================ */
 
 /* Main area after loading */
 .app-main {
@@ -2212,7 +2255,7 @@ html[data-telegram="true"] .screen-wrapper {
   font-weight: 500;
   white-space: normal;
   text-wrap: balance;
-  word-break: break-word;
+  overflow-wrap: break-word;
   hyphens: auto;
   line-height: 1.25;
 }
@@ -3131,6 +3174,7 @@ html[data-telegram="true"] .screen-wrapper {
   --screen-max-width: 960px;
   --screen-gap: clamp(24px, 5vh, 40px);
 }
+
 .shop-header {
   --screen-header-gap: clamp(14px, 3vw, 18px);
 }
