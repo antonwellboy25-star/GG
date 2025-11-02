@@ -1,3 +1,17 @@
+/**
+ * Tasks Data Model
+ * 
+ * Defines the task system structure and default tasks.
+ * Tasks are categorized by type and provide GG token rewards upon completion.
+ * 
+ * Task Types:
+ * - onboarding: First-time user tasks
+ * - daily: Recurring daily tasks
+ * - social: Social engagement tasks
+ * 
+ * @module features/main/data/tasks
+ */
+
 export type TaskType = "daily" | "onboarding" | "social";
 
 export type Task = {
