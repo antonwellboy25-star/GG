@@ -1,3 +1,20 @@
+/**
+ * Mining Difficulty Utilities
+ * 
+ * Calculates and tracks the mining difficulty progression over time.
+ * Supports multiple difficulty models:
+ * - Daily Linear: Decreases by 1 GOLD per GRAM each day
+ * - Monthly Halving: Halves each month until target rate
+ * - Exponential Decay: Exponential decrease with configurable half-life
+ * 
+ * Features:
+ * - Time-based difficulty adjustment
+ * - Countdown to next difficulty change
+ * - Configurable start date and rates
+ * 
+ * @module shared/utils/miningDifficulty
+ */
+
 import { miningDifficultyConfig, type DifficultyModel } from "@/shared/config/mining";
 
 const MS_IN_DAY = 86_400_000;

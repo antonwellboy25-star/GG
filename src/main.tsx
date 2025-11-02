@@ -1,3 +1,14 @@
+/**
+ * Application Entry Point
+ * 
+ * Initializes the React application with necessary providers:
+ * - StrictMode for development checks
+ * - TonConnectProvider for TON blockchain integration
+ * - UserRuntimeProvider for user state management
+ * 
+ * @module main
+ */
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/app/App";
