@@ -86,7 +86,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
  *   text: "Check out this cool bot!"
  * });
  */
-export function openTelegramShare({ url, text }: { url: string; text?: string }): void {
+export function openTelegramShare({ url, text }: { url: string; text?: string }) {
   const shareUrl = new URL("https://t.me/share/url");
   shareUrl.searchParams.set("url", url);
   if (text) {
