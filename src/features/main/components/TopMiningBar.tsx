@@ -127,9 +127,14 @@ export default function TopMiningBar({
           </div>
 
           <div className="mining-difficulty" aria-live="polite">
-            <span className="mining-difficulty__label">Текущий курс</span>
-            <span className="mining-difficulty__rate">1 GRAM → {rateLabel} GOLD</span>
-            <span className="mining-difficulty__countdown">Халвинг через ~{countdown}</span>
+            <div>
+              <span className="mining-difficulty__label">Текущий курс</span>
+              <span className="mining-difficulty__rate">1 GRAM → {rateLabel} GOLD</span>
+            </div>
+            <div>
+              <span className="mining-difficulty__label">Халвинг через</span>
+              <span className="mining-difficulty__countdown">~{countdown}</span>
+            </div>
           </div>
 
           <div className="top-bar__actions">
