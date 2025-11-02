@@ -393,6 +393,12 @@ html[data-telegram="true"] #root {
   will-change: opacity, transform;
 }
 
+@media (max-width: 767px) {
+  .top-bar {
+    padding-bottom: clamp(16px, 4vh, 24px);
+  }
+}
+
 @media (max-width: 340px) {
   .top-bar {
     --settings-offset: clamp(44px, 16vw, 54px);
