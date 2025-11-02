@@ -526,9 +526,9 @@ html[data-telegram="true"] #root {
 
 @media (max-width: 767px) {
   .top-bar__header {
-    grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto auto;
-    gap: clamp(8px, 2vh, 12px) clamp(8px, 2vw, 12px);
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto auto;
+    gap: clamp(8px, 2vh, 10px) clamp(10px, 2.5vw, 12px);
     align-items: start;
   }
 
@@ -542,13 +542,6 @@ html[data-telegram="true"] #root {
     grid-row: 1;
     width: auto;
     justify-self: start;
-  }
-
-  .top-bar__actions {
-    grid-column: 3;
-    grid-row: 1;
-    justify-content: flex-end;
-    gap: 8px;
   }
 
   .mining-difficulty {
@@ -578,6 +571,23 @@ html[data-telegram="true"] #root {
 
   .mining-difficulty > div:last-child {
     align-items: flex-end;
+  }
+
+  .top-bar__actions {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-content: stretch;
+    gap: 8px;
+  }
+
+  .btn-mine {
+    width: 100%;
+    min-width: auto;
+    padding: clamp(10px, 2.5vh, 12px) clamp(14px, 3.5vw, 16px);
+    height: clamp(44px, 11vw, 48px);
+    font-size: clamp(13px, 3.2vw, 15px);
+    font-weight: 600;
+    border-radius: clamp(10px, 2.5vw, 12px);
   }
 
   .mining-balance__value {
@@ -638,7 +648,7 @@ html[data-telegram="true"] #root {
   position: fixed;
 
   /* Выравниваем FAB по вертикали с верхним внутренним отступом .top-bar */
-  top: calc(var(--app-topbar-safe) + clamp(12px, 3vh, 24px));
+  top: calc(var(--app-topbar-safe) + clamp(10px, 2.5vh, 20px));
   right: max(var(--app-safe-right), clamp(14px, 4.5vw, 24px));
   z-index: 10;
   display: inline-flex;
@@ -863,18 +873,6 @@ html[data-telegram="true"] #root {
 }
 
 @media (max-width: 767px) {
-  .btn-mine {
-    padding: clamp(9px, 2.2vh, 11px) clamp(12px, 3vw, 14px);
-    min-width: clamp(100px, 22vw, 140px);
-    height: clamp(36px, 9vw, 42px);
-    font-size: clamp(12px, 3vw, 14px);
-    border-radius: 8px;
-  }
-
-  .top-bar__actions {
-    gap: 6px;
-  }
-
   .mining-info {
     gap: 8px;
   }
