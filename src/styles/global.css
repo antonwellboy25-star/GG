@@ -768,6 +768,17 @@ html[data-telegram="true"] #root {
   color: rgba(255, 255, 255, 0.68);
 }
 
+.mining-progress__details {
+  font-size: clamp(11px, 2.8vw, 13px);
+  color: rgba(255, 255, 255, 0.56);
+  letter-spacing: 0.02em;
+  margin-top: clamp(4px, 1vh, 6px);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    "tnum" 1,
+    "lnum" 1;
+}
+
 .mining-metric {
   display: flex;
   flex-direction: column;

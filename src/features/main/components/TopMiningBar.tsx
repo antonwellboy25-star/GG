@@ -160,17 +160,10 @@ export default function TopMiningBar({
 
           <div className="mining-progress__metrics">
             <div className="mining-metric">
-              <span className="mining-metric__label">GRAM</span>
+              <span className="mining-metric__label">Прогресс</span>
               <span className="mining-metric__value">
                 {numberFormatter.format(session.gramsBurned)} /{" "}
                 {numberFormatter.format(session.gramsTarget)}
-              </span>
-            </div>
-            <div className="mining-metric">
-              <span className="mining-metric__label">GOLD</span>
-              <span className="mining-metric__value">
-                {goldFormatter.format(session.goldEarned)} /{" "}
-                {goldFormatter.format(session.goldTarget)}
               </span>
             </div>
             {multiplierValue > 1 && (
@@ -189,6 +182,13 @@ export default function TopMiningBar({
               </div>
             )}
           </div>
+
+          {(session.gramsBurned > 0 || session.goldEarned > 0) && (
+            <div className="mining-progress__details">
+              Сожжено {numberFormatter.format(session.gramsBurned)} GRAM · Заработано{" "}
+              {goldFormatter.format(session.goldEarned)} GOLD
+            </div>
+          )}
         </div>
 
         <div className="mining-status-area" aria-live="polite" aria-atomic="true">
