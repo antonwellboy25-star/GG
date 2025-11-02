@@ -40,7 +40,6 @@ type TopMiningBarProps = {
 
 export default function TopMiningBar({
   session,
-  totals,
   balance,
   difficulty,
   canMine,
@@ -79,8 +78,6 @@ export default function TopMiningBar({
     : canMine
       ? "Готов к запуску"
       : `Нужно ${numberFormatter.format(session.gramsTarget)} GRAM`;
-  const totalBurned = totals.burned + (session.active ? session.gramsBurned : 0);
-  const totalGold = totals.gold + (session.active ? session.goldEarned : 0);
   const multiplierValue =
     Number.isFinite(session.multiplier) && session.multiplier > 0 ? session.multiplier : 1;
   const multiplierRounded =
@@ -176,23 +173,21 @@ export default function TopMiningBar({
                 {goldFormatter.format(session.goldTarget)}
               </span>
             </div>
-            <div className="mining-metric">
-              <span className="mining-metric__label">Множитель</span>
-              <span className="mining-metric__value">
-                {multiplierValueLabel}
-                {multiplierSupplement}
-              </span>
-            </div>
-            <div className="mining-metric">
-              <span className="mining-metric__label">Последняя награда</span>
-              <span className="mining-metric__value">{lastRewardLabel}</span>
-            </div>
-            <div className="mining-metric">
-              <span className="mining-metric__label">Всего</span>
-              <span className="mining-metric__value">
-                {numberFormatter.format(totalBurned)} GRAM · {goldFormatter.format(totalGold)} GOLD
-              </span>
-            </div>
+            {multiplierValue > 1 && (
+              <div className="mining-metric">
+                <span className="mining-metric__label">Множитель</span>
+                <span className="mining-metric__value">
+                  {multiplierValueLabel}
+                  {multiplierSupplement}
+                </span>
+              </div>
+            )}
+            {session.lastReward && session.lastReward > 0 && (
+              <div className="mining-metric">
+                <span className="mining-metric__label">Последняя награда</span>
+                <span className="mining-metric__value">{lastRewardLabel}</span>
+              </div>
+            )}
           </div>
         </div>
 
