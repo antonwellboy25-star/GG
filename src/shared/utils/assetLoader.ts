@@ -1,3 +1,21 @@
+/**
+ * Asset Loading Utilities
+ * 
+ * Manages the progressive loading of application assets during the boot sequence.
+ * Loads resources in optimized stages:
+ * 1. Essential images (GG logo, GRAM logo)
+ * 2. Background music
+ * 3. Code-split modules (HomeScreen, MinerScene)
+ * 
+ * Features:
+ * - Weighted progress tracking
+ * - Abort signal support for cancellation
+ * - Image caching to prevent duplicate loads
+ * - RAF synchronization for smooth progress updates
+ * 
+ * @module shared/utils/assetLoader
+ */
+
 import ggLogoUrl from "@/assets/images/GG.png";
 import gramLogoUrl from "@/assets/images/GRAM.png";
 import { preloadBackgroundMusic } from "@/shared/utils/backgroundMusic";

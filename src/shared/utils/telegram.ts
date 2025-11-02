@@ -1,3 +1,21 @@
+/**
+ * Telegram Integration Utilities
+ * 
+ * Comprehensive utilities for Telegram WebApp integration, including:
+ * - User profile management
+ * - Referral link generation and parsing
+ * - Deep linking support
+ * - Campaign tracking
+ * 
+ * Supports multiple link formats:
+ * - Universal links (t.me)
+ * - Native tg:// protocol
+ * - Bot links
+ * - Mini App deep links
+ * 
+ * @module shared/utils/telegram
+ */
+
 export type TelegramProfile = {
   id: number;
   firstName: string;

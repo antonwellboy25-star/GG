@@ -1,3 +1,28 @@
+/**
+ * Audio Preferences State Management
+ * 
+ * Manages user preferences for sound effects and background music with localStorage persistence.
+ * 
+ * Features:
+ * - Persistent storage across sessions
+ * - Cross-tab synchronization via storage events
+ * - Subscribe/notify pattern for reactive updates
+ * - Graceful fallback for storage failures
+ * 
+ * Usage:
+ * ```typescript
+ * import { isSoundEnabled, setSoundEnabled } from '@/shared/state/audioPreferences';
+ * 
+ * if (isSoundEnabled()) {
+ *   playSound();
+ * }
+ * 
+ * setSoundEnabled(false); // Disable sounds
+ * ```
+ * 
+ * @module shared/state/audioPreferences
+ */
+
 const STORAGE_KEY = "gg-audio-preferences-v1";
 
 export type AudioPreferences = {

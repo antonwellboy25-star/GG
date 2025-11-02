@@ -1,3 +1,16 @@
+/**
+ * Navigation Bar Component
+ * 
+ * Provides the main navigation interface for the application.
+ * Features:
+ * - Modern glass-morphism design
+ * - Smooth transitions and haptic feedback
+ * - Accessible with proper ARIA labels
+ * - Responsive icon sizing
+ * 
+ * @module features/navigation/NavBar
+ */
+
 import { type JSX, memo } from "react";
 import { haptics } from "@/shared/utils/haptics";
 import { playNavTap } from "@/shared/utils/sounds";

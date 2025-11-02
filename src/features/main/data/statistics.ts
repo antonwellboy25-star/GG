@@ -1,3 +1,12 @@
+/**
+ * Statistics Data Model
+ * 
+ * Defines the structure for mining statistics and session history.
+ * Tracks user progress, burn rates, and recent mining activity.
+ * 
+ * @module features/main/data/statistics
+ */
+
 export type StatisticsSummary = {
   totalGG: number;
   totalSessions: number;

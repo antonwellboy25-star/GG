@@ -2,7 +2,7 @@ import { useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { useTelegramInfo } from "@/shared/hooks";
 import { buildReferralLinks } from "@/shared/utils/telegram";
-import { copyToClipboard, openTelegramShare } from "@/shared/utils/utilities";
+import { copyToClipboard, openTelegramShare } from "@/shared/utils/formatters";
 
 export default function ReferralsScreen() {
   const [copied, setCopied] = useState(false);
