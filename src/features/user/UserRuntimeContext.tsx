@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { RecentSession, StatisticsSummary } from "@/features/main/data/statistics";
 import { recentSessions as baseSessions } from "@/features/main/data/statistics";
-
-const GRAM_PER_GOLD = 1000;
+import { getDifficultySnapshot } from "@/shared/utils/miningDifficulty";
 const MAX_HISTORY_RECORDS = 20;
 const MAX_RECENT_SESSIONS = 10;
 
@@ -33,11 +32,18 @@ type RuntimeState = {
   sessionsCompleted: number;
 };
 
+type DifficultyState = {
+  goldPerGram: number;
+  gramPerGold: number;
+  nextUpdate: Date;
+  dayIndex: number;
+};
+
 type UserRuntimeContextValue = {
   stats: StatisticsSummary;
   runtime: RuntimeState;
   recentSessions: RecentSession[];
-  gramPerGold: number;
+  difficulty: DifficultyState;
   balances: {
     gram: number;
     gold: number;
@@ -69,9 +75,40 @@ const createInitialRuntime = (): RuntimeState => ({
 
 const createInitialSessions = () => baseSessions.map((session) => ({ ...session }));
 
+const createDifficultyState = () => {
+  const snapshot = getDifficultySnapshot();
+  const goldPerGram = Number(snapshot.currentRate.toFixed(6));
+  const gramPerGold = goldPerGram > 0 ? Number((1 / goldPerGram).toFixed(6)) : 0;
+
+  return {
+    goldPerGram,
+    gramPerGold,
+    nextUpdate: snapshot.nextUpdate,
+    dayIndex: snapshot.dayIndex,
+  } satisfies DifficultyState;
+};
+
 export function UserRuntimeProvider({ children }: { children: ReactNode }) {
   const [runtime, setRuntime] = useState<RuntimeState>(createInitialRuntime);
   const [sessions, setSessions] = useState<RecentSession[]>(createInitialSessions);
+  const [difficulty, setDifficulty] = useState<DifficultyState>(createDifficultyState);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const updateDifficulty = () => {
+      setDifficulty(createDifficultyState());
+    };
+
+    const delay = Math.max(500, difficulty.nextUpdate.getTime() - Date.now());
+    const timeoutId = window.setTimeout(updateDifficulty, delay);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [difficulty.nextUpdate]);
 
   const stats = useMemo<StatisticsSummary>(() => {
     const { mintedGold, burnedGram, sessionsCompleted } = runtime;
@@ -93,7 +130,7 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
       }
 
       const { goldEarned, source = "other", description } = options;
-      const gold = goldEarned ?? gramAmount / GRAM_PER_GOLD;
+      const gold = goldEarned ?? gramAmount * difficulty.goldPerGram;
       const now = new Date();
       const record: BurnRecord = {
         id: now.getTime(),
@@ -127,7 +164,7 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
 
       return record;
     },
-    [],
+    [difficulty.goldPerGram],
   );
 
   const addGram = useCallback((gramAmount: number) => {
@@ -187,7 +224,7 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
       stats,
       runtime,
       recentSessions: sessions,
-      gramPerGold: GRAM_PER_GOLD,
+      difficulty,
       balances,
       recordBurn,
       addGram,
@@ -195,7 +232,18 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
       addGold,
       resetAll,
     }),
-    [stats, runtime, sessions, balances, recordBurn, addGram, spendGram, addGold, resetAll],
+    [
+      stats,
+      runtime,
+      sessions,
+      difficulty,
+      balances,
+      recordBurn,
+      addGram,
+      spendGram,
+      addGold,
+      resetAll,
+    ],
   );
 
   return <UserRuntimeContext.Provider value={value}>{children}</UserRuntimeContext.Provider>;
@@ -208,5 +256,3 @@ export function useUserRuntime() {
   }
   return context;
 }
-
-export { GRAM_PER_GOLD };

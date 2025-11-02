@@ -1,12 +1,15 @@
+import type { BoostEffectConfig } from "@/shared/types/boosts";
+
 export type ShopItem = {
   id: string;
   name: string;
   description: string;
   price: number;
   icon: string;
-  effect: string;
+  effectLabel: string;
   available: boolean;
   badge?: string;
+  boost?: BoostEffectConfig;
 };
 
 export const shopItems: ShopItem[] = [
@@ -16,9 +19,15 @@ export const shopItems: ShopItem[] = [
     description: "Ускоряет добычу на несколько ближайших сессий",
     price: 6_000,
     icon: "⚡",
-    effect: "+25% награда (3 сессии)",
+    effectLabel: "+25% награда (3 сессии)",
     available: true,
     badge: "Популярное",
+    boost: {
+      kind: "session-multiplier",
+      factor: 1.25,
+      sessions: 3,
+      stackPolicy: "stack",
+    },
   },
   {
     id: "2",
@@ -26,9 +35,15 @@ export const shopItems: ShopItem[] = [
     description: "Повышает эффективность сжигания в течение суток",
     price: 12_000,
     icon: "💎",
-    effect: "+40% эффективность (24 часа)",
+    effectLabel: "+40% эффективность (24 часа)",
     available: true,
     badge: "Лучшее",
+    boost: {
+      kind: "timed-multiplier",
+      factor: 1.4,
+      durationMs: 24 * 60 * 60 * 1000,
+      stackPolicy: "extend",
+    },
   },
   {
     id: "3",
@@ -36,8 +51,13 @@ export const shopItems: ShopItem[] = [
     description: "Автосбор наград без входа в игру",
     price: 8_500,
     icon: "🤖",
-    effect: "Авто-сбор (7 дней)",
+    effectLabel: "Авто-сбор (7 дней)",
     available: true,
+    boost: {
+      kind: "auto-collect",
+      durationMs: 7 * 24 * 60 * 60 * 1000,
+      stackPolicy: "extend",
+    },
   },
   {
     id: "4",
@@ -45,7 +65,7 @@ export const shopItems: ShopItem[] = [
     description: "Расширенные возможности и косметика на месяц",
     price: 25_000,
     icon: "👑",
-    effect: "VIP статус",
+    effectLabel: "VIP статус",
     available: false,
     badge: "Скоро",
   },
@@ -55,8 +75,14 @@ export const shopItems: ShopItem[] = [
     description: "Увеличивает доход от сети рефералов",
     price: 5_500,
     icon: "🎯",
-    effect: "+5% реф. бонус (14 дней)",
+    effectLabel: "+5% реф. бонус (14 дней)",
     available: true,
+    boost: {
+      kind: "timed-multiplier",
+      factor: 1.05,
+      durationMs: 14 * 24 * 60 * 60 * 1000,
+      stackPolicy: "extend",
+    },
   },
   {
     id: "6",
@@ -64,7 +90,12 @@ export const shopItems: ShopItem[] = [
     description: "Шанс получить существенный прирост GOLD",
     price: 2_800,
     icon: "🎁",
-    effect: "0.1-1.0 GOLD",
+    effectLabel: "0.1-1.0 GOLD",
     available: true,
+    boost: {
+      kind: "instant-gold",
+      goldRange: { min: 0.1, max: 1.0 },
+      precision: 3,
+    },
   },
 ];

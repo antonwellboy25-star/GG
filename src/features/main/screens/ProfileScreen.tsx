@@ -15,7 +15,7 @@ export default function ProfileScreen() {
   const wallet = useTonWallet();
   const walletAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
-  const { runtime, gramPerGold, addGram, balances } = useUserRuntime();
+  const { runtime, difficulty, addGram, balances } = useUserRuntime();
 
   const [gramInput, setGramInput] = useState("1000");
   const [loading, setLoading] = useState(false);
@@ -40,11 +40,6 @@ export default function ProfileScreen() {
 
     if (!Number.isInteger(normalized)) {
       setError("Укажите целое количество GRAM");
-      return;
-    }
-
-    if (normalized % gramPerGold !== 0) {
-      setError(`Сумма должна быть кратна ${gramPerGold}`);
       return;
     }
 
@@ -123,6 +118,18 @@ export default function ProfileScreen() {
             <p>
               Переведите GRAM на игровой счёт. Сжигание происходит автоматически во время майнинга.
             </p>
+            <p className="profile-card__hint">
+              Текущий курс:{" "}
+              <strong>1 GRAM → {goldFormatter.format(difficulty.goldPerGram)} GOLD</strong>.{" "}
+              Следующий пересчёт{" "}
+              {difficulty.nextUpdate.toLocaleString("ru-RU", {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+              .
+            </p>
           </div>
 
           <div className="profile-card__body">
@@ -134,12 +141,12 @@ export default function ProfileScreen() {
                 id="gramAmount"
                 name="gramAmount"
                 type="number"
-                min={gramPerGold}
-                step={gramPerGold}
+                min={1}
+                step={1}
                 value={gramInput}
                 onChange={(event) => setGramInput(event.target.value)}
                 className="profile-input"
-                placeholder={`${gramPerGold}`}
+                placeholder="1000"
                 required
               />
             </div>

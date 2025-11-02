@@ -1,4 +1,6 @@
+import { useEffect, useMemo, useState } from "react";
 import { formatTime, goldFormatter, numberFormatter } from "@/shared/utils/formatters";
+import { formatDifficultyCountdown } from "@/shared/utils/miningDifficulty";
 
 type MiningSessionDisplay = {
   active: boolean;
@@ -7,6 +9,8 @@ type MiningSessionDisplay = {
   gramsTarget: number;
   goldEarned: number;
   goldTarget: number;
+  baseGoldTarget: number;
+  multiplier: number;
   remaining: number;
   elapsed: number;
   lastReward: number | null;
@@ -24,6 +28,10 @@ type TopMiningBarProps = {
     gram: number;
     gold: number;
   };
+  difficulty: {
+    goldPerGram: number;
+    nextUpdate: Date;
+  };
   canMine: boolean;
   status?: string | null;
   onToggle: () => void;
@@ -34,11 +42,37 @@ export default function TopMiningBar({
   session,
   totals,
   balance,
+  difficulty,
   canMine,
   status,
   onToggle,
   disabled = false,
 }: TopMiningBarProps) {
+  const [countdown, setCountdown] = useState(() =>
+    formatDifficultyCountdown(difficulty.nextUpdate),
+  );
+
+  useEffect(() => {
+    setCountdown(formatDifficultyCountdown(difficulty.nextUpdate));
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setCountdown(formatDifficultyCountdown(difficulty.nextUpdate));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [difficulty.nextUpdate]);
+
+  const rateLabel = useMemo(
+    () => goldFormatter.format(difficulty.goldPerGram),
+    [difficulty.goldPerGram],
+  );
+
   const progressPercent = Math.min(100, session.progress * 100);
   const primaryStatus = session.active
     ? `Осталось ${formatTime(session.remaining)}`
@@ -47,6 +81,19 @@ export default function TopMiningBar({
       : `Нужно ${numberFormatter.format(session.gramsTarget)} GRAM`;
   const totalBurned = totals.burned + (session.active ? session.gramsBurned : 0);
   const totalGold = totals.gold + (session.active ? session.goldEarned : 0);
+  const multiplierValue =
+    Number.isFinite(session.multiplier) && session.multiplier > 0 ? session.multiplier : 1;
+  const multiplierRounded =
+    multiplierValue >= 10 ? multiplierValue.toFixed(0) : multiplierValue.toFixed(2);
+  const goldBonus = Math.max(0, session.goldTarget - session.baseGoldTarget);
+  const hasBonus = goldBonus > 1e-6;
+  const multiplierLabel = `x${multiplierRounded}`;
+  const multiplierValueLabel = hasBonus
+    ? `${multiplierLabel} · +${goldFormatter.format(goldBonus)} GOLD`
+    : multiplierLabel;
+  const multiplierSupplement = hasBonus
+    ? ` (база ${goldFormatter.format(session.baseGoldTarget)} GOLD)`
+    : "";
   const lastRewardLabel = session.lastReward
     ? `+${goldFormatter.format(session.lastReward)} GOLD`
     : "—";
@@ -77,6 +124,12 @@ export default function TopMiningBar({
               {numberFormatter.format(balance.gram)} GRAM · {goldFormatter.format(balance.gold)}{" "}
               GOLD
             </span>
+          </div>
+
+          <div className="mining-difficulty" aria-live="polite">
+            <span className="mining-difficulty__label">Текущий курс</span>
+            <span className="mining-difficulty__rate">1 GRAM → {rateLabel} GOLD</span>
+            <span className="mining-difficulty__countdown">Пересчёт через ~{countdown}</span>
           </div>
 
           <div className="top-bar__actions">
@@ -116,6 +169,13 @@ export default function TopMiningBar({
               <span className="mining-metric__value">
                 {goldFormatter.format(session.goldEarned)} /{" "}
                 {goldFormatter.format(session.goldTarget)}
+              </span>
+            </div>
+            <div className="mining-metric">
+              <span className="mining-metric__label">Множитель</span>
+              <span className="mining-metric__value">
+                {multiplierValueLabel}
+                {multiplierSupplement}
               </span>
             </div>
             <div className="mining-metric">

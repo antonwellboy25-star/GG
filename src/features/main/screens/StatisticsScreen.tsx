@@ -3,7 +3,7 @@ import { useUserRuntime } from "@/features/user/UserRuntimeContext";
 import { ggFormatter, goldFormatter, numberFormatter } from "@/shared/utils/formatters";
 
 export default function StatisticsScreen() {
-  const { stats, recentSessions, runtime, gramPerGold } = useUserRuntime();
+  const { stats, recentSessions, runtime } = useUserRuntime();
   const burnRatePercent = stats.burnRate * 100;
 
   return (
@@ -56,12 +56,7 @@ export default function StatisticsScreen() {
           </div>
         </div>
 
-        <div className="stats-note">
-          <span className="stats-note__icon">ℹ️</span>
-          <p className="stats-note__text">
-            Фиксированный курс: 1 GOLD = {numberFormatter.format(gramPerGold)} GRAM.
-          </p>
-        </div>
+        {/* Удалено по требованию: блок с фиксированным курсом */}
 
         {/* Recent Sessions */}
         <div className="stats-section">

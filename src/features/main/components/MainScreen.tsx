@@ -9,7 +9,8 @@ import StatisticsScreen from "@/features/main/screens/StatisticsScreen";
 import TasksScreen from "@/features/main/screens/TasksScreen";
 import NavBar, { SCREEN_ORDER, type Screen } from "@/features/navigation/NavBar";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
-import { ggFormatter } from "@/shared/utils/formatters";
+import { goldFormatter } from "@/shared/utils/formatters";
+import { useBoosts } from "@/shared/hooks";
 import { haptics } from "@/shared/utils/haptics";
 import {
   playMiningComplete,
@@ -30,8 +31,35 @@ type MainScreenProps = {
 };
 
 export default function MainScreen({ loading = false, showNav = false }: MainScreenProps) {
-  const { gramPerGold, runtime, recordBurn, spendGram, addGram, balances } = useUserRuntime();
-  const goldPerSession = useMemo(() => GRAM_PER_SESSION / gramPerGold, [gramPerGold]);
+  const { difficulty, runtime, recordBurn, spendGram, addGram, balances } = useUserRuntime();
+  const { multiplier, consumeSession } = useBoosts();
+
+  const baseGoldPerSessionExact = useMemo(
+    () => difficulty.goldPerGram * GRAM_PER_SESSION,
+    [difficulty.goldPerGram],
+  );
+
+  const baseGoldPerSession = useMemo(
+    () => Number(baseGoldPerSessionExact.toFixed(6)),
+    [baseGoldPerSessionExact],
+  );
+
+  const appliedMultiplier = useMemo(() => {
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+      return 1;
+    }
+    return Math.max(1, Number(multiplier.toFixed(6)));
+  }, [multiplier]);
+
+  const goldPerSessionExact = useMemo(
+    () => baseGoldPerSessionExact * appliedMultiplier,
+    [baseGoldPerSessionExact, appliedMultiplier],
+  );
+
+  const goldPerSession = useMemo(
+    () => Number(goldPerSessionExact.toFixed(6)),
+    [goldPerSessionExact],
+  );
 
   const [isMining, setIsMining] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -122,8 +150,11 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
     [isHome],
   );
 
-  const gramsBurned = Math.min(Math.round(progress * GRAM_PER_SESSION), GRAM_PER_SESSION);
-  const goldEarned = gramsBurned / gramPerGold;
+  const gramsTarget = sessionStake > 0 ? sessionStake : GRAM_PER_SESSION;
+  const gramsBurnedExact = progress * gramsTarget;
+  const gramsBurned = Math.min(Math.round(gramsBurnedExact), gramsTarget);
+  const goldEarnedExact = Math.min(progress * goldPerSessionExact, goldPerSessionExact);
+  const goldEarned = Number(goldEarnedExact.toFixed(6));
   const remaining = Math.max(0, SESSION_DURATION_SEC - elapsed);
 
   const startMining = useCallback(() => {
@@ -201,14 +232,16 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
 
       if (nextProgress >= 1) {
         setLastReward(goldPerSession);
-        recordBurn(GRAM_PER_SESSION, { goldEarned: goldPerSession, source: "mining" });
+        recordBurn(GRAM_PER_SESSION, { goldEarned: goldPerSessionExact, source: "mining" });
+        // consume one session of session-based boosts
+        consumeSession();
         haptics.success();
         playMiningComplete();
         startRef.current = null;
         setIsMining(false);
         rafRef.current = null;
         setSessionStake(0);
-        setNotice(`Начислено +${ggFormatter.format(goldPerSession)} GOLD.`);
+        setNotice(`Начислено +${goldFormatter.format(goldPerSessionExact)} GOLD.`);
         return;
       }
 
@@ -222,7 +255,7 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
         rafRef.current = null;
       }
     };
-  }, [isMining, recordBurn, goldPerSession]);
+  }, [consumeSession, goldPerSession, goldPerSessionExact, isMining, recordBurn]);
 
   useEffect(
     () => () => {
@@ -274,13 +307,16 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
             active: isMining,
             progress,
             gramsBurned,
-            gramsTarget: GRAM_PER_SESSION,
+            gramsTarget,
             goldEarned,
             goldTarget: goldPerSession,
+            baseGoldTarget: baseGoldPerSession,
+            multiplier: appliedMultiplier,
             remaining,
             elapsed,
             lastReward,
           }}
+          difficulty={difficulty}
           totals={{
             burned: runtime.burnedGram,
             gold: runtime.mintedGold,

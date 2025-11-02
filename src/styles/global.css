@@ -121,6 +121,23 @@ body {
   user-select: none;
 }
 
+/* Telegram WebApp: разрешаем нормальную работу внутренних скроллеров.
+   На некоторых версиях WebView сочетание fixed-корня и вложенных абсолютных
+   скроллеров блокирует прокрутку. В режиме Telegram снимаем fixed c body/#root,
+   оставляем overflow:hidden у body, чтобы страница не скроллилась, а скролл
+   происходил внутри .screen-wrapper. */
+html[data-telegram="true"] body,
+html[data-telegram="true"] #root {
+  position: static;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  height: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
 .app-root,
 .app-main {
   width: 100%;
@@ -386,6 +403,45 @@ body {
   align-items: flex-start;
 }
 
+.mining-difficulty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: clamp(10px, 2.8vw, 14px) clamp(12px, 3vw, 16px);
+  border-radius: clamp(12px, 3vw, 16px);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  min-width: max(180px, 32%);
+  align-items: flex-end;
+  backdrop-filter: blur(16px) saturate(140%);
+}
+
+.mining-difficulty__label {
+  font-size: clamp(11px, 2.8vw, 13px);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.mining-difficulty__rate {
+  font-size: clamp(15px, 3.6vw, 17px);
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    "tnum" 1,
+    "lnum" 1;
+}
+
+.mining-difficulty__countdown {
+  font-size: clamp(12px, 3vw, 14px);
+  color: rgba(255, 255, 255, 0.68);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    "tnum" 1,
+    "lnum" 1;
+}
+
 .mining-balance__label {
   text-transform: uppercase;
   font-size: clamp(11px, 2.8vw, 13px);
@@ -412,6 +468,11 @@ body {
 
   .mining-balance__value {
     white-space: normal;
+  }
+
+  .mining-difficulty {
+    width: 100%;
+    align-items: flex-start;
   }
 }
 
@@ -771,6 +832,16 @@ body {
   margin: 0;
   color: rgba(255, 255, 255, 0.7);
   font-size: clamp(14px, 3.5vw, 16px);
+}
+
+.profile-card__hint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: clamp(13px, 3.2vw, 15px);
+}
+
+.profile-card__hint strong {
+  color: #fff;
 }
 
 .profile-card__body {
@@ -1248,8 +1319,8 @@ body {
   overflow-x: hidden;
 
   /* КРИТИЧНО: Предотвращает pull-to-refresh и закрытие бота */
-  overscroll-behavior: none;
-  overscroll-behavior-y: none;
+  overscroll-behavior: contain;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 
   /* Явно разрешаем вертикальную прокрутку в WebView Telegram */
@@ -1261,6 +1332,13 @@ body {
   opacity: 0;
   pointer-events: none;
   z-index: 1;
+}
+
+/* Telegram WebApp: усиливаем настройки прокрутки для внутренних экранов */
+html[data-telegram="true"] .screen-wrapper {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .screen-wrapper::-webkit-scrollbar {
@@ -2132,31 +2210,11 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 500;
-  white-space: nowrap;
-}
-
-.stats-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: clamp(14px, 3.5vw, 18px) clamp(16px, 4vw, 22px);
-  background: rgba(75, 119, 255, 0.08);
-  border: 1px solid rgba(75, 119, 255, 0.2);
-  border-radius: 14px;
-  width: 100%;
-}
-
-.stats-note__icon {
-  font-size: 20px;
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-.stats-note__text {
-  margin: 0;
-  font-size: clamp(13px, 3.2vw, 14px);
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.5;
+  white-space: normal;
+  text-wrap: balance;
+  word-break: break-word;
+  hyphens: auto;
+  line-height: 1.25;
 }
 
 .stats-section {
@@ -3073,21 +3131,48 @@ body {
   --screen-max-width: 960px;
   --screen-gap: clamp(24px, 5vh, 40px);
 }
-
 .shop-header {
   --screen-header-gap: clamp(14px, 3vw, 18px);
 }
 
-.shop-balance {
+.shop-tabs {
   display: inline-flex;
   align-items: center;
-  gap: clamp(10px, 2.5vw, 12px);
-  padding: clamp(12px, 3vw, 14px) clamp(22px, 5vw, 26px);
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(197, 155, 36, 0.08));
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  border-radius: 999px;
-  font-size: clamp(16px, 4vw, 18px);
+  justify-content: center;
+  gap: clamp(8px, 2vw, 14px);
+  padding: clamp(8px, 2vw, 12px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: clamp(16px, 3vw, 20px);
+  margin: 0 auto clamp(24px, 5vh, 32px);
+  flex-wrap: wrap;
+}
+
+.shop-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 600;
+  font-size: clamp(14px, 3.5vw, 16px);
+  padding: clamp(10px, 2.5vw, 12px) clamp(22px, 5vw, 28px);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.shop-tab:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.shop-tab.is-active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.28), rgba(197, 155, 36, 0.18));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(197, 155, 36, 0.3);
+}
+
+.shop-tab.is-active:hover {
+  color: #fff;
 }
 
 .shop-balance__icon {
@@ -3117,12 +3202,142 @@ body {
   line-height: 1.5;
 }
 
+.shop-active {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 3.5vw, 20px);
+  width: 100%;
+}
+
+.shop-active__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(10px, 2.5vw, 14px);
+  padding: 0 clamp(16px, 4vw, 24px);
+  align-self: stretch;
+}
+
+.shop-active__header h2 {
+  margin: 0;
+  font-size: clamp(18px, 4.2vw, 20px);
+  font-weight: 600;
+}
+
+.shop-active__summary {
+  font-size: clamp(13px, 3.2vw, 15px);
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.shop-active__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(260px, 45%, 320px), 1fr));
+  gap: clamp(18px, 4vw, 26px);
+  align-items: stretch;
+  justify-items: stretch;
+  grid-auto-rows: 1fr;
+}
+
+.shop-active__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  gap: clamp(12px, 3vw, 16px);
+  padding: clamp(18px, 4vw, 24px);
+  border-radius: clamp(14px, 3vw, 18px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  min-height: clamp(160px, 32vw, 200px);
+  width: 100%;
+}
+
+@media (max-width: 620px) {
+  .shop-active__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.shop-active__icon {
+  font-size: clamp(34px, 9vw, 44px);
+  line-height: 1;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+}
+
+.shop-active__body {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 2vw, 10px);
+  align-items: center;
+  width: 100%;
+}
+
+.shop-active__title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(6px, 1.6vw, 8px);
+}
+
+.shop-active__name {
+  font-size: clamp(15px, 3.6vw, 17px);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.shop-active__tag {
+  font-size: clamp(10px, 2.6vw, 12px);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(75, 119, 255, 0.18);
+  color: rgba(75, 170, 255, 0.85);
+}
+
+.shop-active__primary {
+  font-size: clamp(14px, 3.4vw, 16px);
+  font-weight: 600;
+  color: var(--gold2);
+  text-align: center;
+}
+
+.shop-active__secondary {
+  font-size: clamp(12px, 3vw, 14px);
+  color: rgba(255, 255, 255, 0.68);
+  text-align: center;
+}
+
+.shop-empty {
+  margin: clamp(20px, 4vw, 28px) clamp(16px, 4vw, 24px) 0;
+  padding: clamp(20px, 4vw, 28px);
+  border-radius: clamp(14px, 3vw, 18px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  max-width: none;
+  text-align: center;
+  font-size: clamp(14px, 3.5vw, 16px);
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .shop-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(clamp(260px, 45%, 320px), 1fr));
   gap: clamp(18px, 4vw, 26px);
-  justify-items: center;
+  justify-items: stretch;
   width: 100%;
+  grid-auto-rows: 1fr;
 }
 
 .shop-item {
@@ -3137,7 +3352,8 @@ body {
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   overflow: hidden;
   width: 100%;
-  max-width: 420px;
+  max-width: none;
+  height: 100%;
 }
 
 .shop-item::before {
@@ -3147,6 +3363,7 @@ body {
   background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.1), transparent 70%);
   opacity: 0;
   transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .shop-item:hover {
@@ -3234,6 +3451,7 @@ body {
   gap: clamp(14px, 3vw, 18px);
   padding-top: clamp(10px, 2.5vw, 14px);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: auto;
 }
 
 .shop-item__price {
@@ -3302,6 +3520,12 @@ body {
   transform: none;
 }
 
+.shop-item__button--owned:disabled {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: default;
+}
+
 .shop-note {
   background: linear-gradient(135deg, rgba(75, 119, 255, 0.08), rgba(75, 119, 255, 0.02));
   border: 1px solid rgba(75, 119, 255, 0.2);
@@ -3315,17 +3539,20 @@ body {
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+  pointer-events: auto;
 }
 
 .modal__backdrop {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .modal__content {
@@ -3340,6 +3567,7 @@ body {
   gap: 12px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
   z-index: 1;
+  pointer-events: auto;
 }
 
 .modal__content > h2 {
