@@ -1,6 +1,6 @@
 /**
  * Application Data Models
- * 
+ *
  * Shop items, tasks, and statistics data definitions.
  */
 

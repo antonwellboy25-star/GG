@@ -1,6 +1,6 @@
 /**
  * Application Configuration
- * 
+ *
  * Centralized configuration for TON blockchain and mining difficulty.
  */
 
