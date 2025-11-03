@@ -269,6 +269,48 @@ export default function ProfileScreen() {
 
         <div className="profile-card">
           <div className="profile-card__header">
+            <h2>Вывод средств</h2>
+            <p>Выведите заработанные средства на ваш кошелёк</p>
+          </div>
+
+          <div className="profile-card__body">
+            <div className="profile-withdrawal">
+              <div className="profile-withdrawal-option">
+                <div className="profile-withdrawal-option__header">
+                  <h3>💎 GRAM</h3>
+                  <p>Доступно: {numberFormatter.format(balances.gram)}</p>
+                </div>
+                <button
+                  type="button"
+                  className="profile-withdrawal-button"
+                  disabled={!wallet || balances.gram <= 0}
+                >
+                  Вывести GRAM
+                </button>
+              </div>
+
+              <div className="profile-withdrawal-option profile-withdrawal-option--soon">
+                <div className="profile-withdrawal-option__header">
+                  <h3>⭐ GG (GOLD)</h3>
+                  <p>Доступно: {goldFormatter.format(balances.gold)}</p>
+                </div>
+                <div className="profile-withdrawal-soon">
+                  <span className="profile-withdrawal-soon__badge">Soon</span>
+                  <p className="profile-withdrawal-soon__text">Вывод GG будет доступен позже</p>
+                </div>
+              </div>
+            </div>
+
+            {!wallet && (
+              <p className="profile-alert profile-alert--info">
+                Подключите кошелёк TON для вывода средств
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="profile-card">
+          <div className="profile-card__header">
             <h2>История обмена</h2>
           </div>
           <div className="profile-card__body">

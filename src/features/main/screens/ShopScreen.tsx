@@ -5,6 +5,7 @@ import { shopItems } from "@/features/main/data/shop";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
 import { ggFormatter, numberFormatter } from "@/shared/utils/formatters";
 import { useBoosts } from "@/shared/hooks";
+import { haptics } from "@/shared/utils/haptics";
 import type { ActiveBoost, BoostActivationResult } from "@/shared/state/boosts";
 
 type ShopItem = (typeof shopItems)[number];
@@ -134,23 +135,27 @@ export default function ShopScreen() {
   const handleBuyClick = (item: ShopItem) => {
     setSelected(item);
     setError(null);
+    haptics.selection();
   };
 
   const handleCloseModal = () => {
     setSelected(null);
     setError(null);
+    haptics.impact("soft");
   };
 
   const handleConfirmPurchase = () => {
     if (!selected) return;
     if (balances.gram < selected.price) {
       setError("Недостаточно GRAM. Пополните баланс перед покупкой.");
+      haptics.warning();
       return;
     }
 
     const success = spendGram(selected.price);
     if (!success) {
       setError("Не удалось списать GRAM. Попробуйте снова.");
+      haptics.error();
       return;
     }
 
@@ -166,7 +171,7 @@ export default function ShopScreen() {
 
     const buildNotice = () => {
       if (!activation) {
-        return `Сожжено ${numberFormatter.format(selected.price)} GRAM за «${selected.name}».`;
+        return `Потрачено ${numberFormatter.format(selected.price)} GRAM за «${selected.name}».`;
       }
 
       switch (activation.kind) {
@@ -189,7 +194,7 @@ export default function ShopScreen() {
           return `Везение! +${ggFormatter.format(activation.goldAwarded)} GOLD.`;
         }
         default:
-          return `Сожжено ${numberFormatter.format(selected.price)} GRAM за «${selected.name}».`;
+          return `Потрачено ${numberFormatter.format(selected.price)} GRAM за «${selected.name}».`;
       }
     };
 
@@ -201,6 +206,7 @@ export default function ShopScreen() {
     });
 
     setNotice(buildNotice());
+    haptics.success();
     handleCloseModal();
   };
 
@@ -257,7 +263,7 @@ export default function ShopScreen() {
           <div className="shop-grid" role="tabpanel" aria-label="Каталог бустов">
             {items.map((item) => {
               const isActive = activeItemIds.has(item.id);
-              const buttonLabel = !item.available ? "Недоступно" : isActive ? "Куплено" : "Сжечь";
+              const buttonLabel = !item.available ? "Недоступно" : isActive ? "Куплено" : "Купить";
 
               return (
                 <div
@@ -288,7 +294,7 @@ export default function ShopScreen() {
                       onClick={() => handleBuyClick(item)}
                       aria-label={
                         item.available && !isActive
-                          ? `Сжечь ${numberFormatter.format(item.price)} GRAM`
+                          ? `Купить за ${numberFormatter.format(item.price)} GRAM`
                           : item.available
                             ? "Буст уже активен"
                             : undefined
@@ -363,8 +369,8 @@ export default function ShopScreen() {
               <h2 id="shop-purchase-title">Подтверждение покупки</h2>
               <p className="modal__item">{selectedItem.name}</p>
               <p className="modal__details">
-                Нужно сжечь {numberFormatter.format(selectedItem.price)} GRAM
-                {selectedItem.effectLabel ? ` для эффекта: ${selectedItem.effectLabel}` : ""}.
+                Цена: {numberFormatter.format(selectedItem.price)} GRAM
+                {selectedItem.effectLabel ? `. Эффект: ${selectedItem.effectLabel}` : ""}.
               </p>
               <p className="modal__hint">
                 Баланс: {numberFormatter.format(balances.gram)} GRAM ·{" "}
@@ -384,7 +390,7 @@ export default function ShopScreen() {
                   onClick={handleConfirmPurchase}
                   disabled={!canAfford}
                 >
-                  Сжечь {numberFormatter.format(selectedItem.price)} GRAM
+                  Купить за {numberFormatter.format(selectedItem.price)} GRAM
                 </button>
               </div>
             </div>

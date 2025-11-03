@@ -3,6 +3,7 @@ import ScreenHeader from "@/features/main/components/ScreenHeader";
 import { useTelegramInfo } from "@/shared/hooks";
 import { buildReferralLinks } from "@/shared/utils/telegram";
 import { copyToClipboard, openTelegramShare } from "@/shared/utils/formatters";
+import { haptics } from "@/shared/utils/haptics";
 
 export default function ReferralsScreen() {
   const [copied, setCopied] = useState(false);
@@ -18,12 +19,17 @@ export default function ReferralsScreen() {
 
   const handleCopy = async (text: string) => {
     const ok = await copyToClipboard(text);
-    if (!ok) return;
+    if (!ok) {
+      haptics.error();
+      return;
+    }
+    haptics.success();
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = () => {
+    haptics.impact("light");
     openTelegramShare({
       url: shareLink,
       text: `${displayName} приглашает тебя в GG Mining!`,
@@ -95,9 +101,7 @@ export default function ReferralsScreen() {
         <div className="referral-section">
           <h2 className="referral-section__title">Топ рефералов</h2>
           <div className="referral-list empty">
-            <p className="referral-empty">
-              Статистика появится после запусков программы рекомендаций.
-            </p>
+            <p className="referral-empty">Пусто</p>
           </div>
         </div>
 
