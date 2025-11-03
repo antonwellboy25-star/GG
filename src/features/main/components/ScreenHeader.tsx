@@ -1,12 +1,3 @@
-/**
- * Screen Header Component
- *
- * Reusable header component for application screens.
- * Displays a title, subtitle, and optional children content.
- *
- * @module features/main/components/ScreenHeader
- */
-
 import type { ReactNode } from "react";
 
 type ScreenHeaderProps = {

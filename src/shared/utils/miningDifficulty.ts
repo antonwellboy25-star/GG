@@ -15,7 +15,7 @@
  * @module shared/utils/miningDifficulty
  */
 
-import { miningDifficultyConfig, type DifficultyModel } from "@/shared/config/mining";
+import { miningDifficultyConfig, type DifficultyModel } from "@/shared/config";
 
 const MS_IN_DAY = 86_400_000;
 

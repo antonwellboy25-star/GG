@@ -1,22 +1,15 @@
 /**
- * Mining Difficulty Configuration
- *
- * Configures the mining difficulty progression model for the application.
- * Controls how GOLD per GRAM ratio decreases over time.
- *
- * Available Models:
- * - exp: Exponential decay with configurable half-life
- * - daily-linear: Linear decrease by 1 GOLD/GRAM per day
- * - monthly-halving: Halves each month until reaching target
- *
- * Current configuration uses exponential decay:
- * - Start: 1000 GOLD per 1000 GRAM
- * - Target: 1 GOLD per 1000 GRAM
- * - Half-life: 30 days
- *
- * @module shared/config/mining
+ * Application Configuration
+ * 
+ * Centralized configuration for TON blockchain and mining difficulty.
  */
 
+// TON Blockchain Configuration
+export const GRAM_BURN_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
+export const GRAM_TOPUP_ADDRESS = "EQBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBKCE";
+export const GRAM_DECIMALS = 9;
+
+// Mining Difficulty Configuration
 export type DifficultyModel =
   | { model: "exp"; startRate: number; targetRate: number; halfLifeDays: number }
   | { model: "daily-linear"; startRate: number; targetRate: number }
