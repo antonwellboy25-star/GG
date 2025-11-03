@@ -12,8 +12,10 @@ export {
   type StarsInvoiceResult,
 } from "@/shared/hooks/useTelegramPayments";
 
+const getAudioPreferencesSnapshot = () => getAudioPreferences();
+
 export const useAudioPreferences = (): AudioPreferences => {
-  return useSyncExternalStore(subscribeAudioPreferences, getAudioPreferences, getAudioPreferences);
+  return useSyncExternalStore(subscribeAudioPreferences, getAudioPreferences, getAudioPreferencesSnapshot);
 };
 
 export const useTelegramInfo = (): TelegramInfo => {

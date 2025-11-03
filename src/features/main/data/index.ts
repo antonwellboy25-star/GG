@@ -107,7 +107,10 @@ export const shopItems: ShopItem[] = [
   },
 ];
 
-// Tasks Types and Data
+// ============================================================================
+// TASKS DATA
+// ============================================================================
+
 export type TaskType = "daily" | "onboarding" | "social";
 
 export type Task = {
@@ -170,7 +173,10 @@ export const tasks: Task[] = [
   },
 ];
 
-// Statistics Types and Data
+// ============================================================================
+// STATISTICS DATA
+// ============================================================================
+
 export type StatisticsSummary = {
   totalGG: number;
   totalSessions: number;
