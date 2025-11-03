@@ -72,6 +72,48 @@ export type ReferralContext = {
 
 const readWebApp = () => (typeof window === "undefined" ? undefined : window.Telegram?.WebApp);
 
+const parseVersionParts = (value?: string | null): number[] | null => {
+  if (!value) return null;
+  const sanitized = value.trim();
+  if (!sanitized) return null;
+  const parts = sanitized
+    .split(".")
+    .map((segment) => Number.parseInt(segment, 10))
+    .filter((segment) => Number.isFinite(segment) && segment >= 0);
+  return parts.length > 0 ? parts : null;
+};
+
+const compareSemanticVersion = (current: number[] | null, target: number[] | null) => {
+  if (!target) return false;
+  if (!current) return false;
+  const length = Math.max(current.length, target.length);
+  for (let index = 0; index < length; index += 1) {
+    const currentValue = current[index] ?? 0;
+    const targetValue = target[index] ?? 0;
+    if (currentValue > targetValue) return true;
+    if (currentValue < targetValue) return false;
+  }
+  return true;
+};
+
+export const isTelegramVersionAtLeast = (
+  webApp: TelegramWebApp | undefined | null,
+  version: string,
+): boolean => {
+  if (!webApp) return false;
+  if (typeof webApp.isVersionAtLeast === "function") {
+    try {
+      return webApp.isVersionAtLeast(version);
+    } catch {
+      // Fallback to manual comparison below.
+    }
+  }
+
+  const currentParts = parseVersionParts(webApp.platformVersion ?? webApp.version);
+  const targetParts = parseVersionParts(version);
+  return compareSemanticVersion(currentParts, targetParts);
+};
+
 const mapUser = (user?: TelegramWebAppUser | null): TelegramProfile | null => {
   if (!user) return null;
   return {

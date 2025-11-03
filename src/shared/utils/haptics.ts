@@ -1,3 +1,4 @@
+import { isTelegramVersionAtLeast } from "@/shared/utils/telegram";
 /**
  * Haptic Feedback Utilities
  *
@@ -63,7 +64,11 @@ const vibrate = (pattern: number | number[]) => {
 const getTelegramHaptics = (): HapticModule | null => {
   if (typeof window === "undefined") return null;
   try {
-    const module = window.Telegram?.WebApp?.HapticFeedback;
+    const webApp = window.Telegram?.WebApp;
+    if (!isTelegramVersionAtLeast(webApp, "7.0")) {
+      return null;
+    }
+    const module = webApp?.HapticFeedback;
     return module ?? null;
   } catch (error) {
     if (import.meta.env.DEV) {

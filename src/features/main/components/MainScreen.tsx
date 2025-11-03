@@ -25,6 +25,10 @@ const SESSION_DURATION_SEC = 20;
 const SESSION_DURATION_MS = SESSION_DURATION_SEC * 1000;
 const GRAM_PER_SESSION = 1000;
 
+const DEBUG_MINING = import.meta.env.VITE_DEBUG_MINING === "true";
+const miningLog = DEBUG_MINING ? (...args: unknown[]) => console.log(...args) : () => undefined;
+const miningWarn = DEBUG_MINING ? (...args: unknown[]) => console.warn(...args) : () => undefined;
+
 type MainScreenProps = {
   loading?: boolean;
   showNav?: boolean;
@@ -66,11 +70,20 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
   const [elapsed, setElapsed] = useState(0);
   const [lastReward, setLastReward] = useState<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [sessionStake, setSessionStake] = useState(0);
+  const [canStopMining, setCanStopMining] = useState(true); // State для UI блокировки кнопки
+  // Используем ref вместо state для sessionStake чтобы избежать stale closure
+  const sessionStakeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
   const progressRef = useRef(0);
   const elapsedRef = useRef(0);
+  // Флаг для атомарной защиты от race condition
+  const miningLockRef = useRef(false);
+  // Таймер для блокировки кнопки Stop на первые 1.5 секунды
+  const canStopRef = useRef(true);
+  const stopDebounceTimerRef = useRef<number | null>(null);
+  // Счетчик операций для отладки
+  const operationCounterRef = useRef(0);
 
   const [screen, setScreen] = useState<Screen>("main");
   const [prev, setPrev] = useState<Screen | null>(null);
@@ -150,7 +163,7 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
     [isHome],
   );
 
-  const gramsTarget = sessionStake > 0 ? sessionStake : GRAM_PER_SESSION;
+  const gramsTarget = sessionStakeRef.current > 0 ? sessionStakeRef.current : GRAM_PER_SESSION;
   const gramsBurnedExact = progress * gramsTarget;
   const gramsBurned = Math.min(Math.round(gramsBurnedExact), gramsTarget);
   const goldEarnedExact = Math.min(progress * goldPerSessionExact, goldPerSessionExact);
@@ -158,13 +171,61 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
   const remaining = Math.max(0, SESSION_DURATION_SEC - elapsed);
 
   const startMining = useCallback(() => {
+    const opId = ++operationCounterRef.current;
+    miningLog(`[Op#${opId}] startMining called, lock=${miningLockRef.current}`);
+
+    // Атомарная проверка - если уже майним, отклоняем
+    if (miningLockRef.current) {
+      miningWarn(`[Op#${opId}] Mining lock active - rejecting duplicate start`);
+      return false;
+    }
+
+    // Дополнительный предохранитель: если локальный стейк ещё не очищен, запрещаем запуск
+    if (sessionStakeRef.current > 0) {
+      miningWarn(
+        `[Op#${opId}] Local stake still active (local=${sessionStakeRef.current}) - aborting start`,
+      );
+      setNotice("Дождитесь завершения текущей сессии");
+      return false;
+    }
+
+    if (runtime.activeStake > 0) {
+      miningWarn(
+        `[Op#${opId}] Global activeStake=${runtime.activeStake}. Продолжаем, ожидаем синхронизацию`,
+      );
+    }
+
+    // КРИТИЧЕСКИ ВАЖНО: Устанавливаем блокировку ДО spendGram!
+    // Это предотвращает повторный вызов между spendGram и последующим кодом
+    miningLockRef.current = true;
+    miningLog(`[Op#${opId}] Lock acquired BEFORE spendGram`);
+
     const ok = spendGram(GRAM_PER_SESSION);
     if (!ok) {
+      // Снимаем блокировку если списание не удалось
+      miningLockRef.current = false;
+      miningWarn(`[Op#${opId}] spendGram failed - lock released`);
       setNotice("Недостаточно GRAM. Пополните баланс для запуска майнинга.");
       haptics.warning();
       playWarningCue();
+      miningWarn(`Failed to start mining: insufficient GRAM (needed: ${GRAM_PER_SESSION})`);
       return false;
     }
+
+    miningLog(`[Op#${opId}] Mining started: ${GRAM_PER_SESSION} GRAM deducted, balance locked`);
+
+    // Блокируем кнопку Stop на 1.5 секунды для предотвращения случайных кликов
+    canStopRef.current = false;
+    setCanStopMining(false); // UI блокировка
+    if (stopDebounceTimerRef.current !== null) {
+      window.clearTimeout(stopDebounceTimerRef.current);
+    }
+    stopDebounceTimerRef.current = window.setTimeout(() => {
+      canStopRef.current = true;
+      setCanStopMining(true); // Разблокировка UI
+      stopDebounceTimerRef.current = null;
+      miningLog("Stop button unlocked - can stop mining now");
+    }, 1500); // 1.5 секунды
 
     startRef.current = null;
     setProgress(0);
@@ -172,35 +233,91 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
     progressRef.current = 0;
     elapsedRef.current = 0;
     setIsMining(true);
-    setSessionStake(GRAM_PER_SESSION);
+    sessionStakeRef.current = GRAM_PER_SESSION;
     setNotice(null);
     haptics.impact("light");
     playMiningStart();
     return true;
-  }, [spendGram]);
+  }, [runtime.activeStake, spendGram]);
 
   const stopMining = useCallback(() => {
+    const opId = ++operationCounterRef.current;
+    miningLog(
+      `[Op#${opId}] stopMining called, stake=${sessionStakeRef.current}, progress=${progressRef.current}`,
+    );
+
+    // Принудительная остановка RAF ПЕРВЫМ делом
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
+      miningLog(`[Op#${opId}] RAF cancelled`);
     }
+
+    // Очищаем таймер debounce если активен
+    if (stopDebounceTimerRef.current !== null) {
+      window.clearTimeout(stopDebounceTimerRef.current);
+      stopDebounceTimerRef.current = null;
+    }
+    canStopRef.current = true;
+    setCanStopMining(true); // Разблокировка UI
+
     startRef.current = null;
-    if (sessionStake > 0 && progress < 1) {
-      addGram(sessionStake);
+
+    // Возвращаем GRAM только если майнинг не завершен
+    const shouldRefund = sessionStakeRef.current > 0 && progressRef.current < 1;
+
+    if (shouldRefund) {
+      miningLog(
+        `[Op#${opId}] Mining stopped early: returning ${sessionStakeRef.current} GRAM (progress: ${(progressRef.current * 100).toFixed(1)}%)`,
+      );
+      addGram(sessionStakeRef.current);
+    } else if (progressRef.current >= 1) {
+      miningLog(`[Op#${opId}] Mining completed: GRAM already consumed`);
+    } else if (sessionStakeRef.current === 0) {
+      miningWarn(`[Op#${opId}] Stop called but no stake to refund - possible race condition!`);
     }
+
+    // Снимаем блокировку
+    miningLockRef.current = false;
+    miningLog(`[Op#${opId}] Lock released`);
+
     setIsMining(false);
     setProgress(0);
     setElapsed(0);
     progressRef.current = 0;
     elapsedRef.current = 0;
-    setSessionStake(0);
-  }, [addGram, progress, sessionStake]);
+    sessionStakeRef.current = 0;
+  }, [addGram]);
 
   const handleToggleMining = useCallback(() => {
+    // Защита от двойного клика при остановке
     if (isMining) {
+      // Проверяем можно ли остановить (прошло >= 1.5 сек)
+      if (!canStopRef.current) {
+        miningWarn("Stop button is locked - wait 1.5 seconds after start");
+        setNotice("Подождите немного перед остановкой майнинга");
+        haptics.warning();
+        return;
+      }
+
       stopMining();
       haptics.impact("soft");
       playMiningStop();
+      setNotice("Майнинг остановлен. GRAM возвращены.");
+      return;
+    }
+
+    // Дополнительная проверка блокировки
+    if (miningLockRef.current) {
+      miningWarn("Mining lock is active - cannot start new session");
+      setNotice("Дождитесь завершения текущей операции");
+      return;
+    }
+
+    // Дополнительная проверка что майнинг действительно не запущен
+    if (rafRef.current !== null) {
+      miningWarn("Mining RAF already running - forcing cleanup");
+      stopMining(); // Принудительная очистка
       return;
     }
 
@@ -240,8 +357,16 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
         startRef.current = null;
         setIsMining(false);
         rafRef.current = null;
-        setSessionStake(0);
+        sessionStakeRef.current = 0;
+        miningLockRef.current = false; // Снимаем блокировку при завершении
+        canStopRef.current = true; // Разблокируем кнопку Stop
+        setCanStopMining(true); // UI разблокировка
+        if (stopDebounceTimerRef.current !== null) {
+          window.clearTimeout(stopDebounceTimerRef.current);
+          stopDebounceTimerRef.current = null;
+        }
         setNotice(`Начислено +${goldFormatter.format(goldPerSessionExact)} GOLD.`);
+        miningLog("Mining completed successfully - lock released");
         return;
       }
 
@@ -254,6 +379,8 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
+      // Cleanup: снимаем блокировку если компонент размонтируется во время майнинга
+      miningLog("Mining effect cleanup - releasing lock if active");
     };
   }, [consumeSession, goldPerSession, goldPerSessionExact, isMining, recordBurn]);
 
@@ -325,7 +452,7 @@ export default function MainScreen({ loading = false, showNav = false }: MainScr
           canMine={balances.gram >= GRAM_PER_SESSION || isMining}
           status={notice}
           onToggle={handleToggleMining}
-          disabled={loading}
+          disabled={loading || (isMining && !canStopMining)}
         />
       )}
 

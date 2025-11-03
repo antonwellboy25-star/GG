@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isTelegramVersionAtLeast } from "@/shared/utils/telegram";
 
 type Insets = {
   top: number;
@@ -24,7 +25,8 @@ export function useTelegramWebApp() {
         webApp.expand();
       }
 
-      if (typeof webApp.requestFullscreen === "function") {
+      const supportsFullscreen = isTelegramVersionAtLeast(webApp, "7.0");
+      if (supportsFullscreen && typeof webApp.requestFullscreen === "function") {
         webApp.requestFullscreen();
       }
 
@@ -36,13 +38,14 @@ export function useTelegramWebApp() {
         webApp.enableClosingConfirmation();
       }
 
-      if (typeof webApp.setHeaderColor === "function") {
+      const supportsChromeColors = isTelegramVersionAtLeast(webApp, "6.1");
+      if (supportsChromeColors && typeof webApp.setHeaderColor === "function") {
         webApp.setHeaderColor("#000000");
       }
-      if (typeof webApp.setBackgroundColor === "function") {
+      if (supportsChromeColors && typeof webApp.setBackgroundColor === "function") {
         webApp.setBackgroundColor("#000000");
       }
-      if (typeof webApp.setBottomBarColor === "function") {
+      if (supportsChromeColors && typeof webApp.setBottomBarColor === "function") {
         webApp.setBottomBarColor("#000000");
       }
 
@@ -156,6 +159,8 @@ export function useTelegramWebApp() {
       });
     };
 
+    const supportsChromeColors = isTelegramVersionAtLeast(webApp, "6.1");
+
     const applyMetrics = () => {
       const viewportFallback = computeViewportInsets();
 
@@ -228,13 +233,13 @@ export function useTelegramWebApp() {
       root.dataset.tgFullscreen = isFullscreen ? "true" : "false";
       root.dataset.tgExpanded = isExpanded ? "true" : "false";
 
-      if (typeof webApp.setHeaderColor === "function") {
+      if (supportsChromeColors && typeof webApp.setHeaderColor === "function") {
         webApp.setHeaderColor("#000000");
       }
-      if (typeof webApp.setBackgroundColor === "function") {
+      if (supportsChromeColors && typeof webApp.setBackgroundColor === "function") {
         webApp.setBackgroundColor("#000000");
       }
-      if (typeof webApp.setBottomBarColor === "function") {
+      if (supportsChromeColors && typeof webApp.setBottomBarColor === "function") {
         webApp.setBottomBarColor("#000000");
       }
     };

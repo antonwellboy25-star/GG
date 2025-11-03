@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import type { RecentSession, StatisticsSummary } from "@/features/main/data/statistics";
 import { recentSessions as baseSessions } from "@/features/main/data/statistics";
 import { getDifficultySnapshot } from "@/shared/utils/miningDifficulty";
 const MAX_HISTORY_RECORDS = 20;
 const MAX_RECENT_SESSIONS = 10;
+const DEBUG_RUNTIME = import.meta.env.VITE_DEBUG_RUNTIME === "true";
+const runtimeLog = DEBUG_RUNTIME ? (...args: unknown[]) => console.log(...args) : () => undefined;
 
 type BurnSource = "mining" | "purchase" | "other";
 
@@ -30,6 +33,7 @@ type RuntimeState = {
   gramBalance: number;
   goldBalance: number;
   sessionsCompleted: number;
+  activeStake: number;
 };
 
 type DifficultyState = {
@@ -71,6 +75,7 @@ const createInitialRuntime = (): RuntimeState => ({
   gramBalance: 0,
   goldBalance: 0,
   sessionsCompleted: 0,
+  activeStake: 0,
 });
 
 const createInitialSessions = () => baseSessions.map((session) => ({ ...session }));
@@ -148,6 +153,8 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
         goldBalance: prev.goldBalance + gold,
         history: [record, ...prev.history].slice(0, MAX_HISTORY_RECORDS),
         sessionsCompleted: prev.sessionsCompleted + (source === "mining" ? 1 : 0),
+        activeStake:
+          source === "mining" ? Math.max(0, prev.activeStake - gramAmount) : prev.activeStake,
       }));
 
       if (source === "mining") {
@@ -171,10 +178,18 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
     if (gramAmount <= 0) {
       return;
     }
-    setRuntime((prev) => ({
-      ...prev,
-      gramBalance: prev.gramBalance + gramAmount,
-    }));
+
+    flushSync(() => {
+      setRuntime((prev) => {
+        const newBalance = prev.gramBalance + gramAmount;
+        runtimeLog(`[UserRuntime] addGram: ${prev.gramBalance} + ${gramAmount} = ${newBalance}`);
+        return {
+          ...prev,
+          gramBalance: newBalance,
+          activeStake: Math.max(0, prev.activeStake - gramAmount),
+        };
+      });
+    });
   }, []);
 
   const spendGram = useCallback((gramAmount: number) => {
@@ -182,16 +197,48 @@ export function UserRuntimeProvider({ children }: { children: ReactNode }) {
       return false;
     }
     let success = false;
-    setRuntime((prev) => {
-      if (prev.gramBalance < gramAmount) {
-        return prev;
-      }
-      success = true;
-      return {
-        ...prev,
-        gramBalance: prev.gramBalance - gramAmount,
-      };
+    let currentBalance = 0;
+    let newBalance = 0;
+
+    // Используем functional update для атомарности операции; flushSync гарантирует немедленное применение
+    flushSync(() => {
+      setRuntime((prev) => {
+        currentBalance = prev.gramBalance;
+
+        if (prev.gramBalance < gramAmount) {
+          if (DEBUG_RUNTIME) {
+            console.warn(
+              `[UserRuntime] spendGram FAILED: insufficient balance (${prev.gramBalance} < ${gramAmount})`,
+            );
+          }
+          return prev; // Возвращаем prev без изменений - success останется false
+        }
+
+        success = true;
+        newBalance = prev.gramBalance - gramAmount;
+        runtimeLog(
+          `[UserRuntime] spendGram SUCCESS: ${prev.gramBalance} - ${gramAmount} = ${newBalance}`,
+        );
+
+        return {
+          ...prev,
+          gramBalance: newBalance,
+          activeStake: prev.activeStake + gramAmount,
+        };
+      });
     });
+
+    // Дополнительная проверка на negative balance (не должно происходить, но на всякий случай)
+    if (success && newBalance < 0) {
+      console.error(`[UserRuntime] CRITICAL: Negative balance detected! ${newBalance}`);
+      // Откатываем транзакцию
+      setRuntime((prev) => ({
+        ...prev,
+        gramBalance: currentBalance,
+      }));
+      return false;
+    }
+
     return success;
   }, []);
 

@@ -131,8 +131,16 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
   useEffect(() => {
     activeRef.current = active;
     targetCohesionRef.current = active ? 1 : 0;
+
+    // При запуске майнинга мгновенно сбрасываем cohesion для быстрого старта анимации
+    if (active) {
+      cohesionRef.current = 0;
+    }
+
+    // Сбрасываем coinEnabled при каждом изменении active для перезапуска анимации
+    coinEnabledRef.current = false;
+
     if (!active) {
-      coinEnabledRef.current = false;
       const meshes = coinMeshesRef.current;
       if (meshes) {
         const gramMat = meshes.gram.material as THREE.MeshBasicMaterial;
@@ -171,7 +179,8 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
   const updateCohesion = useCallback((dt: number) => {
     const current = cohesionRef.current;
     const target = targetCohesionRef.current;
-    const speed = target > current ? 7.4 : 4.2;
+    // Увеличена скорость роста cohesion для быстрого старта анимации
+    const speed = target > current ? 12.0 : 4.2;
     cohesionRef.current = THREE.MathUtils.damp(current, target, speed, dt);
   }, []);
 
@@ -568,42 +577,48 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
 
       if (approachPhase !== null) {
         const arc = easeInOutCubic(approachPhase);
-        const wave = Math.sin(arc * Math.PI * 0.8);
-        const wobble = Math.sin(timeWave + arc * 4.2) * (1 - arc * 0.8) * 0.14;
         gram.visible = true;
         gg.visible = false;
-        const x = THREE.MathUtils.lerp(viewport.entryX * 0.9, -viewport.width * 0.04, arc);
+
+        // ЗЕРКАЛЬНАЯ копия анимации вылета GG - красивый залет слева
+        const x = THREE.MathUtils.lerp(viewport.entryX, -viewport.width * 0.14, arc);
         const y =
-          THREE.MathUtils.lerp(viewport.height * 0.12, viewport.height * 0.022, arc) +
-          wave * viewport.height * 0.018;
-        const z = THREE.MathUtils.lerp(-0.22, -0.1, arc);
+          THREE.MathUtils.lerp(viewport.height * 0.04, viewport.height * 0.06, arc) + arc * 0.04;
+        const z = THREE.MathUtils.lerp(-0.24, -0.08, arc);
         gram.position.set(x, y, z);
-        const scale = THREE.MathUtils.lerp(1.12, 0.98, arc);
-        gram.scale.set(scale * baseScale, scale * baseScale, 1);
-        gram.rotation.z = wobble;
-        gram.rotation.y = Math.sin(arc * Math.PI * 0.5) * 0.12;
-        const approachFade = THREE.MathUtils.clamp(1 - arc ** 2.4 * 0.18, 0.72, 1);
-        const approachTarget = Math.max(approachFade, gramMat.opacity);
-        gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, approachTarget, 12, dt);
+
+        // Размер уменьшается при залете (обратно GG)
+        const approachScale = baseScale * (1.2 - arc * 0.34);
+        gram.scale.set(approachScale, approachScale, 1);
+
+        // Плавное вращение при залете (симметрично launchPhase)
+        gram.rotation.z = Math.sin(arc * Math.PI * 0.6) * 0.08;
+        gram.rotation.y = Math.sin(arc * Math.PI * 0.4) * 0.06;
+
+        gramMat.opacity = THREE.MathUtils.damp(gramMat.opacity, 1, 12, dt);
         timeline.gramPos.copy(gram.position);
-        haloTargetOpacity = Math.max(haloTargetOpacity, 0.22 + arc * 0.2);
-        haloTargetScale = Math.max(haloTargetScale, 1.12 + arc * 0.22);
+
+        // Свечение минимальное для контраста
+        haloTargetOpacity = Math.max(haloTargetOpacity, 0.1 + arc * 0.12);
+        haloTargetScale = Math.max(haloTargetScale, 1.05 + arc * 0.15);
       }
 
       if (dissolvePhase !== null) {
         const eased = easeInOutCubic(dissolvePhase);
         gram.visible = true;
-        const hover =
-          THREE.MathUtils.lerp(viewport.height * 0.022, viewport.height * 0.008, eased) +
-          Math.sin(timeWave * 1.4 + eased * 5.1) * 0.012;
-        const depth = THREE.MathUtils.lerp(-0.1, -0.028, eased);
+        // Начинаем с конечной позиции approachPhase: x=-0.14*w, y=0.06*h+0.04, z=-0.08
         const lateral = THREE.MathUtils.lerp(
-          -viewport.width * 0.04,
+          -viewport.width * 0.14,
           -viewport.width * 0.006,
           eased,
         );
+        const hover =
+          THREE.MathUtils.lerp(viewport.height * 0.06 + 0.04, viewport.height * 0.008, eased) +
+          Math.sin(timeWave * 1.4 + eased * 5.1) * 0.012;
+        const depth = THREE.MathUtils.lerp(-0.08, -0.028, eased);
         gram.position.set(lateral, hover, depth);
-        const scale = THREE.MathUtils.lerp(0.98, 0.3, eased);
+        // Начинаем с конечного размера approachPhase: 0.86
+        const scale = THREE.MathUtils.lerp(0.86, 0.3, eased);
         gram.scale.set(scale * baseScale, scale * baseScale, 1);
         gram.rotation.z = Math.sin(timeWave * 0.8 + eased * 6.3) * 0.24;
         gram.rotation.y = Math.sin(timeWave * 0.6 + eased * 3.8) * 0.18;
@@ -641,14 +656,17 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         const reveal = easeInOutCubic(emitPhase);
         const glow = easeOutExpo(emitPhase);
         gg.visible = true;
-        const x = THREE.MathUtils.lerp(-viewport.width * 0.004, viewport.width * 0.14, arc);
+        // Начинаем с конечной точки dissolvePhase: x=-0.006*w, y=0.008*h, z=-0.028
+        const x = THREE.MathUtils.lerp(-viewport.width * 0.006, viewport.width * 0.14, arc);
         const y = THREE.MathUtils.lerp(viewport.height * 0.008, viewport.height * 0.06, arc);
         const z = THREE.MathUtils.lerp(-0.028, 0.08, arc);
         gg.position.set(x, y, z);
-        const scale = THREE.MathUtils.lerp(0.28, 0.86, reveal);
+        // Начинаем с размера dissolvePhase: 0.3
+        const scale = THREE.MathUtils.lerp(0.3, 0.86, reveal);
         gg.scale.set(scale * baseScale, scale * baseScale, 1);
-        gg.rotation.z = Math.sin(arc * Math.PI * 0.9) * 0.12;
-        gg.rotation.y = Math.sin(arc * Math.PI * 0.6) * 0.1;
+        // Мягкое вращение при появлении
+        gg.rotation.z = Math.sin(arc * Math.PI * 0.6) * 0.08;
+        gg.rotation.y = Math.sin(arc * Math.PI * 0.4) * 0.06;
         const emitTarget = THREE.MathUtils.clamp(reveal ** 1.4, 0, 1);
         const haloAssist = THREE.MathUtils.clamp(glow * 0.6, 0, 0.72);
         ggMat.opacity = THREE.MathUtils.damp(ggMat.opacity, emitTarget + haloAssist * 0.2, 11, dt);
@@ -667,8 +685,9 @@ export default function MinerScene({ active, cycleMs = DEFAULT_CYCLE }: MinerSce
         gg.position.set(x, y, z);
         const releaseScale = baseScale * (0.86 + arc * 0.34);
         gg.scale.set(releaseScale, releaseScale, 1);
-        gg.rotation.z = -Math.sin(arc * Math.PI * 0.8) * 0.1;
-        gg.rotation.y = Math.sin(arc * Math.PI * 0.3) * 0.08;
+        // Зеркальное вращение (симметрично approachPhase)
+        gg.rotation.z = -Math.sin(arc * Math.PI * 0.6) * 0.08;
+        gg.rotation.y = Math.sin(arc * Math.PI * 0.4) * 0.06;
         ggMat.opacity = THREE.MathUtils.damp(ggMat.opacity, 1, 12, dt);
         timeline.ggPos.copy(gg.position);
         haloTargetOpacity = Math.max(haloTargetOpacity, 0.44 + arc * 0.2);

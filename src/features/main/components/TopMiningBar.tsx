@@ -95,8 +95,11 @@ export default function TopMiningBar({
     ? `+${goldFormatter.format(session.lastReward)} GOLD`
     : "—";
   const buttonDisabled = disabled || (!session.active && !canMine);
+  const isStopBlocked = disabled && session.active; // Блокировка кнопки Stop во время майнинга
   const buttonLabel = disabled
-    ? "Загрузка..."
+    ? session.active && isStopBlocked
+      ? "Подождите..." // Показываем при блокировке Stop
+      : "Загрузка..."
     : session.active
       ? "Остановить"
       : canMine
