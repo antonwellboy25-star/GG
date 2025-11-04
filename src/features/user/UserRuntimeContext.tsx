@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
-import type { RecentSession, StatisticsSummary } from "@/features/main/data/statistics";
-import { recentSessions as baseSessions } from "@/features/main/data/statistics";
+import type { RecentSession, StatisticsSummary } from "@/features/main/data";
+import { recentSessions as baseSessions } from "@/features/main/data";
 import { getDifficultySnapshot } from "@/shared/utils/miningDifficulty";
 const MAX_HISTORY_RECORDS = 20;
 const MAX_RECENT_SESSIONS = 10;

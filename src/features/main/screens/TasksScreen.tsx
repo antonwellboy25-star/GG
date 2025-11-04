@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
-import { tasks as defaultTasks, type Task } from "@/features/main/data/tasks";
+import { tasks as defaultTasks, type Task } from "@/features/main/data";
 import { ggFormatter } from "@/shared/utils/formatters";
 import { haptics } from "@/shared/utils/haptics";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";

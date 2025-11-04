@@ -1,6 +1,3 @@
-/**
- * Shared hooks for the application
- */
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   type AudioPreferences,
@@ -8,16 +5,17 @@ import {
   subscribeAudioPreferences,
 } from "@/shared/state/audioPreferences";
 import { getTelegramInfo, type TelegramInfo } from "@/shared/utils/telegram";
+
 export { useBoosts } from "@/shared/state/boosts";
 export {
   useTelegramStarsPurchase,
   type StarsInvoiceResult,
 } from "@/shared/hooks/useTelegramPayments";
 
-const noop = () => getAudioPreferences();
+const getAudioPreferencesSnapshot = () => getAudioPreferences();
 
 export const useAudioPreferences = (): AudioPreferences => {
-  return useSyncExternalStore(subscribeAudioPreferences, getAudioPreferences, noop);
+  return useSyncExternalStore(subscribeAudioPreferences, getAudioPreferences, getAudioPreferencesSnapshot);
 };
 
 export const useTelegramInfo = (): TelegramInfo => {

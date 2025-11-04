@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import ScreenHeader from "@/features/main/components/ScreenHeader";
-import { shopItems } from "@/features/main/data/shop";
+import { shopItems } from "@/features/main/data";
 import { useUserRuntime } from "@/features/user/UserRuntimeContext";
 import { ggFormatter, numberFormatter } from "@/shared/utils/formatters";
 import { useBoosts } from "@/shared/hooks";
